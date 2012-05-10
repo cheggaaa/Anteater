@@ -16,7 +16,7 @@ var FreeSpace = int64(300 * 1024 * 1024)
 var CleanMutex *sync.Mutex = &sync.Mutex{}
 
 
-func main() {
+func Init() {
 	err := LoadData(IndexPath)
 	if err != nil {
 		fmt.Println("Error!", err)
