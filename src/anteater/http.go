@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	version   = "0.002"
-	errorPage = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>Fire Static " + version + "</center></body></html>\n"
+	version   = "0.003"
+	errorPage = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>Anteater " + version + "</center></body></html>\n"
 )
 
 

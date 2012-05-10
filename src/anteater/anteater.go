@@ -8,10 +8,10 @@ import (
 	"sync"
 )
 
-var IndexPath string = "/tmp/file.index"
-var DataPath  string = "/tmp/file.data"
-var CSize int64 = int64(2 * 1024 * 1024 * 1024)
-var FreeSpace = int64(300 * 1024 * 1024)
+var IndexPath string = "file.index"
+var DataPath  string = "file.data"
+var CSize int64
+var FreeSpace int64
 
 var CleanMutex *sync.Mutex = &sync.Mutex{}
 
