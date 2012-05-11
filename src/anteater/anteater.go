@@ -16,8 +16,16 @@ var FreeSpace int64
 var CleanMutex *sync.Mutex = &sync.Mutex{}
 
 
-func Init() {
-	err := LoadData(IndexPath)
+func Init(config string) {
+	err := LoadConfig(config) 
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	IndexPath = Conf.DataPath + IndexPath
+	DataPath = Conf.DataPath + DataPath
+	
+	err = LoadData(IndexPath)
 	if err != nil {
 		fmt.Println("Error!", err)
 		c, err := NewContainer(DataPath, CSize)
