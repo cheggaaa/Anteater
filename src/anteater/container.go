@@ -6,7 +6,6 @@ import (
 	"sync"
 	"sync/atomic"
 	"errors"
-	"fmt"
 	"strconv"
 )
 
@@ -46,42 +45,37 @@ func NewContainer(path string, size int64) (*Container, error) {
 	ContainerLastId++
 	path += "." + strconv.FormatInt(int64(ContainerLastId), 10)
 	
-	fmt.Println("Create new container", ContainerLastId, "...")
+	Log.Infoln("Create new container", path, "...")
 	
 	f, err := os.OpenFile(path, os.O_RDWR | os.O_CREATE, 0666)
 	if err != nil {
 		return nil, err
 	}	
 	c := &Container{ContainerLastId, f, path, 0, 0, 0, 0, &sync.Mutex{}, make([]*Space, 0), 0, true}
-	c.Init()
+
 	if err != nil {
 		return nil, err
 	}
 	
-	fmt.Println("Try allocate", size, "bytes");
+	Log.Debugln("Try allocate", size, "bytes");
 		
 	err = c.Allocate(size)
 	if err != nil {
 		return nil, err
 	}
 	
-	fmt.Println("Container", c.Id, "created");	
+	Log.Debugln("Container", c.Id, "created");	
 	return c, err
 }
 
 func ContainerFromData(data *ContainerDumpData) (*Container, error) {
-	fmt.Println("Init container", data.Id);	
+	Log.Infoln("Init container", data.Id);	
 	f, err := os.OpenFile(data.Path, os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
 	}
 	c := &Container{data.Id, f, data.Path, data.Size, data.Offset, data.Count, data.LastId, &sync.Mutex{}, data.Spaces, data.MaxSpaceSize, false}
-	c.Init()	
 	return c, nil
-}
-
-func (c *Container) Init() {
-	
 }
 
 func (c *Container) Allocate(size int64) error {
@@ -104,7 +98,6 @@ func (c *Container) New(size int64, target int) (*File, error) {
 		return nil, errors.New("Can't allocate space in container " + c.Path)
 	}
 	c.Ch = true
-	fmt.Println("Allocate new file (", id, ")", start, size);
 	return c.Get(id, start, size), nil
 }
 
@@ -141,7 +134,7 @@ func (c *Container) GetSpace(size int64, target int) (int64, error) {
 }
 
 func (c *Container) Clean() {
-	fmt.Println("Start clean", c.Id);
+	Log.Debugln("Start clean container", c.Id);
 	if c.HasChanges() {
 		c.M.Lock()
 		c.Spaces, c.MaxSpaceSize = c.Spaces.Join()

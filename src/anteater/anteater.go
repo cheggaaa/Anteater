@@ -22,16 +22,22 @@ func Init(config string) {
 		log.Fatal(err)
 	}
 	
-	IndexPath = Conf.DataPath + IndexPath
-	DataPath = Conf.DataPath + DataPath
+	err = LogInit()
+	if err != nil {
+		log.Fatal(err)
+	}
+	
+	IndexPath = Conf.DataPath + "/" + IndexPath
+	DataPath = Conf.DataPath + "/ " + DataPath
 	
 	err = LoadData(IndexPath)
 	if err != nil {
-		fmt.Println("Error!", err)
+		Log.Debugln("Error while reading index file:", err)
+		Log.Debugln("Try create conainer")
 		c, err := NewContainer(DataPath, CSize)
 		if err != nil {
-			fmt.Println("Can't create new container")
-			log.Fatal(err)
+			Log.Warnln("Can't create new container")
+			Log.Fatal(err)
 		}
 		FileContainers[c.Id] = c
 		Cleanup()
@@ -41,27 +47,28 @@ func Init(config string) {
 		ch := time.Tick(60 * time.Second)
 		for _ = range ch {
 			func () {
-				defer func() {
-			        if err := recover(); err != nil {
-			            fmt.Println("Dump failed:", err)
-			        }
-			    }()
 				Cleanup()
 			}()
 		}
 	}()
 	
-	Start()
+	Log.Infoln("Start server with config", config)
 }
 
 
 func Start() {
-	runServer(http.HandlerFunc(HttpReadWrite), ":8081")
+	if Conf.HttpReadAddr != Conf.HttpWriteAddr {
+		go RunServer(http.HandlerFunc(HttpRead), Conf.HttpReadAddr)
+	}
+	RunServer(http.HandlerFunc(HttpReadWrite), Conf.HttpWriteAddr)
 }
 
 
 func Stop() {
-
+	Log.Infoln("Server stopping..")
+	fmt.Println("Server stopping now")
+	Cleanup()
+	fmt.Println("Bye")
 }
 
 func Cleanup() {
@@ -78,7 +85,7 @@ func Cleanup() {
 	if maxSpace <= FreeSpace {
 		c, err := NewContainer(DataPath, CSize)
 		if err != nil {
-			fmt.Println(err)
+			Log.Warnln(err)
 		} else {
 			FileContainers[c.Id] = c
 		}
@@ -86,7 +93,7 @@ func Cleanup() {
 	
 	err := DumpData(IndexPath)
 	if err != nil {
-		fmt.Println("Dump error:", err)
+		Log.Infoln("Dump error:", err)
 	}
 	
 }

@@ -3,17 +3,15 @@ package anteater
 import (
 	"net/http"
 	"fmt"
-	"log"
 	"strconv"
 	"io"
-	"os"
 	"sort"
 	"strings"
 	"mime"
 )
 
 const (
-	version   = "0.003"
+	version   = "0.004"
 	errorPage = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>Anteater " + version + "</center></body></html>\n"
 )
 
@@ -30,13 +28,13 @@ var httpErrors map[int]string = map[int]string{
 /**
  * Start server with config params
  */
-func runServer(handler http.Handler, addr string) {
+func RunServer(handler http.Handler, addr string) {
 	s := &http.Server{
 		Addr:         addr,
 		Handler:      handler,
 	}
-	fmt.Printf("Start http on %s ...\n", addr)
-	log.Fatal(s.ListenAndServe())
+	Log.Infof("Start http on %s ...\n", addr)
+	Log.Fatal(s.ListenAndServe())
 }
 
 func HttpRead(w http.ResponseWriter, r *http.Request) {
@@ -82,6 +80,7 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	default:
+		Log.Infoln("Unhandled method", r.Method)
 		errorFunc(w, 501)
 	}
 }
@@ -107,6 +106,10 @@ func getFile(name string, w http.ResponseWriter) {
 	w.Header().Set("Content-Length", strconv.FormatInt(i.Size, 10))
 	w.Header().Set("Content-Type", getType(name))
 	
+	for k, v := range(Conf.Headers) {
+		w.Header().Set(k, v)
+	}
+	
 	io.Copy(w, file)
 }
 
@@ -125,7 +128,7 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 		 return
 	}
 	
-	fmt.Println("Start upload file", name, size, "bytes")
+	Log.Debugln("Start upload file", name, size, "bytes")
 	f, fi, err := GetFile(name, size)
 	
 	var written int64
@@ -148,14 +151,13 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 		}
 
 		if err != nil {
-			fmt.Println(err)
+			Log.Warnln(err)
 			errorFunc(w, 500)
 			return
 		}
 	}
 	
-	fmt.Fprintf(os.Stdout, "File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)	
-	
+	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)	
 	fmt.Fprintf(w, "%d", size)	
 }
 

@@ -3,7 +3,6 @@ package anteater
 import (
 	"encoding/gob"
 	"os"
-	"fmt"
 	"bytes"
 )
 
@@ -16,7 +15,7 @@ type Data struct {
 var DumperRunning bool
 
 func DumpData(filename string) error {
-	fmt.Println("Dump. Start dump data...")
+	Log.Debugln("Dump. Start dump data...")
 	
 	cs := []ContainerDumpData{}
 	for _, c := range(FileContainers) {
@@ -25,7 +24,7 @@ func DumpData(filename string) error {
 	d := &Data{ContainerLastId, cs, Index}
 	b := new(bytes.Buffer)
 	enc := gob.NewEncoder(b)
-	fmt.Println("Dump. Encoder created... Start encode")
+	Log.Debugln("Dump. Encoder created... Start encode")
 	err := enc.Encode(d)
 	if err != nil {
 		return err
@@ -36,18 +35,17 @@ func DumpData(filename string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("Dump. Write to", filename)
+	Log.Debugln("Dump. Write to", filename)
 	n, err := fh.Write(b.Bytes())
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(os.Stdout, "Dump. %d bytes successfully written to file\n", n)
-	
+	Log.Debugf("Dump. %d bytes successfully written to file\n", n)
 	return nil
 }
 
 func LoadData(filename string) error {
-	fmt.Println("Try load index from", filename);
+	Log.Debugln("Try load index from", filename);
 	fh, err := os.Open(filename)
     if err != nil {
     	return err
@@ -70,6 +68,6 @@ func LoadData(filename string) error {
     }
     
     Index = d.Index
-    fmt.Println("Index loaded")
+    Log.Debugln("Index loaded")
     return nil
 }

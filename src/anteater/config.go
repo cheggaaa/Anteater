@@ -26,6 +26,7 @@ type Config struct {
 	
 	// Log
 	LogLevel      int
+	LogFile		  string
 }
 
 
@@ -96,9 +97,9 @@ func LoadConfig(filename string) error {
 	
 	// Log level
 	levels := map[string]int {
-		"debug" : 0,
-		"info"  : 1,
-		"warn"  : 2,
+		"debug" : LOG_DEBUG,
+		"info"  : LOG_INFO,
+		"warn"  : LOG_WARN,
 	}
 	llv, err := c.String("log", "level")
 	if err != nil {
@@ -109,7 +110,10 @@ func LoadConfig(filename string) error {
 		logLevel = levels["info"]
 	}
 	
-	Conf = &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, headers, mimeTypes, logLevel}
+	// Log file
+	logFile, err := c.String("log", "file")
+	
+	Conf = &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, headers, mimeTypes, logLevel, logFile}
 	
 	return nil
 }

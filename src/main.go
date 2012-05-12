@@ -4,6 +4,10 @@ import (
 	"./anteater"
 	"flag"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 var config string
@@ -14,10 +18,20 @@ func init() {
 }
 
 func main() {
-	fmt.Println(config)
-	anteater.Init(config)
-	fmt.Println(anteater.Conf)
-	anteater.Start()
+	if config == "" {
+		fmt.Println("Need to specify path to config file\n Use flag -f\n anteater -f /path/to/file.conf")
+	}
+
+	go func() {
+		anteater.Init(config)
+		anteater.Start()
+	}()
+
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, syscall.SIGQUIT, os.Kill, syscall.SIGKILL, os.Interrupt)
+	<-interrupt
+	fmt.Println("")
+	anteater.Log.Debugln("\nCatch shutdown signal...")
+	time.Sleep(time.Second)
 	anteater.Stop()
 }
-
