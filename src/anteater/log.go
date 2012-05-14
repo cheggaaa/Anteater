@@ -20,7 +20,7 @@ type AntLog struct {
 
 
 func LogInit() error {
-	out := os.Stderr
+	out := os.Stdout
 	
 	if len(Conf.LogFile) > 0 {
 		var err error
