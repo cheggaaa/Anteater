@@ -105,6 +105,7 @@ func getFile(name string, w http.ResponseWriter) {
 	
 	w.Header().Set("Content-Length", strconv.FormatInt(i.Size, 10))
 	w.Header().Set("Content-Type", getType(name))
+	w.Header().Set("E-Tag", i.ETag())
 	
 	for k, v := range(Conf.Headers) {
 		w.Header().Set(k, v)

@@ -29,6 +29,7 @@ func Init(config string) {
 	
 	IndexPath = Conf.DataPath + "/" + IndexPath
 	DataPath = Conf.DataPath + "/ " + DataPath
+	CSize = Conf.ContainerSize
 	
 	err = LoadData(IndexPath)
 	if err != nil {
