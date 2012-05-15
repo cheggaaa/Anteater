@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"time"
+	"runtime"
 )
 
 var config string
@@ -21,6 +22,8 @@ func main() {
 		fmt.Println("Need to specify path to config file\n Use flag -f\n anteater -f /path/to/file.conf")
 		return
 	}
+	
+	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	go func() {
 		anteater.Init(config)
