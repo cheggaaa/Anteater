@@ -8,9 +8,13 @@ import (
 	"os/signal"
 	"time"
 	"runtime"
+	"log"
+	"runtime/pprof"
+	_ "net/http/pprof"
 )
 
 var config string
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func init() {
 	flag.StringVar(&config, "f", "", "Path to your config file")
@@ -18,6 +22,15 @@ func init() {
 }
 
 func main() {
+	if *cpuprofile != "" {
+        f, err := os.Create(*cpuprofile)
+        if err != nil {
+            log.Fatal(err)
+        }
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
+
 	if config == "" {
 		fmt.Println("Need to specify path to config file\n Use flag -f\n anteater -f /path/to/file.conf")
 		return

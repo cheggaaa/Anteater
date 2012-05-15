@@ -17,6 +17,7 @@ type Config struct {
 	// Http
 	HttpWriteAddr string
 	HttpReadAddr  string
+	ETagSupport   bool
 	
 	// Http Headers
 	Headers       map[string]string
@@ -71,6 +72,11 @@ func LoadConfig(filename string) error {
 		httpReadAddr = httpWriteAddr
 	}
 	
+	etagSupport, err := c.Bool("http", "etag")
+	if err != nil {
+		etagSupport = true
+	}
+	
 	// Headers	
 	headers := make(map[string]string, 0)
 	hOpts, err := c.Options("http-headers")
@@ -113,7 +119,7 @@ func LoadConfig(filename string) error {
 	// Log file
 	logFile, err := c.String("log", "file")
 	
-	Conf = &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, headers, mimeTypes, logLevel, logFile}
+	Conf = &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, headers, mimeTypes, logLevel, logFile}
 	
 	return nil
 }

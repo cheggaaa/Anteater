@@ -5,6 +5,7 @@ import (
 	"time"
 	//"crypto/md5"
 	"fmt"
+	"io"
 )
 
 type FileInfo struct {
@@ -39,6 +40,11 @@ func IndexGet(name string) (*FileInfo, bool) {
 		return nil, false
 	} 
 	return Index[name], true
+}
+
+func (f *FileInfo) GetReader() *io.SectionReader {
+	c := FileContainers[f.ContainerId]
+	return io.NewSectionReader(c.F, f.Start,f.Size)
 }
 
 func (f *FileInfo) ETag () string {

@@ -109,13 +109,13 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	file := FileContainers[i.ContainerId].Get(i.Id, i.Start, i.Size)
+	reader := i.GetReader()
 	
 	for k, v := range(h) {
 		w.Header().Set(k, v)
 	}
 	
-	http.ServeContent(w, r, name, time.Unix(i.T, 0), file.GetReader())
+	http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
 }
 
 func saveFile(name string, w http.ResponseWriter, r *http.Request) {
@@ -179,19 +179,22 @@ func deleteFile(name string) bool {
 
 func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.Request) (h map[string]string, isContinue bool) {
 	// Check ETag
-	if ifNoneMatch := r.Header.Get("If-None-Match"); ifNoneMatch != "" {
-		if ifNoneMatch == i.ETag() {
-			w.WriteHeader(http.StatusNotModified)
-			return
+	if Conf.ETagSupport {
+		if ifNoneMatch := r.Header.Get("If-None-Match"); ifNoneMatch != "" {
+			if ifNoneMatch == i.ETag() {
+				w.WriteHeader(http.StatusNotModified)
+				return
+			}
 		}
 	}
-	
 	isContinue = true	
 	h = Conf.Headers
 	
 	h["Content-Type"] = getType(name)
 	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
-	h["ETag"] = i.ETag()	
+	if Conf.ETagSupport {
+		h["ETag"] = i.ETag()	
+	}
 	return
 }
 
