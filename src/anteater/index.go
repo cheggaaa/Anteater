@@ -42,7 +42,5 @@ func IndexGet(name string) (*FileInfo, bool) {
 }
 
 func (f *FileInfo) ETag () string {
-	//h := md5.New()
-	//fmt.Fprintf(h, "%d:%d:%d", f.Id, f.ContainerId, f.T)
 	return fmt.Sprintf("%x%x%x", f.ContainerId, f.T, f.Id)
 }
