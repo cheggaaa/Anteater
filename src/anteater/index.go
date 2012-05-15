@@ -42,5 +42,5 @@ func IndexGet(name string) (*FileInfo, bool) {
 }
 
 func (f *FileInfo) ETag () string {
-	return fmt.Sprintf("%x%x%x", f.ContainerId, f.T, f.Id)
+	return fmt.Sprintf("\"%x%x%x\"", f.ContainerId, f.T, f.Id)
 }

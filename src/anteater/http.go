@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"mime"
+	"time"
 )
 
 const (
@@ -44,7 +45,7 @@ func HttpRead(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if r.Method == "GET" {
-		getFile(filename, w)
+		getFile(filename, w, r)
 		return
 	}
 	errorFunc(w, 501)
@@ -64,7 +65,7 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case "GET":
-		getFile(filename, w)
+		getFile(filename, w, r)
 		return
 	case "POST":
 		saveFile(filename, w, r)
@@ -95,19 +96,22 @@ func errorFunc(w http.ResponseWriter, status int) {
 }
 
 
-func getFile(name string, w http.ResponseWriter) {
+func getFile(name string, w http.ResponseWriter, r *http.Request) {
 	i, ok := IndexGet(name)
 	if !ok {
 		errorFunc(w, 404)
 		return
 	}
+
+	h, isContinue := httpHeadersHandle(name, i, w, r)
+	
+	if  ! isContinue {
+		return
+	}
+	
 	file := FileContainers[i.ContainerId].Get(i.Id, i.Start, i.Size)
 	
-	w.Header().Set("Content-Length", strconv.FormatInt(i.Size, 10))
-	w.Header().Set("Content-Type", getType(name))
-	w.Header().Set("ETag", i.ETag())
-	
-	for k, v := range(Conf.Headers) {
+	for k, v := range(h) {
 		w.Header().Set(k, v)
 	}
 	
@@ -170,6 +174,36 @@ func deleteFile(name string) bool {
 	delete(Index, name)
 	FileContainers[i.ContainerId].Delete(i.Id, i.Start, i.Size)
 	return true
+}
+
+
+func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.Request) (h map[string]string, isContinue bool) {
+	// Check ETag
+	if ifNoneMatch := r.Header.Get("If-None-Match"); ifNoneMatch != "" {
+		if ifNoneMatch == i.ETag() {
+			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+	
+	t := time.Unix(i.T, 0)
+	
+	// Check if modified
+	if tm, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since")); err == nil && t.Before(tm.Add(1*time.Second)) {
+		w.WriteHeader(http.StatusNotModified)
+   		return
+   	}
+	
+	
+	isContinue = true	
+	h = Conf.Headers
+	
+	h["Content-Type"] = getType(name)
+	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
+	h["ETag"] = i.ETag()
+	h["Last-Modified"] = t.UTC().Format(http.TimeFormat)
+	
+	return
 }
 
 func printHtml(w http.ResponseWriter) {
