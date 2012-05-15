@@ -51,17 +51,6 @@ type File struct {
 	C    *Container
 	Start int64
 	Size  int64
-	Seek  int
-}
-
-func (f *File) ReadAt(b []byte, off int64) (int, error) {
-	roff := off + f.Start
-	//fmt.Println("Read file ", len(b), "of", f.Size, "offset", off, "real offset", roff)
-	n, err := f.C.F.ReadAt(b, roff)
-	if off + int64(n) >= f.Size {
-		return n, io.EOF
-	}
-	return n, err
 }
 
 func (f *File) WriteAt(b []byte, off int64) (int, error) {
@@ -72,9 +61,7 @@ func (f *File) WriteAt(b []byte, off int64) (int, error) {
 	return f.C.F.WriteAt(b, off)
 }
 
-func (f *File) Read(b []byte) (int, error) {
-	n, err := f.ReadAt(b, int64(f.Seek))
-	f.Seek += n
-	return n, err
+func (f *File) GetReader() *io.SectionReader {
+	return io.NewSectionReader(f.C.F, f.Start,f.Size)
 }
 

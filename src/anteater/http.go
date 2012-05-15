@@ -115,7 +115,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(k, v)
 	}
 	
-	io.Copy(w, file)
+	http.ServeContent(w, r, name, time.Unix(i.T, 0), file.GetReader())
 }
 
 func saveFile(name string, w http.ResponseWriter, r *http.Request) {
@@ -163,7 +163,7 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	}
 	
 	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)	
-	fmt.Fprintf(w, "%d", size)	
+	fmt.Fprintf(w, "OK\nSize:%d\nETag:%s\n", size, fi.ETag())	
 }
 
 func deleteFile(name string) bool {
@@ -186,23 +186,12 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 		}
 	}
 	
-	t := time.Unix(i.T, 0)
-	
-	// Check if modified
-	if tm, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since")); err == nil && t.Before(tm.Add(1*time.Second)) {
-		w.WriteHeader(http.StatusNotModified)
-   		return
-   	}
-	
-	
 	isContinue = true	
 	h = Conf.Headers
 	
 	h["Content-Type"] = getType(name)
 	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
-	h["ETag"] = i.ETag()
-	h["Last-Modified"] = t.UTC().Format(http.TimeFormat)
-	
+	h["ETag"] = i.ETag()	
 	return
 }
 

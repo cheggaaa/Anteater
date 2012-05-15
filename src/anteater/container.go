@@ -102,7 +102,7 @@ func (c *Container) New(size int64, target int) (*File, error) {
 }
 
 func (c *Container) Get(id, start, size int64) (*File) {
-	return &File{id, c, start, size, 0}
+	return &File{id, c, start, size}
 }
 
 func (c *Container) Delete(id, start, size int64) {
