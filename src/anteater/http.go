@@ -6,13 +6,10 @@ import (
 	"strconv"
 	"io"
 	"sort"
-	"strings"
-	"mime"
 	"time"
 )
 
 const (
-	version   = "0.004"
 	errorPage = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>Anteater " + version + "</center></body></html>\n"
 )
 
@@ -59,7 +56,7 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	if filename == "status" {
-		printHtml(w)
+		printStatus(w)
 		return
 	}
 
@@ -167,13 +164,11 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteFile(name string) bool {
-	i, ok := IndexGet(name)
-	if !ok {
-		return false
+	if i, ok := IndexDelete(name); ok {
+		FileContainers[i.ContainerId].Delete(i)
+		return true
 	}
-	delete(Index, name)
-	FileContainers[i.ContainerId].Delete(i.Id, i.Start, i.Size)
-	return true
+	return false
 }
 
 
@@ -189,8 +184,6 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 	}
 	isContinue = true	
 	h = Conf.Headers
-	
-	h["Content-Type"] = getType(name)
 	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
 	if Conf.ETagSupport {
 		h["ETag"] = i.ETag()	
@@ -198,19 +191,19 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 	return
 }
 
-func printHtml(w http.ResponseWriter) {
+func printStatus(w http.ResponseWriter) {
 	GetFileLock.Lock()
 	defer GetFileLock.Unlock()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	var ids []int = make([]int, 0)
 	for _, cn := range(FileContainers) {
-		ids = append(ids, cn.Id)
+		ids = append(ids, int(cn.Id))
 	}
 	sort.Ints(ids)
 	var cnt *Container
 	var html string = ""
 	for _, id := range(ids) {
-		cnt = FileContainers[id]
+		cnt = FileContainers[int32(id)]
 		html += "<div style=\"float:left;margin:20px;\">"
 		html += "<h3>C " + strconv.FormatInt(int64(cnt.Id), 10) + "</h3>"
 		html += "<ul>"
@@ -228,13 +221,4 @@ func printHtml(w http.ResponseWriter) {
 	fmt.Fprintf(w, "<html><body><div>%s</div></body></html>", html)
 }
 
-func getType(name string) string {
-	t := strings.Split(name, ".")
-	var ext string = "." + t[len(t) - 1]
-	fType := mime.TypeByExtension(ext)
-	if len(fType) == 0 {
-		fType = "application/octed-stream"
-	}
-	return fType
-}
 

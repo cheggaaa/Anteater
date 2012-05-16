@@ -9,22 +9,28 @@ import (
 	"strconv"
 )
 
+const (
+	TARGET_SPACE_EQ   = 0
+	TARGET_SPACE_FREE = 1
+	TARGET_NEW        = 2
+)
+
 type Container struct {
-	Id	   int
+	Id	   int32
 	F     *os.File
 	Path   string
 	Size   int64
 	Offset int64
 	Count  int64
 	LastId int64
-	M     *sync.Mutex
+	WLock *sync.Mutex
 	Spaces Spaces
 	MaxSpaceSize int64
 	Ch    bool
 }
 
 type ContainerDumpData struct {
-	Id     int
+	Id     int32
 	Path   string
 	Size   int64
 	Offset int64
@@ -34,40 +40,40 @@ type ContainerDumpData struct {
 	MaxSpaceSize int64
 }
 
-
-var FileContainers map[int]*Container = make(map[int]*Container)
-var ContainerLastId int
-var CreateMutex *sync.Mutex = &sync.Mutex{}
-
-func NewContainer(path string, size int64) (*Container, error) {
-	CreateMutex.Lock()
-	defer CreateMutex.Unlock()
-	ContainerLastId++
-	path += "." + strconv.FormatInt(int64(ContainerLastId), 10)
+/**
+ *	Create new container and return id
+ */
+func NewContainer(path string) (int32, error) {
+	id := ContainerNextId()
+	size := Conf.ContainerSize
+	path += "." + strconv.FormatInt(int64(id), 10)
 	
 	Log.Infoln("Create new container", path, "...")
 	
 	f, err := os.OpenFile(path, os.O_RDWR | os.O_CREATE, 0666)
 	if err != nil {
-		return nil, err
+		return 0, err
 	}	
-	c := &Container{ContainerLastId, f, path, 0, 0, 0, 0, &sync.Mutex{}, make([]*Space, 0), 0, true}
+	c := &Container{ContainerLastId, f, path, size, 0, 0, 0, &sync.Mutex{}, make([]*Space, 0), 0, true}
 
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
 	
 	Log.Debugln("Try allocate", size, "bytes");
 		
-	err = c.Allocate(size)
+	err = c.Init()
 	if err != nil {
-		return nil, err
-	}
-	
+		return 0, err
+	}	
 	Log.Debugln("Container", c.Id, "created");	
-	return c, err
+	FileContainers[c.Id] = c
+	return c.Id, err
 }
 
+/**
+ * Create container from ContainerDumpData
+ */
 func ContainerFromData(data *ContainerDumpData) (*Container, error) {
 	Log.Infoln("Init container", data.Id);	
 	f, err := os.OpenFile(data.Path, os.O_RDWR, 0666)
@@ -78,16 +84,31 @@ func ContainerFromData(data *ContainerDumpData) (*Container, error) {
 	return c, nil
 }
 
-func (c *Container) Allocate(size int64) error {
-	err := syscall.Fallocate(int(c.F.Fd()), 0, 0, size)
+/**
+ * Generate new container id
+ */
+func ContainerNextId() int32 {
+	return atomic.AddInt32(&ContainerLastId, 1)
+}
+
+/**
+ * Init container, must call after create
+ * Allocate file for container
+ */
+func (c *Container) Init() error {
+	err := syscall.Fallocate(int(c.F.Fd()), 0, 0, c.Size)
 	if err != nil {
 		return err
 	}
-	c.Size = size
 	return nil
 }
 
-func (c *Container) New(size int64, target int) (*File, error) {
+/**
+ * Try Allocate space for new file
+ */
+func (c *Container) Allocate(size int64, target int) (*File, error) {
+	c.WLock.Lock()
+	defer c.WLock.Unlock()
 	if size > c.Size {
 		return nil, errors.New("Can't allocate space in container " + c.Path)
 	}
@@ -98,31 +119,33 @@ func (c *Container) New(size int64, target int) (*File, error) {
 	id := atomic.AddInt64(&c.LastId, 1)
 	atomic.AddInt64(&c.Count, 1)
 	c.Ch = true
-	return c.Get(id, start, size), nil
+	return &File{id, c, start, size}, nil
 }
 
-func (c *Container) Get(id, start, size int64) (*File) {
-	return &File{id, c, start, size}
-}
-
-func (c *Container) Delete(id, start, size int64) {
+/**
+ * Delete file
+ */
+func (c *Container) Delete(info *FileInfo) {
 	atomic.AddInt64(&c.Count, -1)
-	c.M.Lock()
-	if id == c.LastId {
-		atomic.AddInt64(&c.Offset, 0 - size)
+	c.WLock.Lock()
+	defer c.WLock.Unlock()
+	if info.Id == c.LastId {
+		atomic.AddInt64(&c.Offset, 0 - info.Size)
 	} else {
-		c.Spaces = append(c.Spaces, &Space{start, size})
+		c.Spaces = append(c.Spaces, &Space{info.Start, info.Size})
 		c.Spaces.Sort()
 	}
-	c.Ch = true
-	c.M.Unlock()
+	c.Ch = true	
 }
 
+/**
+ * Allocate sace for new files
+ */
 func (c *Container) GetSpace(size int64, target int) (int64, error) {
 	switch (target) {
-		case TARGET_SPACE:
+		case TARGET_SPACE_EQ, TARGET_SPACE_FREE:
 			if c.MaxSpaceSize >= size {
-				return c.Spaces.Get(size)
+				return c.Spaces.Get(size, target)
 			} else {
 				return 0, errors.New("Can't allocate space")
 			}
@@ -137,20 +160,29 @@ func (c *Container) GetSpace(size int64, target int) (int64, error) {
 	return 0, errors.New("Undefined target")
 }
 
+/**
+ * Clean container
+ */
 func (c *Container) Clean() {
 	Log.Debugln("Start clean container", c.Id);
 	if c.HasChanges() {
-		c.M.Lock()
+		c.WLock.Lock()
 		c.Spaces, c.MaxSpaceSize = c.Spaces.Join()
 		c.Ch = false
-		c.M.Unlock()
+		c.WLock.Unlock()
 	}	
 }
 
+/**
+ * Return true if container has changes after last dump
+ */
 func (c *Container) HasChanges() bool {
 	return c.Ch
 }
 
+/**
+ * Maximum space available for new file
+ */
 func (c *Container) MaxSpace() int64 {
 	var spaceSize int64 = c.Size - c.Offset
 	if c.MaxSpaceSize > spaceSize {
@@ -159,8 +191,11 @@ func (c *Container) MaxSpace() int64 {
 	return spaceSize
 }
 
-func (c *Container) GetDumpData() ContainerDumpData {
-	c.M.Lock()
-	defer c.M.Unlock()
-	return ContainerDumpData{c.Id, c.Path, c.Size, c.Offset, c.Count, c.LastId, c.Spaces, c.MaxSpaceSize}	
+/**
+ * Return data for dump
+ */
+func (c *Container) GetDumpData() *ContainerDumpData {
+	c.WLock.Lock()
+	defer c.WLock.Unlock()
+	return &ContainerDumpData{c.Id, c.Path, c.Size, c.Offset, c.Count, c.LastId, c.Spaces, c.MaxSpaceSize}	
 }

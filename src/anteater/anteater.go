@@ -3,44 +3,93 @@ package anteater
 import (
 	"net/http"
 	"fmt"
-	"log"
 	"time"
 	"sync"
+	"log"
 )
 
+const (
+	version   = "0.004"
+	serverSign = "Anteater " + version
+)
+
+/**
+ * Path to index file
+ **/
 var IndexPath string = "file.index"
+
+/**
+ * Path to data files
+ **/
 var DataPath  string = "file.data"
-var CSize int64
-var FreeSpace int64
-
-var CleanMutex *sync.Mutex = &sync.Mutex{}
 
 
-func Init(config string) {
-	err := LoadConfig(config) 
+/**
+ * Config object
+ */
+var Conf *Config
+
+/**
+ * For Container.Id creation
+ */
+var ContainerLastId int32
+
+/**
+ * Map with container objects
+ */
+var FileContainers map[int32]*Container = make(map[int32]*Container)
+
+
+/**
+ *	Mutex for allocate new files
+ */
+var GetFileLock *sync.Mutex = &sync.Mutex{}
+
+/**
+ * File info index
+ */
+var Index map[string]*FileInfo
+
+/**
+ * Lock for Index
+ */
+var IndexLock *sync.Mutex = &sync.Mutex{}
+
+/**
+ * Logger object
+ */
+var Log *AntLog
+
+func MainInit(config string) {
+	// Init config
+	var err error
+	Conf, err = LoadConfig(config) 
 	if err != nil {
 		log.Fatal(err)
 	}
 	
-	err = LogInit()
+	// Init logger
+	Log, err = LogInit()
 	if err != nil {
 		log.Fatal(err)
 	}
 	
+	// Set paths
 	IndexPath = Conf.DataPath + "/" + IndexPath
 	DataPath = Conf.DataPath + "/ " + DataPath
-	CSize = Conf.ContainerSize
 	
+	
+	// Load data from index
 	err = LoadData(IndexPath)
 	if err != nil {
+		// or create new
 		Log.Debugln("Error while reading index file:", err)
 		Log.Debugln("Try create conainer")
-		c, err := NewContainer(DataPath, CSize)
+		_, err := NewContainer(DataPath)
 		if err != nil {
 			Log.Warnln("Can't create new container")
 			Log.Fatal(err)
 		}
-		FileContainers[c.Id] = c
 		Cleanup()
 	}
 	
@@ -69,12 +118,13 @@ func Stop() {
 	Log.Infoln("Server stopping..")
 	fmt.Println("Server stopping now")
 	Cleanup()
+	for _, c := range(FileContainers) {
+		c.F.Close()
+	}
 	fmt.Println("Bye")
 }
 
 func Cleanup() {
-	GetFileLock.Lock()
-	defer GetFileLock.Unlock()
 	var maxSpace int64
 	for _, c := range(FileContainers) {
 		c.Clean()
@@ -84,11 +134,9 @@ func Cleanup() {
 	}
 	
 	if maxSpace <= Conf.MinEmptySpace {
-		c, err := NewContainer(DataPath, CSize)
+		_, err := NewContainer(DataPath)
 		if err != nil {
 			Log.Warnln(err)
-		} else {
-			FileContainers[c.Id] = c
 		}
 	}
 	

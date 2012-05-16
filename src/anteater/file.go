@@ -2,19 +2,11 @@ package anteater
 
 import (
 	"errors"
-	"sync"
 	"io"
 )
 
-const (
-	TARGET_SPACE = 0
-	TARGET_NEW   = 1
-)
 
-var Targets = []int{TARGET_SPACE, TARGET_NEW}
-
-var GetFileLock *sync.Mutex = &sync.Mutex{}
-
+var Targets = []int{TARGET_SPACE_EQ, TARGET_SPACE_FREE, TARGET_NEW}
 
 func GetFile(name string, size int64) (*File, *FileInfo, error) {
 	GetFileLock.Lock()
@@ -22,26 +14,25 @@ func GetFile(name string, size int64) (*File, *FileInfo, error) {
 	for _, target := range(Targets) {
 		for _, c := range(FileContainers) {
 			if c.MaxSpace() >= size {
-				f, err := c.New(size, target)
+				f, err := c.Allocate(size, target)
 				if err == nil {
-					fi := IndexAdd(name, f)
+					fi := IndexSet(name, f)
 					return f, fi, nil
 				}
 			}
 		}
 	}
-	c, err := NewContainer(DataPath, CSize)	
-	var f *File
+	cId, err := NewContainer(DataPath)
 	if err != nil {
 		return nil, nil, err
-	} else {
-		FileContainers[c.Id] = c
-		f, err = c.New(size, TARGET_NEW)
-		if err != nil {
-			return nil, nil, err
-		}
 	}
-	fi := IndexAdd(name, f)
+	 
+	f, err := FileContainers[cId].Allocate(size, TARGET_NEW)
+	if err != nil {
+		return nil, nil, err
+	}
+	
+	fi := IndexSet(name, f)
 	return f, fi, nil
 }
 

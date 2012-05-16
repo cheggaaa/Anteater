@@ -65,20 +65,24 @@ func (s Spaces) Join() (Spaces, int64) {
 	return s.FilterByStart(rem), maxSpaceSize
 }
 
-func (s Spaces) Get(size int64) (int64, error) {
-	for i, space := range(s) {
-		if space.Size == size {			
-			start := space.Start
-			s[i].Size = 0
-			return start, nil
+func (s Spaces) Get(size int64, target int) (int64, error) {
+	switch target {
+	case TARGET_SPACE_EQ:
+		for i, space := range(s) {
+			if space.Size == size {			
+				start := space.Start
+				s[i].Size = 0
+				return start, nil
+			}
 		}
-	}
-	for i, space := range(s) {
-		if space.Size >= size {			
-			start := space.Start
-			s[i].Start += size
-			s[i].Size  -= size
-			return start, nil
+	case TARGET_SPACE_FREE:
+		for i, space := range(s) {
+			if space.Size >= size {			
+				start := space.Start
+				s[i].Start += size
+				s[i].Size  -= size
+				return start, nil
+			}
 		}
 	}
 	return 0, errors.New("Can't allocate space")

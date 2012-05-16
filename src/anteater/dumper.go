@@ -7,17 +7,15 @@ import (
 )
 
 type Data struct {
-	ContainerLastId int
-	Containers []ContainerDumpData
+	ContainerLastId int32
+	Containers []*ContainerDumpData
 	Index      map[string]*FileInfo
 }
-
-var DumperRunning bool
 
 func DumpData(filename string) error {
 	Log.Debugln("Dump. Start dump data...")
 	
-	cs := []ContainerDumpData{}
+	cs := []*ContainerDumpData{}
 	for _, c := range(FileContainers) {
 		cs = append(cs, c.GetDumpData())
 	}
@@ -60,7 +58,7 @@ func LoadData(filename string) error {
     ContainerLastId = d.ContainerLastId
     
     for _, cd := range(d.Containers) {
-    	c, err := ContainerFromData(&cd)
+    	c, err := ContainerFromData(cd)
     	if err != nil {
     		return err
     	}

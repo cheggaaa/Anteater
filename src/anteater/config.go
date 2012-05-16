@@ -6,8 +6,6 @@ import (
 	"strconv"
 )
 
-var Conf *Config
-
 type Config struct {
 	// Data path
 	DataPath      string
@@ -31,39 +29,39 @@ type Config struct {
 }
 
 
-func LoadConfig(filename string) error {
+func LoadConfig(filename string) (*Config, error) {
 	c, err := config.ReadDefault(filename)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	
 	// Data path
 	dataPath, err := c.String("data", "path")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if len(dataPath) == 0 {
-		return errors.New("Empty data path in config " + filename)
+		return nil, errors.New("Empty data path in config " + filename)
 	}
 	
 	// Container size
 	s, err := c.String("data", "container_size")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	containerSize, err := GetSizeFromString(s)
 	
 	// Min empty space
 	s, err = c.String("data", "min_empty_space")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	minEmptySpace, err := GetSizeFromString(s)
 	
 	// Http write addr
 	httpWriteAddr, err := c.String("http", "write_addr")
 	if err != nil {
-		return err
+		return nil, err
 	}
 	
 	// Http read addr
@@ -88,6 +86,9 @@ func LoadConfig(filename string) error {
 			} 
 		}
 	}
+	//if _, ok := headers["Server"]; !ok {
+		//headers["Server"] = serverSign
+	//}
 	
 	// Mime	
 	mimeTypes := make(map[string]string, 0)
@@ -118,10 +119,11 @@ func LoadConfig(filename string) error {
 	
 	// Log file
 	logFile, err := c.String("log", "file")
+	if err != nil {
+		logFile = ""
+	}
 	
-	Conf = &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, headers, mimeTypes, logLevel, logFile}
-	
-	return nil
+	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, headers, mimeTypes, logLevel, logFile}, nil
 }
 
 func GetSizeFromString(s string) (int64, error) {

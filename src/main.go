@@ -38,7 +38,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	go func() {
-		anteater.Init(config)
+		anteater.MainInit(config)
 		anteater.Start()
 	}()
 
