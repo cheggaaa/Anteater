@@ -10,7 +10,6 @@ import (
 	"runtime"
 	"log"
 	"runtime/pprof"
-	_ "net/http/pprof"
 )
 
 var config string

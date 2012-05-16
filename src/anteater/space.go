@@ -67,6 +67,13 @@ func (s Spaces) Join() (Spaces, int64) {
 
 func (s Spaces) Get(size int64) (int64, error) {
 	for i, space := range(s) {
+		if space.Size == size {			
+			start := space.Start
+			s[i].Size = 0
+			return start, nil
+		}
+	}
+	for i, space := range(s) {
 		if space.Size >= size {			
 			start := space.Start
 			s[i].Start += size

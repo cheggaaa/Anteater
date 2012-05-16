@@ -88,15 +88,15 @@ func (c *Container) Allocate(size int64) error {
 }
 
 func (c *Container) New(size int64, target int) (*File, error) {
+	if size > c.Size {
+		return nil, errors.New("Can't allocate space in container " + c.Path)
+	}
 	start, err := c.GetSpace(size, target)
 	if err != nil {
 		return nil, err
 	}
 	id := atomic.AddInt64(&c.LastId, 1)
 	atomic.AddInt64(&c.Count, 1)
-	if start + size > c.Size {
-		return nil, errors.New("Can't allocate space in container " + c.Path)
-	}
 	c.Ch = true
 	return c.Get(id, start, size), nil
 }
@@ -127,8 +127,12 @@ func (c *Container) GetSpace(size int64, target int) (int64, error) {
 				return 0, errors.New("Can't allocate space")
 			}
 		case TARGET_NEW:
-			o := atomic.AddInt64(&c.Offset, size)
-			return o - size, nil
+			if c.Offset + size <= c.Size {
+				o := atomic.AddInt64(&c.Offset, size)
+				return o - size, nil
+			} else {
+				return 0, errors.New("Can't allocate space")
+			}
 	}
 	return 0, errors.New("Undefined target")
 }

@@ -83,7 +83,7 @@ func Cleanup() {
 		}
 	}
 	
-	if maxSpace <= FreeSpace {
+	if maxSpace <= Conf.MinEmptySpace {
 		c, err := NewContainer(DataPath, CSize)
 		if err != nil {
 			Log.Warnln(err)
