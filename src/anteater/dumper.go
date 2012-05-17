@@ -14,16 +14,18 @@ type Data struct {
 
 func DumpData(filename string) error {
 	Log.Debugln("Dump. Start dump data...")
-	
+
 	cs := []*ContainerDumpData{}
 	for _, c := range(FileContainers) {
 		cs = append(cs, c.GetDumpData())
 	}
+	IndexLock.Lock()
 	d := &Data{ContainerLastId, cs, Index}
 	b := new(bytes.Buffer)
 	enc := gob.NewEncoder(b)
 	Log.Debugln("Dump. Encoder created... Start encode")
 	err := enc.Encode(d)
+	IndexLock.Unlock()
 	if err != nil {
 		return err
 	}
