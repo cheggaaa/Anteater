@@ -225,7 +225,7 @@ func printStatus(w http.ResponseWriter) {
 		fileCount += cnt.Count
 		spacesCount += sc
 		spacesTotalSize += st		
-		allocated := cnt.Size - cnt.Offset - st 
+		allocated := cnt.Size - (cnt.Size - cnt.Offset) - st 
 		totalFileSize += allocated
 	}
 	
