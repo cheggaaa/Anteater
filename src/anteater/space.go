@@ -106,7 +106,7 @@ func (s Spaces) Sort() {
 	sort.Sort(s)
 }
 
-func (s Spaces) ToHtml(limit int, cSize int64) string {
+func (s Spaces) ToHtml(limit int, cSize int64) (string, int64, int64) {
 	var total int64
 	lhtml := "<div class=\"list\"><ul>"
 	i := 0
@@ -122,5 +122,5 @@ func (s Spaces) ToHtml(limit int, cSize int64) string {
 	prc := (total * 100) / cSize 
 	ihtml += "Len: <b>" + strconv.FormatInt(int64(len(s)), 10) + " (" + strconv.FormatInt(total, 10) + " bytes) " + strconv.FormatInt(prc, 10) + "%</b>"
 	ihtml += "</div>"
-	return  "<div class=\"spaces\">" + ihtml + lhtml + "</ul></div></div>"
+	return  "<div class=\"spaces\">" + ihtml + lhtml + "</ul></div></div>", int64(len(s)), total
 } 
