@@ -202,7 +202,7 @@ func printStatus(w http.ResponseWriter) {
 	sort.Ints(ids)
 	var cnt *Container
 	
-	var totalSize, fileCount, spacesCount, spacesTotalSize int64
+	var totalSize, totalFileSize, fileCount, spacesCount, spacesTotalSize int64
 	
 	var html string = ""
 	for _, id := range(ids) {
@@ -224,7 +224,9 @@ func printStatus(w http.ResponseWriter) {
 		totalSize += cnt.Size
 		fileCount += cnt.Count
 		spacesCount += sc
-		spacesTotalSize += st
+		spacesTotalSize += st		
+		allocated := cnt.Size - cnt.Offset - st 
+		totalFileSize += allocated
 	}
 	
 		thtml := "<div style=\"float:left;margin:20px;\">"
@@ -233,8 +235,10 @@ func printStatus(w http.ResponseWriter) {
 		thtml += "<li>Cont. count: <b>" + strconv.FormatInt(int64(len(ids)), 10) + "</b></li>"
 		thtml += "<li>Allocated size: <b>" + strconv.FormatInt(totalSize / 1024 / 1024, 10) + " Mb</b></li>"
 		thtml += "<li>Total files: <b>" + strconv.FormatInt(fileCount, 10) + "</b></li>"
+		thtml += "<li>Avg file size: <b>" + strconv.FormatInt(totalFileSize / fileCount, 10) + "</b></li>"
 		thtml += "<li>Spaces count: <b>" + strconv.FormatInt(spacesCount, 10) + "</b></li>"
-		thtml += "<li>Saces Size: <b>" + strconv.FormatInt(spacesTotalSize / 1024, 10) + " Kb</b></li>"
+		thtml += "<li>Spaces Size: <b>" + strconv.FormatInt(spacesTotalSize / 1024, 10) + " Kb</b></li>"
+		thtml += "<li>Avg. space size: <b>" + strconv.FormatInt(spacesTotalSize / spacesCount, 10) + " Bytes</b></li>"
 		thtml += "</ul>"
 		thtml += "</div>"
 	
