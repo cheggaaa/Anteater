@@ -56,7 +56,7 @@ func GetState() *State {
 		Time         : time.Now().Unix(),
 		StartTime    : StartTime.Unix(),
 		Goroutines   : runtime.NumGoroutine(),
-		MemoryUsage  : ms.Alloc,
+		MemoryUsage  : ms.TotalAlloc,
 		Requests     : make(map[string]int64),
 		RequestsRate : make(map[string]int64),
 		LastDump     : LastDump.Unix(),

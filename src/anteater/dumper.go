@@ -45,7 +45,7 @@ func DumpData(filename string) error {
 		return err
 	}
 	LastDump = time.Now()
-	LastDumpTime = 	(time.Now().UnixNano() - tm) / 1000
+	LastDumpTime = 	(time.Now().UnixNano() - tm) / 1000 / 1000
 	Log.Debugf("Dump. %d bytes successfully written to file\n", n)
 	return nil
 }
