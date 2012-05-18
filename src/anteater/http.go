@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"io"
-	"sort"
+	"encoding/json"
 	"time"
 )
 
@@ -86,9 +86,13 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 func errorFunc(w http.ResponseWriter, status int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
-	if status == 405 {
-		w.Header().Set("Allow", "GET")
+	switch status {
+		case 405:
+			w.Header().Set("Allow", "GET")
+		case 404:
+			HttpCn.CNotFound()
 	}
+
 	fmt.Fprintf(w, errorPage, httpErrors[status], httpErrors[status])
 }
 
@@ -99,7 +103,9 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		errorFunc(w, 404)
 		return
 	}
-
+	
+	HttpCn.CGet()
+	
 	h, isContinue := httpHeadersHandle(name, i, w, r)
 	
 	if  ! isContinue {
@@ -159,6 +165,8 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	
+	HttpCn.CAdd()
+	
 	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)	
 	fmt.Fprintf(w, "OK\nSize:%d\nETag:%s\n", size, fi.ETag())	
 }
@@ -166,6 +174,7 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 func deleteFile(name string) bool {
 	if i, ok := IndexDelete(name); ok {
 		FileContainers[i.ContainerId].Delete(i)
+		HttpCn.CDelete()
 		return true
 	}
 	return false
@@ -188,62 +197,19 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 	if Conf.ETagSupport {
 		h["ETag"] = i.ETag()	
 	}
-	return
+	return 
 }
 
 func printStatus(w http.ResponseWriter) {
-	GetFileLock.Lock()
-	defer GetFileLock.Unlock()
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	var ids []int = make([]int, 0)
-	for _, cn := range(FileContainers) {
-		ids = append(ids, int(cn.Id))
-	}
-	sort.Ints(ids)
-	var cnt *Container
+	w.Header().Set("Content-Type", "application/json")	
+	state := GetState()
+	b, err := json.Marshal(state)
 	
-	var totalSize, totalFileSize, fileCount, spacesCount, spacesTotalSize int64
-	
-	var html string = ""
-	for _, id := range(ids) {
-		cnt = FileContainers[int32(id)]
-		html += "<div style=\"float:left;margin:20px;\">"
-		html += "<h3>C " + strconv.FormatInt(int64(cnt.Id), 10) + "</h3>"
-		html += "<ul>"
-		html += "<li>File count: <b>" + strconv.FormatInt(cnt.Count, 10) + "</b></li>"
-		html += "<li>LastId: <b>" + strconv.FormatInt(cnt.LastId, 10) + "</b></li>"
-		html += "<li>Size: <b>" + strconv.FormatInt(cnt.Size, 10) + "</b></li>"
-		html += "<li>Offset: <b>" + strconv.FormatInt(cnt.Offset, 10) + "</b></li>"
-		html += "<li>Max Space Size: <b>" + strconv.FormatInt(cnt.MaxSpace(), 10) + "</b></li>"
-		html += "<li>Max Spaces Size: <b>" + strconv.FormatInt(cnt.MaxSpaceSize, 10) + "</b></li>"
-		html += "</ul>"
-		html += "<h4>Spaces</h4>"
-		h, sc, st := cnt.Spaces.ToHtml(10, cnt.Size)
-		html += h
-		html += "</div>"
-		totalSize += cnt.Size
-		fileCount += cnt.Count
-		spacesCount += sc
-		spacesTotalSize += st		
-		allocated := cnt.Size - (cnt.Size - cnt.Offset) - st 
-		totalFileSize += allocated
+	if err != nil {
+		Log.Warnln(err)
 	}
 	
-		thtml := "<div style=\"float:left;margin:20px;\">"
-		thtml += "<h3>Total</h3>"
-		thtml += "<ul>"
-		thtml += "<li>Cont. count: <b>" + strconv.FormatInt(int64(len(ids)), 10) + "</b></li>"
-		thtml += "<li>Allocated size: <b>" + strconv.FormatInt(totalSize / 1024 / 1024, 10) + " Mb</b></li>"
-		thtml += "<li>Total files: <b>" + strconv.FormatInt(fileCount, 10) + "</b></li>"
-		thtml += "<li>Avg file size: <b>" + strconv.FormatInt(totalFileSize / fileCount, 10) + "</b></li>"
-		thtml += "<li>Spaces count: <b>" + strconv.FormatInt(spacesCount, 10) + "</b></li>"
-		thtml += "<li>Spaces Size: <b>" + strconv.FormatInt(spacesTotalSize / 1024, 10) + " Kb</b></li>"
-		thtml += "<li>Avg. space size: <b>" + strconv.FormatInt(spacesTotalSize / spacesCount, 10) + " Bytes</b></li>"
-		thtml += "</ul>"
-		thtml += "</div>"
-	
-	
-	fmt.Fprintf(w, "<html><body><div>%s</div><div>%s</div></body></html>", thtml, html)
+	w.Write(b)
 }
 
 

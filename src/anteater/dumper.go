@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"os"
 	"bytes"
+	"time"
 )
 
 type Data struct {
@@ -14,7 +15,10 @@ type Data struct {
 
 func DumpData(filename string) error {
 	Log.Debugln("Dump. Start dump data...")
-
+	
+	// Timer
+	tm := time.Now().UnixNano()
+	
 	cs := []*ContainerDumpData{}
 	for _, c := range(FileContainers) {
 		cs = append(cs, c.GetDumpData())
@@ -40,12 +44,15 @@ func DumpData(filename string) error {
 	if err != nil {
 		return err
 	}
+	LastDump = time.Now()
+	LastDumpTime = 	(time.Now().UnixNano() - tm) / 1000
 	Log.Debugf("Dump. %d bytes successfully written to file\n", n)
 	return nil
 }
 
 func LoadData(filename string) error {
 	Log.Debugln("Try load index from", filename);
+	
 	fh, err := os.Open(filename)
     if err != nil {
     	return err

@@ -17,6 +17,7 @@ func GetFile(name string, size int64) (*File, *FileInfo, error) {
 				f, err := c.Allocate(size, target)
 				if err == nil {
 					fi := IndexSet(name, f)
+					AllocCn.CTarget(target)
 					return f, fi, nil
 				}
 			}

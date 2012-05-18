@@ -60,6 +60,16 @@ var IndexLock *sync.Mutex = &sync.Mutex{}
  */
 var Log *AntLog
 
+
+var StartTime time.Time = time.Now()
+
+var LastDump time.Time
+var LastDumpTime int64
+
+var HttpCn  *StateHttpCounters     = &StateHttpCounters{}
+var AllocCn *StateAllocateCounters = &StateAllocateCounters{}
+
+
 func MainInit(config string) {
 	// Init config
 	var err error
