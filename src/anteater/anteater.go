@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	version   = "0.005"
+	version   = "0.01"
 	serverSign = "Anteater " + version
 )
 
