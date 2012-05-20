@@ -25,7 +25,6 @@ type StateMain struct {
 	Time          int64
 	StartTime     int64
 	Goroutines    int
-	MemoryUsage   uint64
 	LastDump      int64
 	LastDumpTime  int64
 	IndexFileSize int64
@@ -67,13 +66,10 @@ func init() {
 
 
 func GetState() *State {
-	ms := &runtime.MemStats{}
-	runtime.ReadMemStats(ms)
 	m := &StateMain{
 		Time         : time.Now().Unix(),
 		StartTime    : StartTime.Unix(),
 		Goroutines   : runtime.NumGoroutine(),
-		MemoryUsage  : ms.TotalAlloc,
 		LastDump     : LastDump.Unix(),
 		LastDumpTime : LastDumpTime,
 		IndexFileSize: IndexFileSize,
