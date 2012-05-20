@@ -15,9 +15,9 @@ type State struct {
 	Main  *StateMain
 	Files *StateFiles
 	Counters *StateHttpCounters
-	CountersLast5Seconds *StateHttpCounters
-	CountersLastMinute   *StateHttpCounters
-	CountersLast5Minutes *StateHttpCounters
+	RatesLast5Seconds *StateHttpCounters
+	RatesLastMinute   *StateHttpCounters
+	RatesLast5Minutes *StateHttpCounters
 	Alloc *StateAllocateCounters
 }
 
@@ -111,9 +111,9 @@ func GetState() *State {
 		Main     : m,
 		Files    : f,
 		Counters : HttpCn,
-		CountersLast5Seconds : GetHttpStateByPeriod(1),
-		CountersLastMinute : GetHttpStateByPeriod(12),
-		CountersLast5Minutes : GetHttpStateByPeriod(60),
+		RatesLast5Seconds : GetHttpStateByPeriod(1),
+		RatesLastMinute : GetHttpStateByPeriod(12),
+		RatesLast5Minutes : GetHttpStateByPeriod(60),
 		Alloc    : AllocCn,
 	}
 }
@@ -155,11 +155,12 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
+	sec := int64(period * 5)
 
-	result.Add = cur.Add - diff.Add
-	result.Get = cur.Get - diff.Get
-	result.Delete = cur.Delete - diff.Delete
-	result.NotFound = cur.NotFound - diff.NotFound
+	result.Add = (cur.Add - diff.Add) / sec
+	result.Get = (cur.Get - diff.Get) / sec
+	result.Delete = (cur.Delete - diff.Delete) / sec
+	result.NotFound = (cur.NotFound - diff.NotFound) / sec
 	return
 }
  
