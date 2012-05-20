@@ -13,8 +13,31 @@ const (
 <html>
 	<head>
 		<title>{{.Title}}</title>
+		<style type="text/css">
+			.container, .container div {
+				height:100px;
+			}
+			.container {
+				background:#ddd;
+				border:1px solid #bbb;
+				border-radius:5px;
+				width: 90%;
+			}
+			.data {
+				float:left;
+				background:#0f0;
+				width: {{.PData}}%;
+			}
+			.spaces {
+				float:left;
+				background:#f00;
+				width: {{.PSpaces}}%;
+			}
+		</style>
 	</head>
 	<body>
+	<h2>{{.Title}}</h2>
+	<div>
 	{{with .Tables}}
 		{{range .}}
 		<div style="float:left;margin:20px;border:1px solid #000;border-radius:10px;padding:20px">
@@ -32,12 +55,15 @@ const (
 			</div>
 		{{end}}
 	{{end}}
+	</div>
+	<div style="clear:both"></div>
+	<div class="container">
+		<div class="data"></div>
+		<div class="spaces"></div>
+	</div>
 	</body>
 </html>`
-	
-	tmplTable = 
-`		
-`
+
 )
 
 type KeyValue struct {
@@ -47,6 +73,8 @@ type KeyValue struct {
 type HtmlMain struct {
 	Title string
 	Tables []*HtmlTable
+	PData int64
+	PSpaces int64
 }
 
 type HtmlTable struct {
@@ -69,9 +97,13 @@ func init() {
 
 func (s *State) AsHtml(w io.Writer) {
 	body := &HtmlMain{}
-	body.Title = "Hello world!"
+	body.Title = "Server status " + version
 	
-	// roun time to second
+	allocated := Conf.ContainerSize * int64(s.Files.ContainersCount)
+	body.PSpaces = SafeDivision(s.Files.SpacesSize * 100, allocated)
+	body.PData = SafeDivision(s.Files.FilesSize * 100, allocated)
+	
+	// round time to second
 	dt := time.Unix(LastDump.Unix(), 0)
 	st := time.Unix(StartTime.Unix(), 0)
 	nt := time.Unix(time.Now().Unix(), 0)
@@ -127,33 +159,33 @@ func (s *State) AsHtml(w io.Writer) {
 	rs := &HtmlTable{
 		Title : "Rates (since start)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesSinceStart.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesSinceStart.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesSinceStart.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesSinceStart.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesSinceStart.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d rps", s.RatesSinceStart.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d rps", s.RatesSinceStart.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d rps", s.RatesSinceStart.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d rps", s.RatesSinceStart.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d rps", s.RatesSinceStart.NotFound)},
 		},
 	}
 	
 	r5m := &HtmlTable{
 		Title : "Rates (5 minutes)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d rps", s.RatesLast5Minutes.NotFound)},
 		},
 	}
 	
 	r1m := &HtmlTable{
 		Title : "Rates (1 minute)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesLastMinute.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesLastMinute.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesLastMinute.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesLastMinute.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesLastMinute.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d rps", s.RatesLastMinute.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d rps", s.RatesLastMinute.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d rps", s.RatesLastMinute.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d rps", s.RatesLastMinute.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d rps", s.RatesLastMinute.NotFound)},
 		},
 	}
 	
