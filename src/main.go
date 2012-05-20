@@ -12,11 +12,10 @@ import (
 	"runtime/pprof"
 )
 
-var config string
+var config = flag.String("f", "", "Path to your config file")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func init() {
-	flag.StringVar(&config, "f", "", "Path to your config file")
 	flag.Parse()
 }
 
@@ -30,7 +29,7 @@ func main() {
         defer pprof.StopCPUProfile()
     }
 
-	if config == "" {
+	if *config == "" {
 		fmt.Println("Need to specify path to config file\n Use flag -f\n anteater -f /path/to/file.conf")
 		return
 	}
@@ -38,7 +37,7 @@ func main() {
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
 	go func() {
-		anteater.MainInit(config)
+		anteater.MainInit(*config)
 		anteater.Start()
 	}()
 
