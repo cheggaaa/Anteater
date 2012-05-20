@@ -106,13 +106,13 @@ func SafeDivision(a, b int64) int64 {
 
 func HumanBytes(size int64) (result string) {
 	switch {
-		case size > (1024 * 1024 * 1024 * 1024 * 1024):
-			result = fmt.Sprintf("%6.2f TiB", float64(size) / 1024 / 1024 / 1024 / 1024)
 		case size > (1024 * 1024 * 1024 * 1024):
-			result = fmt.Sprintf("%6.2f GiB", float64(size) / 1024 / 1024 / 1024)
+			result = fmt.Sprintf("%6.2f TiB", float64(size) / 1024 / 1024 / 1024 / 1024)
 		case size > (1024 * 1024 * 1024):
-			result = fmt.Sprintf("%6.2f MiB", float64(size) / 1024 / 1024)
+			result = fmt.Sprintf("%6.2f GiB", float64(size) / 1024 / 1024 / 1024)
 		case size > (1024 * 1024):
+			result = fmt.Sprintf("%6.2f MiB", float64(size) / 1024 / 1024)
+		case size > 1024:
 			result = fmt.Sprintf("%6.2f KiB", float64(size) / 1024)
 		default :
 			result = fmt.Sprintf("%d B", size)
