@@ -5,11 +5,10 @@ import (
 	"runtime"
 	"sort"
 	"sync/atomic"
-	"fmt"
 )
 
 
-var FiveSecondsCounters []*StateHttpCounters = make([]*StateHttpCounters, 60)
+var FiveSecondsCounters []*StateHttpCounters = make([]*StateHttpCounters, 61)
 var FiveSecondsCursor int
 
 type State struct {
@@ -125,7 +124,7 @@ func GetState() *State {
 
 
 func FiveSecondsTick() {
-	if FiveSecondsCursor == 60 {
+	if FiveSecondsCursor == 61 {
 		FiveSecondsCursor = 0
 	}
 	if FiveSecondsCounters[FiveSecondsCursor] == nil {
@@ -133,12 +132,6 @@ func FiveSecondsTick() {
 	}
 	FiveSecondsCounters[FiveSecondsCursor].SetData(HttpCn)	
 	FiveSecondsCursor++
-	
-	for k, v := range(FiveSecondsCounters) {
-		if v != nil {
-			fmt.Println(k, v)
-		}
-	}
 }
 
 func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
@@ -150,11 +143,11 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 		diffCursor--
 		i++
 		if diffCursor == -1 {
-			diffCursor = 59
+			diffCursor = 60
 		}		
 		if FiveSecondsCounters[diffCursor] == nil {
 			diffCursor++
-			if diffCursor == 60 {
+			if diffCursor == 61 {
 				diffCursor = 0
 			} 
 			break
@@ -166,8 +159,7 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
-	
-	fmt.Println("D", period, curCursor, diffCursor, cur, diff)
+
 	result.Add = cur.Add - diff.Add
 	result.Get = cur.Get - diff.Get
 	result.Delete = cur.Delete - diff.Delete
