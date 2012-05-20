@@ -167,7 +167,7 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
 	
-	fmt.Println(period, curCursor, diffCursor, cur, diff)
+	fmt.Println("D", period, curCursor, diffCursor, cur, diff)
 	result.Add = cur.Add - diff.Add
 	result.Get = cur.Get - diff.Add
 	result.Delete = cur.Delete - diff.Delete
