@@ -107,15 +107,32 @@ func GetState() *State {
 		SpacesSize      : spacesTotalSize,
 	}
 	
+	rateStart := time.Now().Unix() - StartTime.Unix()
+	
+	rate1 := int64(5)
+	if time.Now().Unix() - rate1 < StartTime.Unix() {
+		rate1 = rateStart
+	}
+	
+	rate2 := int64(60)
+	if time.Now().Unix() - rate2 < StartTime.Unix() {
+		rate2 = rateStart
+	}
+	
+	rate3 := int64(300)
+	if time.Now().Unix() - rate3 < StartTime.Unix() {
+		rate3 = rateStart
+	}
+	
 	
 	return &State{
 		Main     : m,
 		Files    : f,
 		Counters : HttpCn,
-		RatesSinceStart : HttpCn.AsRate(int64(time.Now().Unix() - StartTime.Unix())),
-		RatesLast5Seconds : GetHttpStateByPeriod(1).AsRate(int64(5)),
-		RatesLastMinute : GetHttpStateByPeriod(12).AsRate(int64(60)),
-		RatesLast5Minutes : GetHttpStateByPeriod(60).AsRate(int64(300)),
+		RatesSinceStart : HttpCn.AsRate(rateStart),
+		RatesLast5Seconds : GetHttpStateByPeriod(1).AsRate(rate1),
+		RatesLastMinute : GetHttpStateByPeriod(12).AsRate(rate2),
+		RatesLast5Minutes : GetHttpStateByPeriod(60).AsRate(rate3),
 		Alloc    : AllocCn,
 	}
 }
