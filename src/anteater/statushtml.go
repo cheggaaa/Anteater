@@ -2,7 +2,6 @@ package anteater
 
 import (
 	"html/template"
-	"math"
 	"fmt"
 	"io"
 	"time"
@@ -18,7 +17,7 @@ const (
 	<body>
 	{{with .Tables}}
 		{{range .}}
-		<div>
+		<div style="float:left;margin:20px;border:1px solid #000;border-radius:10px;">
 			<h3>{{.Title}}</h3>
 			<table>
 			{{with .Values}}
@@ -126,7 +125,7 @@ func (s *State) AsHtml(w io.Writer) {
 	}
 	
 	r5m := &HtmlTable{
-		Title : "Rates (since start)",
+		Title : "Rates (5 minutes)",
 		Values : []*KeyValue{
 			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.Sum())},
 			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.Get)},
@@ -137,7 +136,7 @@ func (s *State) AsHtml(w io.Writer) {
 	}
 	
 	r1m := &HtmlTable{
-		Title : "Rates (since start)",
+		Title : "Rates (1 minute)",
 		Values : []*KeyValue{
 			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesLastMinute.Sum())},
 			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesLastMinute.Get)},
@@ -148,7 +147,7 @@ func (s *State) AsHtml(w io.Writer) {
 	}
 	
 	r5s := &HtmlTable{
-		Title : "Rates (since start)",
+		Title : "Rates (5 seconds)",
 		Values : []*KeyValue{
 			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.Sum())},
 			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.Get)},
@@ -185,15 +184,4 @@ func HumanBytes(size int64) (result string) {
 	return
 }
 
-func Round(val float64, prec int) float64 {
-    var rounder float64
-    intermed := val * math.Pow(10, float64(prec))
-
-    if val >= 0.5 {
-        rounder = math.Ceil(intermed)
-    } else {
-        rounder = math.Floor(intermed)
-    }
-    return rounder / math.Pow(10, float64(prec))
-}
 
