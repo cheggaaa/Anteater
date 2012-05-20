@@ -14,10 +14,13 @@ const (
 	<head>
 		<title>{{.Title}}</title>
 		<style type="text/css">
+			body {
+				background:#fff;
+				margin:20px;
+			}
 			table tr tr:nth-child(2n+1) {
 			  	background-color: #99ff99;
-			}
-		
+			}		
 			.container, .container div {
 				height:30px;
 			}
@@ -26,11 +29,12 @@ const (
 				border:1px solid #666666;
 				border-radius:5px;
 				width: 1000px;
+				margin-left:20px;
 			}
 			.data {
 				float:left;
 				background:#66CC66;
-				width: {{.PData}}px;
+				width: {{.PData}}px;				
 			}
 			.spaces {
 				float:left;
