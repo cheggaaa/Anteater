@@ -135,7 +135,9 @@ func FiveSecondsTick() {
 	FiveSecondsCursor++
 	
 	for k, v := range(FiveSecondsCounters) {
-		fmt.Println(k, v)
+		if v != nil {
+			fmt.Println(k, v)
+		}
 	}
 }
 
