@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sort"
 	"sync/atomic"
+	"fmt"
 )
 
 
@@ -146,18 +147,17 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 			diffCursor = 59
 		}		
 		if FiveSecondsCounters[diffCursor] == nil {
-			if diffCursor == 59 {
+			diffCursor++
+			if diffCursor == 60 {
 				diffCursor = 0
-			} else {
-				diffCursor++
-			}
+			} 
 			break
 		}
 		if i >= period {
 			break
 		}
 	} 
-
+	fmt.Println(period, curCursor, diffCursor)
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
 
