@@ -118,7 +118,12 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(k, v)
 	}
 	
-	http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
+	// if need content-range support
+	if i.Size > Conf.ContentRange {
+		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
+		return
+	}
+	io.Copy(w, reader)	
 }
 
 func saveFile(name string, w http.ResponseWriter, r *http.Request) {
@@ -191,9 +196,19 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 			}
 		}
 	}
-	isContinue = true	
+	t := time.Unix(i.T, 0)
+	
+	// Check if modified
+	if tm, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since")); err == nil && t.Before(tm.Add(1*time.Second)) {
+		w.WriteHeader(http.StatusNotModified)
+   		return
+   	}
+		
+	isContinue = true
+	
 	h = Conf.Headers
 	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
+	h["Last-Modified"] = t.UTC().Format(http.TimeFormat)
 	if Conf.ETagSupport {
 		h["ETag"] = i.ETag()	
 	}

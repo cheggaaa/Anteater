@@ -63,7 +63,7 @@ var Log *AntLog
 
 var StartTime time.Time = time.Now()
 
-var LastDump time.Time
+var LastDump time.Time = time.Now()
 var LastDumpTime int64
 var IndexFileSize int64
 
@@ -138,10 +138,15 @@ func Stop() {
 
 func Cleanup() {
 	var maxSpace int64
+	var hasChanges bool
+	
 	for _, c := range(FileContainers) {
 		c.Clean()
 		if c.MaxSpace() > maxSpace {
 			maxSpace = c.MaxSpace()
+		}
+		if c.HasChanges() {
+			hasChanges = true
 		}
 	}
 	
@@ -152,9 +157,10 @@ func Cleanup() {
 		}
 	}
 	
-	err := DumpData(IndexPath)
-	if err != nil {
-		Log.Infoln("Dump error:", err)
+	if hasChanges {
+		err := DumpData(IndexPath)
+		if err != nil {
+			Log.Infoln("Dump error:", err)
+		}
 	}
-	
 }

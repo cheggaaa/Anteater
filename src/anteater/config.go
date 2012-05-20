@@ -16,6 +16,7 @@ type Config struct {
 	HttpWriteAddr string
 	HttpReadAddr  string
 	ETagSupport   bool
+	ContentRange    int64
 	
 	// Http Headers
 	Headers       map[string]string
@@ -70,10 +71,18 @@ func LoadConfig(filename string) (*Config, error) {
 		httpReadAddr = httpWriteAddr
 	}
 	
+	// ETag flag
 	etagSupport, err := c.Bool("http", "etag")
 	if err != nil {
 		etagSupport = true
 	}
+	
+	// Range support
+	cr, err := c.String("http", "content_range")
+	if err != nil {
+		cr = "5M"
+	}
+	contentRange, err := GetSizeFromString(cr)
 	
 	// Headers	
 	headers := make(map[string]string, 0)
@@ -123,7 +132,7 @@ func LoadConfig(filename string) (*Config, error) {
 		logFile = ""
 	}
 	
-	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, headers, mimeTypes, logLevel, logFile}, nil
+	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, contentRange, headers, mimeTypes, logLevel, logFile}, nil
 }
 
 func GetSizeFromString(s string) (int64, error) {
