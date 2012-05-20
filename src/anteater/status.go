@@ -90,7 +90,7 @@ func GetState() *State {
 	
 	for _, id := range(ids) {
 		cnt = FileContainers[int32(id)]
-		_, sc, st := cnt.Spaces.ToHtml(10, cnt.Size)
+		sc, st := cnt.Spaces.Stats()
 		totalSize += cnt.Size
 		fileCount += cnt.Count
 		spacesCount += sc

@@ -55,9 +55,16 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	if filename == "status" {
-		printStatus(w)
-		return
+	switch filename {
+		case "":
+			errorFunc(w, 404)
+			return
+		case Conf.StatusJson:
+			printStatusJson(w)
+			return
+		case Conf.StatusHtml:
+			printStatusHtml(w)
+			return
 	}
 
 	switch r.Method {
@@ -216,7 +223,7 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 	return 
 }
 
-func printStatus(w http.ResponseWriter) {
+func printStatusJson(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")	
 	state := GetState()
 	b, err := json.Marshal(state)
@@ -228,4 +235,8 @@ func printStatus(w http.ResponseWriter) {
 	w.Write(b)
 }
 
+
+func printStatusHtml(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
 

@@ -16,7 +16,9 @@ type Config struct {
 	HttpWriteAddr string
 	HttpReadAddr  string
 	ETagSupport   bool
-	ContentRange    int64
+	ContentRange  int64
+	StatusJson    string
+	StatusHtml    string
 	
 	// Http Headers
 	Headers       map[string]string
@@ -84,6 +86,19 @@ func LoadConfig(filename string) (*Config, error) {
 	}
 	contentRange, err := GetSizeFromString(cr)
 	
+	// Status json
+	statusJson, err := c.String("http", "status_json")
+	if err != nil {
+		statusJson = ""
+	}
+	
+	// Status json
+	statusHtml, err := c.String("http", "status_html")
+	if err != nil {
+		statusHtml = ""
+	}
+
+	
 	// Headers	
 	headers := make(map[string]string, 0)
 	hOpts, err := c.Options("http-headers")
@@ -132,7 +147,7 @@ func LoadConfig(filename string) (*Config, error) {
 		logFile = ""
 	}
 	
-	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, contentRange, headers, mimeTypes, logLevel, logFile}, nil
+	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, contentRange, statusJson, statusHtml, headers, mimeTypes, logLevel, logFile}, nil
 }
 
 func GetSizeFromString(s string) (int64, error) {
