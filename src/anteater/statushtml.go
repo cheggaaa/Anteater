@@ -71,11 +71,16 @@ func init() {
 func (s *State) AsHtml(w io.Writer) {
 	body := &HtmlMain{}
 	body.Title = "Hello world!"
+	
+	// roun time to second
+	st := time.Unix(StartTime.Unix(), 0)
+	nt := time.Unix(time.Now().Unix(), 0)
+	
 	m := &HtmlTable{
 		Title : "Main info",
 		Values : []*KeyValue{
 			&KeyValue{"AntEater version", version},
-			&KeyValue{"Uptime", fmt.Sprintf("%v", time.Now().Sub(StartTime))},
+			&KeyValue{"Uptime", fmt.Sprintf("%v", nt.Sub(st))},
 			&KeyValue{"Goroutines count", fmt.Sprintf("%d", s.Main.Goroutines)},
 			&KeyValue{"Index file size", HumanBytes(s.Main.IndexFileSize)},
 		},
