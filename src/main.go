@@ -14,6 +14,7 @@ import (
 
 var config = flag.String("f", "", "Path to your config file")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var memprofile = flag.String("memprofile", "", "write memory profile to this file")
 
 func init() {
 	flag.Parse()
@@ -45,6 +46,15 @@ func main() {
 	signal.Notify(interrupt, os.Kill, os.Interrupt)
 	<-interrupt
 	fmt.Println("")
+	if *memprofile != "" {
+        f, err := os.Create(*memprofile)
+        if err != nil {
+            log.Fatal(err)
+        }
+        pprof.WriteHeapProfile(f)
+        f.Close()
+        return
+    }
 	anteater.Log.Debugln("\nCatched shutdown signal...")
 	time.Sleep(time.Second)
 	anteater.Stop()
