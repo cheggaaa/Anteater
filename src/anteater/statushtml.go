@@ -18,7 +18,7 @@ const (
 	{{with .Tables}}
 		{{range .}}
 		<div>
-			<h4>{{.Title}}</h4>
+			<h3>{{.Title}}</h3>
 			<table>
 			{{with .Values}}
 			    {{range .}}
@@ -73,6 +73,7 @@ func (s *State) AsHtml(w io.Writer) {
 	m := &HtmlTable{
 		Title : "Main info",
 		Values : []*KeyValue{
+			&KeyValue{"AntEater version", version},
 			&KeyValue{"Goroutines count", fmt.Sprintf("%d", s.Main.Goroutines)},
 			&KeyValue{"Index file size", HumanBytes(s.Main.IndexFileSize)},
 		},

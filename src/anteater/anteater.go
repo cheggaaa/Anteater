@@ -83,9 +83,8 @@ var IndexFileSize int64
 /**
  * Metrics
  */
-var HttpCn  *StateHttpCounters     = &StateHttpCounters{}
-var HttpCnLastMinute  *StateHttpCounters     = &StateHttpCounters{}
-var AllocCn *StateAllocateCounters = &StateAllocateCounters{}
+var HttpCn  *StateHttpCounters           = &StateHttpCounters{}
+var AllocCn *StateAllocateCounters       = &StateAllocateCounters{}
 
 
 func MainInit(config string) {
@@ -157,12 +156,12 @@ func Cleanup() {
 	var hasChanges bool
 	
 	for _, c := range(FileContainers) {
+		if c.HasChanges() {
+			hasChanges = true
+		}
 		c.Clean()
 		if c.MaxSpace() > maxSpace {
 			maxSpace = c.MaxSpace()
-		}
-		if c.HasChanges() {
-			hasChanges = true
 		}
 	}
 	
