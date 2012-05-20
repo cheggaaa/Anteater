@@ -90,7 +90,7 @@ const (
 			<tfoot>
 				{{with .Total}}
 		        <tr>
-		            <th scope="row">.Name</th>
+		            <th scope="row">{{.Name}}</th>
 		            {{range .Values}}
 					<td scope="col">{{.}}</td>
 					{{end}}
@@ -101,7 +101,7 @@ const (
 		    	{{with .Rates}}
 		    	{{range .}}
 			    <tr>
-			        <th scope="row">.Name</th>
+			        <th scope="row">{{.Name}}</th>
 			        {{range .Values}}
 					<td scope="col">{{.}}</td>
 					{{end}}
