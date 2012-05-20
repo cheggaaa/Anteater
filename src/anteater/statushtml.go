@@ -75,7 +75,7 @@ func (s *State) AsHtml(w io.Writer) {
 		Title : "Main info",
 		Values : []*KeyValue{
 			&KeyValue{"AntEater version", version},
-			&KeyValue{"Uptime", fmt.Sprintf("%v", StartTime.Sub(time.Now()))},
+			&KeyValue{"Uptime", fmt.Sprintf("%v", time.Now().Sub(StartTime))},
 			&KeyValue{"Goroutines count", fmt.Sprintf("%d", s.Main.Goroutines)},
 			&KeyValue{"Index file size", HumanBytes(s.Main.IndexFileSize)},
 		},
