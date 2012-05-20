@@ -222,7 +222,10 @@ func (s *State) AsHtml(w io.Writer) {
 	body := &HtmlMain{}
 	body.Title = "Server status " + version
 	
-	allocated := Conf.ContainerSize * int64(s.Files.ContainersCount)
+	allocated := int64(0)
+	for _, c := range FileContainers {
+		allocated += c.Size
+	}
 	body.PSpaces = SafeDivision(s.Files.SpacesSize * 1000, allocated)
 	body.PData = SafeDivision(s.Files.FilesSize * 1000, allocated)
 	
