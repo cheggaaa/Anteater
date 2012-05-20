@@ -133,6 +133,10 @@ func FiveSecondsTick() {
 	}
 	FiveSecondsCounters[FiveSecondsCursor].SetData(HttpCn)	
 	FiveSecondsCursor++
+	
+	for k, v := range(FiveSecondsCounters) {
+		fmt.Println(k, v)
+	}
 }
 
 func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
@@ -157,7 +161,7 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 			break
 		}
 	} 
-	fmt.Println(period, curCursor, diffCursor)
+	//fmt.Println(period, curCursor, diffCursor)
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
 
