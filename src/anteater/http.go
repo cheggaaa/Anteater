@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strconv"
 	"io"
-	"encoding/json"
 	"time"
 )
 
@@ -225,18 +224,13 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 
 func printStatusJson(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")	
-	state := GetState()
-	b, err := json.Marshal(state)
-	
-	if err != nil {
-		Log.Warnln(err)
-	}
-	
+	b := GetState().AsJson()
 	w.Write(b)
 }
 
 
 func printStatusHtml(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	GetState().AsHtml(w)
 }
 

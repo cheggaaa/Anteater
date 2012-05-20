@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sort"
 	"sync/atomic"
+	"encoding/json"
 )
 
 
@@ -180,7 +181,16 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 	result.NotFound = cur.NotFound - diff.NotFound
 	return
 }
- 
+
+func (s State) AsJson() (b []byte) {
+	b, err := json.Marshal(s)	
+	if err != nil {
+		Log.Warnln(err)
+	}
+	return
+}
+
+
 func (s *StateHttpCounters) CGet() {
 	atomic.AddInt64(&s.Get, 1)
 }
