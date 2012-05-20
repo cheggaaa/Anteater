@@ -220,7 +220,7 @@ func init() {
 
 func (s *State) AsHtml(w io.Writer) {
 	body := &HtmlMain{}
-	body.Title = "Server status " + version
+	body.Title = "Anteater server status"
 	
 	allocated := int64(0)
 	for _, c := range FileContainers {
