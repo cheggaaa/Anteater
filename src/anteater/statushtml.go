@@ -99,12 +99,14 @@ const (
 		    </tfoot>
 		    <tbody>
 		    	{{with .Rates}}
+		    	{{range .}}
 			    <tr>
 			        <th scope="row">.Name</th>
 			        {{range .Values}}
 					<td scope="col">{{.}}</td>
 					{{end}}
-			        </tr>
+			    </tr>
+			    {{end}}
 	        	{{end}}
         	</tbody>
 		</table>
