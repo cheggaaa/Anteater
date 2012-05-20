@@ -123,6 +123,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
 		return
 	}
+	// else just copy content to output
 	io.Copy(w, reader)	
 }
 
