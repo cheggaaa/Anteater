@@ -17,7 +17,7 @@ const (
 	<body>
 	{{with .Tables}}
 		{{range .}}
-		<div style="float:left;margin:20px;border:1px solid #000;border-radius:10px;">
+		<div style="float:left;margin:20px;border:1px solid #000;border-radius:10px;padding:20px">
 			<h3>{{.Title}}</h3>
 			<table>
 			{{with .Values}}
@@ -113,51 +113,62 @@ func (s *State) AsHtml(w io.Writer) {
 		},
 	}
 	
+	ta := s.Alloc.ReplaceSpace + s.Alloc.ToEnd + s.Alloc.AddToSpace
+	
+	a := &HtmlTable{
+		Title : "Allocates",
+		Values : []*KeyValue{
+			&KeyValue{"Append", fmt.Sprintf("%d %s  (%d)", SafeDivision(s.Alloc.ToEnd * 100, ta), "%", s.Alloc.ToEnd)},
+			&KeyValue{"Append to space", fmt.Sprintf("%d %s  (%d)", SafeDivision(s.Alloc.AddToSpace * 100, ta), "%", s.Alloc.AddToSpace)},
+			&KeyValue{"Replace space", fmt.Sprintf("%d %s  (%d)", SafeDivision(s.Alloc.ReplaceSpace * 100, ta), "%", s.Alloc.ReplaceSpace)},
+		},
+	}
+	
 	rs := &HtmlTable{
 		Title : "Rates (since start)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesSinceStart.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesSinceStart.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d per/s", s.RatesSinceStart.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d per/s", s.RatesSinceStart.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d per/s", s.RatesSinceStart.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesSinceStart.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesSinceStart.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesSinceStart.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesSinceStart.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesSinceStart.NotFound)},
 		},
 	}
 	
 	r5m := &HtmlTable{
 		Title : "Rates (5 minutes)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d per/s", s.RatesLast5Minutes.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesLast5Minutes.NotFound)},
 		},
 	}
 	
 	r1m := &HtmlTable{
 		Title : "Rates (1 minute)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesLastMinute.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesLastMinute.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d per/s", s.RatesLastMinute.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d per/s", s.RatesLastMinute.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d per/s", s.RatesLastMinute.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesLastMinute.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesLastMinute.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesLastMinute.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesLastMinute.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesLastMinute.NotFound)},
 		},
 	}
 	
 	r5s := &HtmlTable{
 		Title : "Rates (5 seconds)",
 		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d per/s", s.RatesLast5Seconds.NotFound)},
+			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Sum())},
+			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Get)},
+			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Add)},
+			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Delete)},
+			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.NotFound)},
 		},
 	}
 	
-	body.Tables = []*HtmlTable{m, f, c, rs, r5m, r1m, r5s}
+	body.Tables = []*HtmlTable{m, f, a, c, rs, r5m, r1m, r5s}
 	TmplMain.Execute(w, body)
 }
 
