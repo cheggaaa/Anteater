@@ -43,7 +43,61 @@ const (
 				margin:20px;
 				border:1px solid #000;
 				border-radius:10px;
-				padding:20px
+				padding:20px;
+				padding-top:5px;
+			}
+			
+			table.rates {
+			    font-style: normal;
+			    font-weight: normal;
+			    text-align:center;
+			    border-collapse:collapse;
+			}
+			.rates thead th {
+			    padding:6px 10px;
+			    color:#444;
+			    background-color:#FFFFCC;
+			    font-weight:bold;
+			}
+			.rates thead th:empty {
+			    background:transparent;
+			    border:none;
+			}
+			.rates tfoot :nth-child(2) {
+			    border-bottom-left-radius:5px;
+			}
+			.rates thead :nth-child(2) {
+			    border-top-left-radius:5px;
+			}
+			
+			.rates thead :nth-child(5) {
+			    border-top-right-radius:5px;
+			}
+			.rates tfoot :nth-child(5) {
+			    border-bottom-right-radius:5px;
+			}
+			.rates tfoot td {
+			    font-weight:bold;
+			    background-color:#FFFFCC;
+			}
+			.rates tbody td {
+				border:1px solid #aaa;  
+			}
+			.rates tbody td:nth-child(even) {
+			    color:#444;		    
+			}
+			.rates tbody td:nth-child(odd) {
+			    background-color:#FFFFCC;
+			    color:#000;		    
+			}
+			.rates tbody th, .rates tfoot th {
+			    color:#696969;
+			    background-color:#FFFFCC;
+			    text-align:right;
+			    padding:0px 10px;
+			}
+			.rates tfoot th {
+				color:#000;
 			}
 		</style>
 	</head>
@@ -78,7 +132,7 @@ const (
 	{{with .Rates}}
 	<div class="block">
 		<h3>{{.Title}}</h3>
-		<table>
+		<table class="rates">
 			<thead>
 				<tr>
 					<th></th>
