@@ -14,33 +14,50 @@ const (
 	<head>
 		<title>{{.Title}}</title>
 		<style type="text/css">
+			table tr tr:nth-child(2n+1) {
+			  	background-color: #99ff99;
+			}
+		
 			.container, .container div {
-				height:100px;
+				height:30px;
 			}
 			.container {
-				background:#ddd;
-				border:1px solid #bbb;
+				background:#FFFFCC;
+				border:1px solid #666666;
 				border-radius:5px;
-				width: 90%;
+				width: 95%;
 			}
 			.data {
 				float:left;
-				background:#0f0;
+				background:#66CC66;
 				width: {{.PData}}%;
 			}
 			.spaces {
 				float:left;
-				background:#f00;
+				background:#993333;
 				width: {{.PSpaces}}%;
+			}
+			
+			.block {
+				float:left;
+				margin:20px;
+				border:1px solid #000;
+				border-radius:10px;
+				padding:20px
 			}
 		</style>
 	</head>
 	<body>
 	<h2>{{.Title}}</h2>
+	<div class="container">
+		<div class="data"></div>
+		<div class="spaces"></div>
+	</div>
+	<div style="clear:both"></div>
 	<div>
 	{{with .Tables}}
 		{{range .}}
-		<div style="float:left;margin:20px;border:1px solid #000;border-radius:10px;padding:20px">
+		<div class="block">
 			<h3>{{.Title}}</h3>
 			<table>
 			{{with .Values}}
@@ -57,9 +74,42 @@ const (
 	{{end}}
 	</div>
 	<div style="clear:both"></div>
-	<div class="container">
-		<div class="data"></div>
-		<div class="spaces"></div>
+	<div>
+	{{with .Rates}}
+	<div class="block">
+		<h3>{{.Title}}</h3>
+		<table>
+			<thead>
+				<tr>
+					<th></th>
+					{{range .Heads}}
+					<th scope="col">{{.}}</th>
+					{{end}}
+				</tr>
+			</thead>
+			<tfoot>
+				{{with .Total}}
+		        <tr>
+		            <th scope="row">.Name</th>
+		            {{range .Values}}
+					<td scope="col">{{.}}</td>
+					{{end}}
+		        </tr>
+		        {{end}}
+		    </tfoot>
+		    <tbody>
+		    	{{with .Rates}}
+			    <tr>
+			        <th scope="row">.Name</th>
+			        {{range .Values}}
+					<td scope="col">{{.}}</td>
+					{{end}}
+			        </tr>
+	        	{{end}}
+        	</tbody>
+		</table>
+	</div>
+	{{end}}
 	</div>
 	</body>
 </html>`
@@ -73,6 +123,7 @@ type KeyValue struct {
 type HtmlMain struct {
 	Title string
 	Tables []*HtmlTable
+	Rates  *HtmlRates
 	PData int64
 	PSpaces int64
 }
@@ -80,6 +131,18 @@ type HtmlMain struct {
 type HtmlTable struct {
 	Title string
 	Values []*KeyValue
+}
+
+type HtmlRates struct {
+	Title string
+	Heads []string
+	Rates []*HtmlRate
+	Total *HtmlRate
+}
+
+type HtmlRate struct {
+	Name string
+	Values []string
 }
 
 var (
@@ -156,51 +219,44 @@ func (s *State) AsHtml(w io.Writer) {
 		},
 	}
 	
-	rs := &HtmlTable{
-		Title : "Rates (since start)",
-		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d rps", s.RatesSinceStart.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d rps", s.RatesSinceStart.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d rps", s.RatesSinceStart.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d rps", s.RatesSinceStart.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d rps", s.RatesSinceStart.NotFound)},
-		},
+	rates := &HtmlRates{}
+	rates.Title = "Request rates"
+	rates.Heads = []string{"5 seconds", "1 minute", "5 minutes", "Since start"}
+	rates.Rates = []*HtmlRate{
+		&HtmlRate{"Get", []string{
+			fmt.Sprintf("%d", s.RatesLast5Seconds.Get),
+			fmt.Sprintf("%d", s.RatesLastMinute.Get),
+			fmt.Sprintf("%d", s.RatesLast5Minutes.Get),
+			fmt.Sprintf("%d", s.RatesSinceStart.Get),
+		}},
+		&HtmlRate{"Add", []string{
+			fmt.Sprintf("%d", s.RatesLast5Seconds.Add),
+			fmt.Sprintf("%d", s.RatesLastMinute.Add),
+			fmt.Sprintf("%d", s.RatesLast5Minutes.Add),
+			fmt.Sprintf("%d", s.RatesSinceStart.Add),
+		}},
+		&HtmlRate{"Delete", []string{
+			fmt.Sprintf("%d", s.RatesLast5Seconds.Delete),
+			fmt.Sprintf("%d", s.RatesLastMinute.Delete),
+			fmt.Sprintf("%d", s.RatesLast5Minutes.Delete),
+			fmt.Sprintf("%d", s.RatesSinceStart.Delete),
+		}},
+		&HtmlRate{"Not Found", []string{
+			fmt.Sprintf("%d", s.RatesLast5Seconds.NotFound),
+			fmt.Sprintf("%d", s.RatesLastMinute.NotFound),
+			fmt.Sprintf("%d", s.RatesLast5Minutes.NotFound),
+			fmt.Sprintf("%d", s.RatesSinceStart.NotFound),
+		}},
 	}
-	
-	r5m := &HtmlTable{
-		Title : "Rates (5 minutes)",
-		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d rps", s.RatesLast5Minutes.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d rps", s.RatesLast5Minutes.NotFound)},
-		},
-	}
-	
-	r1m := &HtmlTable{
-		Title : "Rates (1 minute)",
-		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d rps", s.RatesLastMinute.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d rps", s.RatesLastMinute.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d rps", s.RatesLastMinute.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d rps", s.RatesLastMinute.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d rps", s.RatesLastMinute.NotFound)},
-		},
-	}
-	
-	r5s := &HtmlTable{
-		Title : "Rates (5 seconds)",
-		Values : []*KeyValue{
-			&KeyValue{"Total", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Sum())},
-			&KeyValue{"Get", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Get)},
-			&KeyValue{"Add", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Add)},
-			&KeyValue{"Delete", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.Delete)},
-			&KeyValue{"Not Found", fmt.Sprintf("%d p/s", s.RatesLast5Seconds.NotFound)},
-		},
-	}
-	
-	body.Tables = []*HtmlTable{m, f, a, c, rs, r5m, r1m, r5s}
+	rates.Total = &HtmlRate{"Total", []string{
+			fmt.Sprintf("%d", s.RatesLast5Seconds.Sum()),
+			fmt.Sprintf("%d", s.RatesLastMinute.Sum()),
+			fmt.Sprintf("%d", s.RatesLast5Minutes.Sum()),
+			fmt.Sprintf("%d", s.RatesSinceStart.Sum()),
+		}}
+		
+	body.Tables = []*HtmlTable{m, f, a, c}
+	body.Rates = rates
 	TmplMain.Execute(w, body)
 }
 
