@@ -5,7 +5,6 @@ import (
 	"runtime"
 	"sort"
 	"sync/atomic"
-	"fmt"
 )
 
 
@@ -133,12 +132,6 @@ func FiveSecondsTick() {
 	}
 	FiveSecondsCounters[FiveSecondsCursor].SetData(HttpCn)	
 	FiveSecondsCursor++
-	
-	for k, v := range(FiveSecondsCounters) {
-		if v != nil {
-			fmt.Println(k, v)
-		}
-	}
 }
 
 func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
@@ -166,10 +159,9 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
-	
-	fmt.Println("D", period, curCursor, diffCursor, cur, diff)
+
 	result.Add = cur.Add - diff.Add
-	result.Get = cur.Get - diff.Add
+	result.Get = cur.Get - diff.Get
 	result.Delete = cur.Delete - diff.Delete
 	result.NotFound = cur.NotFound - diff.NotFound
 	return
