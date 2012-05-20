@@ -65,8 +65,10 @@ var StartTime time.Time = time.Now()
 
 var LastDump time.Time
 var LastDumpTime int64
+var IndexFileSize int64
 
 var HttpCn  *StateHttpCounters     = &StateHttpCounters{}
+var HttpCnLastMinute  *StateHttpCounters     = &StateHttpCounters{}
 var AllocCn *StateAllocateCounters = &StateAllocateCounters{}
 
 

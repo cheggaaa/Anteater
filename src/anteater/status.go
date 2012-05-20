@@ -7,20 +7,25 @@ import (
 	"sync/atomic"
 )
 
+
+var FiveSecondsCounters []*StateHttpCounters = make([]*StateHttpCounters, 60)
+var FiveSecondsCursor int
+
 type State struct {
 	Main  *StateMain
 	Files *StateFiles
 	Counters *StateHttpCounters
+	CountersLast5Seconds *StateHttpCounters
+	CountersLastMinute   *StateHttpCounters
+	CountersLast5Minutes *StateHttpCounters
 	Alloc *StateAllocateCounters
 }
 
 type StateMain struct {
 	Time          int64
-	StartTime        int64
+	StartTime     int64
 	Goroutines    int
 	MemoryUsage   uint64
-	Requests      map[string]int64
-	RequestsRate  map[string]int64
 	LastDump      int64
 	LastDumpTime  int64
 	IndexFileSize int64
@@ -48,6 +53,18 @@ type StateAllocateCounters struct {
 }
 
 
+func init() {
+	FiveSecondsTick()
+	go func() { 
+		ch := time.Tick(5 * time.Second)
+		for _ = range ch {
+			func () {
+				FiveSecondsTick()
+			}()
+		}
+	}()
+}
+
 
 func GetState() *State {
 	ms := &runtime.MemStats{}
@@ -57,10 +74,9 @@ func GetState() *State {
 		StartTime    : StartTime.Unix(),
 		Goroutines   : runtime.NumGoroutine(),
 		MemoryUsage  : ms.TotalAlloc,
-		Requests     : make(map[string]int64),
-		RequestsRate : make(map[string]int64),
 		LastDump     : LastDump.Unix(),
 		LastDumpTime : LastDumpTime,
+		IndexFileSize: IndexFileSize,
 	}
 	
 	GetFileLock.Lock()
@@ -99,11 +115,59 @@ func GetState() *State {
 		Main     : m,
 		Files    : f,
 		Counters : HttpCn,
+		CountersLast5Seconds : GetHttpStateByPeriod(1),
+		CountersLastMinute : GetHttpStateByPeriod(12),
+		CountersLast5Minutes : GetHttpStateByPeriod(60),
 		Alloc    : AllocCn,
 	}
 }
 
 
+func FiveSecondsTick() {
+	if FiveSecondsCursor == 60 {
+		FiveSecondsCursor = 0
+	}
+	if FiveSecondsCounters[FiveSecondsCursor] == nil {
+		FiveSecondsCounters[FiveSecondsCursor] = &StateHttpCounters{}
+	}
+	FiveSecondsCounters[FiveSecondsCursor].SetData(HttpCn)	
+	FiveSecondsCursor++
+}
+
+func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
+	curCursor := FiveSecondsCursor - 1
+	diffCursor := curCursor
+	result = &StateHttpCounters{}
+	i := 0
+	for {
+		diffCursor--
+		i++
+		if diffCursor == -1 {
+			diffCursor = 59
+		}		
+		if FiveSecondsCounters[diffCursor] == nil {
+			if diffCursor == 59 {
+				diffCursor = 0
+			} else {
+				diffCursor++
+			}
+			break
+		}
+		if i >= period {
+			break
+		}
+	} 
+
+	cur  := FiveSecondsCounters[curCursor]
+	diff := FiveSecondsCounters[diffCursor]
+
+	result.Add = cur.Add - diff.Add
+	result.Get = cur.Get - diff.Add
+	result.Delete = cur.Delete - diff.Delete
+	result.NotFound = cur.NotFound - diff.NotFound
+	return
+}
+ 
 func (s *StateHttpCounters) CGet() {
 	atomic.AddInt64(&s.Get, 1)
 }
@@ -118,6 +182,13 @@ func (s *StateHttpCounters) CDelete() {
 
 func (s *StateHttpCounters) CNotFound() {
 	atomic.AddInt64(&s.NotFound, 1)
+}
+
+func (s *StateHttpCounters) SetData(otherS *StateHttpCounters) {
+	s.Get = otherS.Get
+	s.Add = otherS.Add
+	s.Delete = otherS.Delete
+	s.NotFound = otherS.NotFound
 }
 
 func (s *StateAllocateCounters) CTarget(target int) {
