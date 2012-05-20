@@ -163,9 +163,9 @@ func (c *Container) GetSpace(size int64, target int) (int64, error) {
 /**
  * Clean container
  */
-func (c *Container) Clean() {
-	Log.Debugln("Start clean container", c.Id);
+func (c *Container) Clean() {	
 	if c.HasChanges() {
+		Log.Debugln("Start clean container", c.Id);
 		c.WLock.Lock()
 		c.Spaces, c.MaxSpaceSize = c.Spaces.Join()
 		c.Ch = false

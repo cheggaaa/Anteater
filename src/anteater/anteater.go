@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	version   = "0.01"
-	serverSign = "Anteater " + version
+	version   = "0.02"
+	serverSign = "AE " + version
 )
 
 /**
@@ -60,13 +60,29 @@ var IndexLock *sync.Mutex = &sync.Mutex{}
  */
 var Log *AntLog
 
-
+/**
+ * Server start time
+ */
 var StartTime time.Time = time.Now()
 
+/**
+ * Time of last dump
+ */
 var LastDump time.Time = time.Now()
+
+/**
+ * Making dump time
+ */
 var LastDumpTime int64
+
+/**
+ * Size of index file
+ */
 var IndexFileSize int64
 
+/**
+ * Metrics
+ */
 var HttpCn  *StateHttpCounters     = &StateHttpCounters{}
 var HttpCnLastMinute  *StateHttpCounters     = &StateHttpCounters{}
 var AllocCn *StateAllocateCounters = &StateAllocateCounters{}
