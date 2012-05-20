@@ -214,6 +214,10 @@ func (s *StateHttpCounters) SetData(otherS *StateHttpCounters) {
 	s.NotFound = otherS.NotFound
 }
 
+func (s *StateHttpCounters) Sum() int64 {
+	return s.Get + s.Add + s.Delete + s.NotFound
+}
+
 func (s *StateHttpCounters) AsRate(duration int64) *StateHttpCounters {
 	return &StateHttpCounters{
 		Add : s.Add / duration,
