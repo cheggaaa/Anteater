@@ -15,6 +15,7 @@ type State struct {
 	Main  *StateMain
 	Files *StateFiles
 	Counters *StateHttpCounters
+	RatesSinceStart   *StateHttpCounters
 	RatesLast5Seconds *StateHttpCounters
 	RatesLastMinute   *StateHttpCounters
 	RatesLast5Minutes *StateHttpCounters
@@ -111,9 +112,10 @@ func GetState() *State {
 		Main     : m,
 		Files    : f,
 		Counters : HttpCn,
-		RatesLast5Seconds : GetHttpStateByPeriod(1),
-		RatesLastMinute : GetHttpStateByPeriod(12),
-		RatesLast5Minutes : GetHttpStateByPeriod(60),
+		RatesSinceStart : HttpCn.AsRate(int64(time.Now().Unix() - StartTime.Unix())),
+		RatesLast5Seconds : GetHttpStateByPeriod(1).AsRate(int64(5)),
+		RatesLastMinute : GetHttpStateByPeriod(12).AsRate(int64(60)),
+		RatesLast5Minutes : GetHttpStateByPeriod(60).AsRate(int64(300)),
 		Alloc    : AllocCn,
 	}
 }
@@ -155,12 +157,10 @@ func GetHttpStateByPeriod(period int) (result *StateHttpCounters) {
 
 	cur  := FiveSecondsCounters[curCursor]
 	diff := FiveSecondsCounters[diffCursor]
-	sec := int64(period * 5)
-
-	result.Add = (cur.Add - diff.Add) / sec
-	result.Get = (cur.Get - diff.Get) / sec
-	result.Delete = (cur.Delete - diff.Delete) / sec
-	result.NotFound = (cur.NotFound - diff.NotFound) / sec
+	result.Add = cur.Add - diff.Add
+	result.Get = cur.Get - diff.Get
+	result.Delete = cur.Delete - diff.Delete
+	result.NotFound = cur.NotFound - diff.NotFound
 	return
 }
  
@@ -185,6 +185,15 @@ func (s *StateHttpCounters) SetData(otherS *StateHttpCounters) {
 	s.Add = otherS.Add
 	s.Delete = otherS.Delete
 	s.NotFound = otherS.NotFound
+}
+
+func (s *StateHttpCounters) AsRate(duration int64) *StateHttpCounters {
+	return &StateHttpCounters{
+		Add : s.Add / duration,
+		Get : s.Get / duration,
+		Delete : s.Delete / duration,
+		NotFound : s.NotFound / duration, 
+	}
 }
 
 func (s *StateAllocateCounters) CTarget(target int) {
