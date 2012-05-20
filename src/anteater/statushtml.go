@@ -73,6 +73,7 @@ func (s *State) AsHtml(w io.Writer) {
 	body.Title = "Hello world!"
 	
 	// roun time to second
+	dt := time.Unix(LastDump.Unix(), 0)
 	st := time.Unix(StartTime.Unix(), 0)
 	nt := time.Unix(time.Now().Unix(), 0)
 	
@@ -82,7 +83,8 @@ func (s *State) AsHtml(w io.Writer) {
 			&KeyValue{"AntEater version", version},
 			&KeyValue{"Uptime", fmt.Sprintf("%v", nt.Sub(st))},
 			&KeyValue{"Goroutines count", fmt.Sprintf("%d", s.Main.Goroutines)},
-			&KeyValue{"Index file size", HumanBytes(s.Main.IndexFileSize)},
+			&KeyValue{"Dump file size", HumanBytes(s.Main.IndexFileSize)},
+			&KeyValue{"Last dump", fmt.Sprintf("%v ago, for %v", dt.Sub(st), LastDumpTime)},
 		},
 	}
 	

@@ -73,7 +73,7 @@ var LastDump time.Time = time.Now()
 /**
  * Making dump time
  */
-var LastDumpTime int64
+var LastDumpTime time.Duration
 
 /**
  * Size of index file

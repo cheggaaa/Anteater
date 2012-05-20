@@ -73,7 +73,7 @@ func GetState() *State {
 		StartTime    : StartTime.Unix(),
 		Goroutines   : runtime.NumGoroutine(),
 		LastDump     : LastDump.Unix(),
-		LastDumpTime : LastDumpTime,
+		LastDumpTime : LastDumpTime.Nanoseconds(),
 		IndexFileSize: IndexFileSize,
 	}
 	

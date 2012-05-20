@@ -17,7 +17,7 @@ func DumpData(filename string) error {
 	Log.Debugln("Dump. Start dump data...")
 	
 	// Timer
-	tm := time.Now().UnixNano()
+	tm := time.Now()
 	
 	cs := []*ContainerDumpData{}
 	for _, c := range(FileContainers) {
@@ -47,7 +47,7 @@ func DumpData(filename string) error {
 	}
 	LastDump = time.Now()	
 	IndexFileSize = int64(len(bytes))
-	LastDumpTime = 	(time.Now().UnixNano() - tm) / 1000 / 1000
+	LastDumpTime = 	time.Now().Sub(tm)
 	Log.Debugf("Dump. %d bytes successfully written to file\n", n)
 	return nil
 }
