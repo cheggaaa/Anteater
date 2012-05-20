@@ -25,17 +25,17 @@ const (
 				background:#FFFFCC;
 				border:1px solid #666666;
 				border-radius:5px;
-				width: 95%;
+				width: 1000px;
 			}
 			.data {
 				float:left;
 				background:#66CC66;
-				width: {{.PData}}%;
+				width: {{.PData}}px;
 			}
 			.spaces {
 				float:left;
 				background:#993333;
-				width: {{.PSpaces}}%;
+				width: {{.PSpaces}}px;
 			}
 			
 			.block {
@@ -219,8 +219,8 @@ func (s *State) AsHtml(w io.Writer) {
 	body.Title = "Server status " + version
 	
 	allocated := Conf.ContainerSize * int64(s.Files.ContainersCount)
-	body.PSpaces = SafeDivision(s.Files.SpacesSize * 100, allocated)
-	body.PData = SafeDivision(s.Files.FilesSize * 100, allocated)
+	body.PSpaces = SafeDivision(s.Files.SpacesSize * 1000, allocated)
+	body.PData = SafeDivision(s.Files.FilesSize * 1000, allocated)
 	
 	// round time to second
 	dt := time.Unix(LastDump.Unix(), 0)
