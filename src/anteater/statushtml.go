@@ -24,6 +24,9 @@ const (
 			.container, .container div {
 				height:30px;
 			}
+			.container div {
+				float:left;
+			}
 			.container {
 				background:#FFFFCC;
 				border:1px solid #666666;
@@ -32,11 +35,9 @@ const (
 				margin-left:20px;
 			}
 			.data {
-				float:left;
 				background:#66CC66;		
 			}
 			.spaces {
-				float:left;
 				background:#993333;
 			}
 			
