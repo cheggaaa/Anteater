@@ -16,7 +16,7 @@ const (
 		<style type="text/css">
 			body {
 				background:#fff;
-				margin:20px;
+				padding:20px;
 			}
 			table tr tr:nth-child(2n+1) {
 			  	background-color: #99ff99;
@@ -26,12 +26,23 @@ const (
 			}
 			.container div {
 				float:left;
+				border:1px solid #666666;
+				border-right:none;
+				border-left:none;
+			}
+			.container div:last-child {
+				border-right:1px solid #666666;
+				border-top-right-radius:5px;
+				border-bottom-right-radius:5px;
+				margin-right:-5%;
+			}
+			.container div:first-child {
+				border-left:1px solid #666666;
+				border-top-left-radius:5px;
+				border-bottom-left-radius:5px;
 			}
 			.container {
-				border:1px solid #666666;
-				border-radius:5px;
-				border-right:none;
-				width: 94%;
+				width: 95%;
 				margin-left:20px;
 			}
 			.data {
@@ -46,12 +57,6 @@ const (
 			.free {
 				background:#FFFFCC;
 			}
-			
-			.free:last-child {
-				border-right:1px solid #666666;
-				border-radius:5px;
-			}
-			
 			.block {
 				float:left;
 				margin:20px;
