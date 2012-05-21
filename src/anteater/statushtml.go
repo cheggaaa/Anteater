@@ -31,7 +31,7 @@ const (
 				background:#FFFFCC;
 				border:1px solid #666666;
 				border-radius:5px;
-				float:left;
+				width: 94%;
 				margin-left:20px;
 			}
 			.data {
@@ -109,9 +109,9 @@ const (
 	<div class="container">
 		{{with .Containers}}
 		{{range .}}
-		<div class="data" style="width:{{.Data}}px"></div>
-		<div class="spaces" style="width:{{.Spaces}}px"></div>
-		<div class="free" style="width:{{.Free}}px"></div>
+		<div class="data" style="width:{{.Data}}%"></div>
+		<div class="spaces" style="width:{{.Spaces}}%"></div>
+		<div class="free" style="width:{{.Free}}%"></div>
 		{{end}}
 		{{end}}
 	</div>
@@ -209,7 +209,7 @@ type HtmlRate struct {
 }
 
 type HtmlContainer struct {
-	Data, Spaces, Free int64 
+	Data, Spaces, Free float64 
 }
 
 var (
@@ -239,9 +239,9 @@ func (s *State) AsHtml(w io.Writer) {
 	i := 0
 	for _, c := range s.Files.ByContainers {
 		cont[i] = &HtmlContainer{
-			SafeDivision(c[1] * 1000, allocated),
-			SafeDivision(c[2] * 1000, allocated),
-			SafeDivision((c[0] - c[1]) * 1000, allocated),
+			float64(SafeDivision(c[1] * 100000, allocated)) / 1000,
+			float64(SafeDivision(c[2] * 100000, allocated)) / 1000,
+			float64(SafeDivision((c[0] - c[1]) * 100000, allocated)) / 1000,
 		}
 		i++
 	}
