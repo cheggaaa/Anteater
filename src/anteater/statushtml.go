@@ -33,13 +33,11 @@ const (
 			}
 			.data {
 				float:left;
-				background:#66CC66;
-				width: {{.PData}}px;				
+				background:#66CC66;		
 			}
 			.spaces {
 				float:left;
 				background:#993333;
-				width: {{.PSpaces}}px;
 			}
 			
 			.block {
@@ -108,8 +106,13 @@ const (
 	<body>
 	<h2>{{.Title}}</h2>
 	<div class="container">
-		<div class="data"></div>
-		<div class="spaces"></div>
+		{{with .Containers}}
+		{{range .}}
+		<div class="data" style="width:{{.Data}}px"></div>
+		<div class="spaces" style="width:{{.Spaces}}px"></div>
+		<div class="free" style="width:{{.Free}}px"></div>
+		{{end}}
+		{{end}}
 	</div>
 	<div style="clear:both"></div>
 	<div>
@@ -184,8 +187,7 @@ type HtmlMain struct {
 	Title string
 	Tables []*HtmlTable
 	Rates  *HtmlRates
-	PData int64
-	PSpaces int64
+	Containers []*HtmlContainer
 }
 
 type HtmlTable struct {
@@ -203,6 +205,10 @@ type HtmlRates struct {
 type HtmlRate struct {
 	Name string
 	Values []string
+}
+
+type HtmlContainer struct {
+	Data, Spaces, Free int64 
 }
 
 var (
@@ -223,11 +229,23 @@ func (s *State) AsHtml(w io.Writer) {
 	body.Title = "Anteater server status"
 	
 	allocated := int64(0)
-	for _, c := range FileContainers {
-		allocated += c.Size
+	for _, c := range s.Files.ByContainers {
+		allocated += c[0]
 	}
-	body.PSpaces = SafeDivision(s.Files.SpacesSize * 1000, allocated)
-	body.PData = SafeDivision(s.Files.FilesSize * 1000, allocated)
+	
+	cont := make([]*HtmlContainer, s.Files.ContainersCount)
+	
+	i := 0
+	for _, c := range s.Files.ByContainers {
+		cont[i] = &HtmlContainer{
+			SafeDivision(c[1] * 1000, allocated),
+			SafeDivision(c[2] * 1000, allocated),
+			SafeDivision((c[0] - c[1]) * 1000, allocated),
+		}
+		i++
+	}
+	
+	body.Containers = cont
 	
 	// round time to second
 	dt := time.Unix(LastDump.Unix(), 0)

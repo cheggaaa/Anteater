@@ -36,8 +36,9 @@ type StateFiles struct {
 	ContainersCount int
 	FilesCount      int64
 	FilesSize       int64	
-	SpacesCount    int64
-	SpacesSize     int64
+	SpacesCount    	int64
+	SpacesSize     	int64
+	ByContainers   	[][]int64
 }
 
 type StateHttpCounters struct {
@@ -88,7 +89,9 @@ func GetState() *State {
 	var cnt *Container
 	
 	var totalSize, totalFileSize, fileCount, spacesCount, spacesTotalSize int64
+	byCont := make([][]int64, len(ids))
 	
+	i := 0
 	for _, id := range(ids) {
 		cnt = FileContainers[int32(id)]
 		sc, st := cnt.Spaces.Stats()
@@ -98,6 +101,8 @@ func GetState() *State {
 		spacesTotalSize += st		
 		allocated := cnt.Size - (cnt.Size - cnt.Offset) - st 
 		totalFileSize += allocated
+		byCont[i] = []int64{cnt.Size, allocated, st}
+		i++
 	}
 
 	f := &StateFiles{
@@ -106,6 +111,7 @@ func GetState() *State {
 		FilesSize       : totalFileSize,
 		SpacesCount     : spacesCount,
 		SpacesSize      : spacesTotalSize,
+		ByContainers    : byCont,
 	}
 	
 	rateStart := time.Now().Unix() - StartTime.Unix()
