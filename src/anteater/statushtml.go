@@ -31,7 +31,7 @@ const (
 				background:#FFFFCC;
 				border:1px solid #666666;
 				border-radius:5px;
-				width: 1000px;
+				float:left;
 				margin-left:20px;
 			}
 			.data {
@@ -238,11 +238,10 @@ func (s *State) AsHtml(w io.Writer) {
 	
 	i := 0
 	for _, c := range s.Files.ByContainers {
-		sz := SafeDivision(c[0] * 1000, allocated)
 		cont[i] = &HtmlContainer{
-			SafeDivision(c[1] * sz, c[0]),
-			SafeDivision(c[2] * sz, c[0]),
-			SafeDivision((c[0] - c[1]) * sz, c[0]),
+			SafeDivision(c[1] * 1000, allocated),
+			SafeDivision(c[2] * 1000, allocated),
+			SafeDivision((c[0] - c[1]) * 1000, allocated),
 		}
 		i++
 	}
