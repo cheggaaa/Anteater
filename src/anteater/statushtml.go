@@ -28,17 +28,28 @@ const (
 				float:left;
 			}
 			.container {
-				background:#FFFFCC;
 				border:1px solid #666666;
 				border-radius:5px;
+				border-right:none;
 				width: 94%;
 				margin-left:20px;
 			}
 			.data {
 				background:#66CC66;		
 			}
+			.data:nth-child(odd) {
+				background: #55BB55;
+			}
 			.spaces {
 				background:#993333;
+			}
+			.free {
+				background:#FFFFCC;
+			}
+			
+			.free:last-child {
+				border-right:1px solid #666666;
+				border-radius:5px;
 			}
 			
 			.block {
