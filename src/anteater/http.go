@@ -148,7 +148,9 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", ctype)
 	}
-
+	
+	w.Header().Set("Content-Length", strconv.FormatInt(i.Size, 10))
+	
 	// else just copy content to output
 	n, err := io.CopyN(w, reader, i.Size)	
 	if err != nil {
@@ -161,7 +163,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		errorFunc(w, 500)
 		return
 	}
-	w.Header().Set("Content-Length", strconv.FormatInt(n, 10))
+	
 	Log.Debugf("GET %s (%s); Size: %d; ", r.URL, r.RemoteAddr, n)
 }
 
