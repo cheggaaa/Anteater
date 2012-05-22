@@ -114,7 +114,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 	}
 	
 	HttpCn.CGet()
-	
+
 	h, isContinue := httpHeadersHandle(name, i, w, r)
 	
 	if  ! isContinue {
@@ -130,6 +130,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 	// if need content-range support
 	if i.Size > Conf.ContentRange {
 		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
+		Log.Debugf("GET %s (%s) Size %d", r.URL, r.RemoteAddr)
 		return
 	}
 	
@@ -147,9 +148,20 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", ctype)
 	}
-	
+
 	// else just copy content to output
-	io.Copy(w, reader)	
+	n, err := io.CopyN(w, reader, i.Size)	
+	if err != nil {
+		Log.Warnf("GET %s (%s); Size: %d; Error! %v", r.URL, r.RemoteAddr, i.Size, err)
+		errorFunc(w, 500)
+		return
+	}
+	if n != i.Size {
+		Log.Warnf("GET %s (%s); Size: %d; Error! %s", r.URL, r.RemoteAddr, n, "Size not match")
+		errorFunc(w, 500)
+		return
+	}
+	Log.Debugf("GET %s (%s); Size: %d; ", r.URL, r.RemoteAddr, n)
 }
 
 func saveFile(name string, w http.ResponseWriter, r *http.Request) {
