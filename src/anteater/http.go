@@ -130,7 +130,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 	// if need content-range support
 	if i.Size > Conf.ContentRange {
 		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
-		Log.Debugf("GET %s (%s) Size %d", r.URL, r.RemoteAddr)
+		Log.Debugf("GET %s (%s) Size %d; Go Serve", r.URL, r.RemoteAddr)
 		return
 	}
 	
@@ -161,6 +161,7 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		errorFunc(w, 500)
 		return
 	}
+	w.Header().Set("Content-Length", strconv.FormatInt(n, 10))
 	Log.Debugf("GET %s (%s); Size: %d; ", r.URL, r.RemoteAddr, n)
 }
 
@@ -246,7 +247,6 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 
 	h = Conf.Headers
 	h["Content-Type"] = mime.TypeByExtension(filepath.Ext(name))
-	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
 	h["Last-Modified"] = t.UTC().Format(http.TimeFormat)
 	if Conf.ETagSupport {
 		h["ETag"] = i.ETag()	
