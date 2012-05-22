@@ -6,6 +6,9 @@ import (
 	"strconv"
 	"io"
 	"time"
+	"path/filepath"
+	"mime"
+	"os"
 )
 
 const (
@@ -129,6 +132,22 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
 		return
 	}
+	
+	// if content type do not detected before
+	if h["Content-Type"] == "" {
+		// read a chunk to decide between utf-8 text and binary
+		var buf [1024]byte
+		n, _ := io.ReadFull(reader, buf[:])
+		b := buf[:n]
+		ctype := http.DetectContentType(b)
+		_, err := reader.Seek(0, os.SEEK_SET) // rewind to output whole file
+		if err != nil {
+			Log.Warnln("Can't seek")
+			return
+		}
+		w.Header().Set("Content-Type", ctype)
+	}
+	
 	// else just copy content to output
 	io.Copy(w, reader)	
 }
@@ -212,8 +231,9 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
    	}
 		
 	isContinue = true
-	
+
 	h = Conf.Headers
+	h["Content-Type"] = mime.TypeByExtension(filepath.Ext(name))
 	h["Content-Length"] = strconv.FormatInt(i.Size, 10)
 	h["Last-Modified"] = t.UTC().Format(http.TimeFormat)
 	if Conf.ETagSupport {
