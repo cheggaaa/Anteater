@@ -1,0 +1,50 @@
+#!/sbin/runscript
+# Copyright 1999-2012 Gentoo Foundation
+# Distributed under the terms of the GNU General Public License v2
+# $Header: $
+
+EXEC=${ANTEATER_EXEC:-/opt/local/anteater/bin/anteater}
+CONFIG_FILE=${ANTEATER_CONFIG_FILE:-/etc/anteater/anteater.conf}
+LOGS_DIR=${ANTEATER_LOGS_DIR:-/var/log/anteater}
+PID_DIR=${ANTEATER_PID_DIR:-/var/run/anteater}
+PID=${ANTEATER_PID:-"$PID_DIR"/anteater.pid}
+USER=${ANTEATER_USER:-at}
+GROUP=${ANTEATER_GROUP:-"$USER"}
+
+# Create logs dir
+install -o $USER -g $GROUP -d $LOGS_DIR $PID_DIR
+
+depend() {
+	use net localmount
+}
+
+start() {
+	ebegin "Starting $SVCNAME"
+	start-stop-daemon --start \
+		--user $USER \
+		--group $GROUP \
+		--background \
+		--stdout $LOGS_DIR/info.log \
+		--stderr $LOGS_DIR/error.log \
+		--pidfile $PID \
+		--make-pidfile \
+		--exec $EXEC \
+		-- -f $CONFIG_FILE
+
+	eend $?
+}
+
+stop() {
+	ebegin "Stopping $SVCNAME"
+	if [ -f "$PID" ]; then
+		start-stop-daemon --signal 2 --quiet --pidfile "$PID"
+		sleep 1
+		start-stop-daemon --stop --quiet --pidfile "$PID"
+		ret=$?
+		rm -f "$PID"
+	else
+		echo "$SVCNAME already stopped"
+		ret=0
+	fi
+	eend $ret
+}
