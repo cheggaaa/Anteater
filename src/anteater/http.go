@@ -16,11 +16,13 @@ const (
 )
 
 
-var httpErrors map[int]string = map[int]string{
+var httpErrors = map[int]string{
 	400: "Invalid request",
 	404: "404 Not Found",
 	405: "405 Method Not Allowed",
+	409: "409 Conflict",
 	411: "411 Length Required",
+	413: "413 Request Entity Too Large",
 	500: "500 Internal Server Error",
 	501: "501 Not Implemented",
 }
@@ -43,7 +45,12 @@ func HttpRead(w http.ResponseWriter, r *http.Request) {
 		errorFunc(w, 404)
 		return
 	}
-	if r.Method == "GET" {
+	switch r.Method {
+	case "OPTIONS":
+		w.Header().Set("Allow", "GET,HEAD")
+		w.WriteHeader(http.StatusOK)
+		return
+	case "GET", "HEAD":
 		getFile(filename, w, r)
 		return
 	}
@@ -70,21 +77,22 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch r.Method {
-	case "GET":
+	case "OPTIONS":
+		w.Header().Set("Allow", "GET,HEAD,POST,PUT,DELETE")
+		w.WriteHeader(http.StatusOK)
+		return
+	case "GET", "HEAD":
 		getFile(filename, w, r)
 		return
 	case "POST":
 		saveFile(filename, w, r)
 		return
 	case "PUT":
-		deleteFile(filename)
+		deleteFile(filename, nil)
 		saveFile(filename, w, r)
 		return
 	case "DELETE":
-		st := deleteFile(filename)
-		if !st {
-			errorFunc(w, 404)
-		}
+		deleteFile(filename, w)
 		return
 	default:
 		Log.Infoln("Unhandled method", r.Method)
@@ -96,8 +104,10 @@ func errorFunc(w http.ResponseWriter, status int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	switch status {
-		case 405:
-			w.Header().Set("Allow", "GET")
+		case 405, 501:
+			if w.Header().Get("Allow") == "" {
+				w.Header().Set("Allow", "GET")
+			}
 		case 404:
 			HttpCn.CNotFound()
 	}
@@ -121,18 +131,19 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	reader := i.GetReader()
-	
 	for k, v := range(h) {
 		w.Header().Set(k, v)
 	}
 	
 	// if need content-range support
 	if i.Size > Conf.ContentRange {
+		reader := i.GetReader()
 		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
 		Log.Debugf("GET %s (%s) Size %d; Go Serve", r.URL, r.RemoteAddr)
 		return
 	}
+	
+	reader := i.GetReader()
 	
 	// if content type do not detected before
 	if h["Content-Type"] == "" {
@@ -150,6 +161,11 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 	}
 	
 	w.Header().Set("Content-Length", strconv.FormatInt(i.Size, 10))
+	
+	if r.Method == "HEAD" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
 	
 	// else just copy content to output
 	n, err := io.CopyN(w, reader, i.Size)	
@@ -170,7 +186,8 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	_, ok := IndexGet(name)
 	if ok {
-		errorFunc(w, 405)
+		// File exists
+		errorFunc(w, 409)
 		return
 	}
 
@@ -178,8 +195,13 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	size := r.ContentLength
 	
 	if size == 0 {
-		 errorFunc(w,  411)
-		 return
+		errorFunc(w,  411)
+		return
+	}
+	
+	if size > Conf.ContainerSize {
+		errorFunc(w, 413)
+		return
 	}
 	
 	Log.Debugln("Start upload file", name, size, "bytes")
@@ -210,20 +232,26 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	
+		
+	w.Header().Set("Etag", fi.ETag());
+	w.Header().Set("Location", name);
+	w.WriteHeader(http.StatusCreated)
 	HttpCn.CAdd()
-	
-	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)	
-	fmt.Fprintf(w, "OK\nSize:%d\nETag:%s\n", size, fi.ETag())	
+	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)
 }
 
-func deleteFile(name string) bool {
+func deleteFile(name string, w http.ResponseWriter) {
 	if i, ok := IndexDelete(name); ok {
 		FileContainers[i.ContainerId].Delete(i)
 		HttpCn.CDelete()
-		return true
+		if w != nil {
+			w.WriteHeader(http.StatusNoContent)
+		}
+		return
 	}
-	return false
+	if w != nil {
+		errorFunc(w, 404)
+	}
 }
 
 
@@ -257,7 +285,8 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 }
 
 func printStatusJson(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")	
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Server", serverSign)
 	b := GetState().AsJson()
 	w.Write(b)
 }
@@ -265,6 +294,7 @@ func printStatusJson(w http.ResponseWriter) {
 
 func printStatusHtml(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Server", serverSign)
 	GetState().AsHtml(w)
 }
 
