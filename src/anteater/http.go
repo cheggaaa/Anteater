@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"mime"
 	"os"
+	"crypto/md5"
 )
 
 const (
@@ -127,12 +128,12 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 
 	h, isContinue := httpHeadersHandle(name, i, w, r)
 	
-	if  ! isContinue {
-		return
-	}
-	
 	for k, v := range(h) {
 		w.Header().Set(k, v)
+	}
+	
+	if  ! isContinue {
+		return
 	}
 	
 	// if need content-range support
@@ -208,13 +209,15 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	f, fi, err := GetFile(name, size)
 	
 	var written int64
+	h := md5.New()
 	for {
-		buf := make([]byte, 1024*1024)
-		nr, er := io.ReadAtLeast(file, buf, 1024*1024)
+		buf := make([]byte, 256*1024)
+		nr, er := io.ReadAtLeast(file, buf, 256*1024)
 		if nr > 0 {
 			nw, ew := f.WriteAt(buf[0:nr], written)
 			if nw > 0 {
 				written += int64(nw)
+				h.Write(buf[0:nw])
 			}
 			if ew != nil {
 				err = ew
@@ -232,9 +235,11 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-		
+	
+	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", h.Sum(nil)));	
 	w.Header().Set("Etag", fi.ETag());
 	w.Header().Set("Location", name);
+	w.Header().Set("Content-Length", "0")
 	w.WriteHeader(http.StatusCreated)
 	HttpCn.CAdd()
 	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)
