@@ -9,7 +9,8 @@ EXEC="/opt/local/anteater/bin/anteater"
 CONFIG_FILE="/etc/anteater/anteater.conf"
 LOGS_DIR="/var/log/anteater"
 PID_DIR="/var/run/anteater"
-PID="$PID_DIR/anteater.pid"
+PID_FILE="$PID_DIR/anteater.pid"
+PID=`pgrep -f $EXEC`
 USER="at"
 GROUP="$USER"
 
@@ -18,16 +19,40 @@ install -o $USER -g $GROUP -d $LOGS_DIR $PID_DIR
 
 do_start() {
 	echo "Starting $SVCNAME"
-	su - $USER -c "$EXEC -f $CONFIG_FILE >> $LOGS_DIR/info.log 2>> $LOGS_DIR/error.log &"
+	if [ -z "$PID" ]; then
+		su - $USER -c "$EXEC -f $CONFIG_FILE >> $LOGS_DIR/info.log 2>> $LOGS_DIR/error.log &"
+	else
+		echo "$SVCNAME already running"
+		exit 1
+	fi
 }
-
 do_stop() {
 	echo "Stopping $SVCNAME"
-	pkill -2 -f $SVCNAME
+	if [ -z "$PID" ]; then
+		echo "$SVCNAME already stopped"
+		exit 0
+	else
+		pkill -2 -f $EXEC
+
+		# wait stopping
+		echo -n "please wait"
+		while pgrep -f $EXEC > /dev/null; do
+			echo -n "."
+			sleep 1
+		done
+		echo
+	fi
+}
+do_status() {
+	if [ -z "$PID" ]; then
+		echo "$SVCNAME stopped"
+	else
+		echo "$SVCNAME runned"
+	fi
 }
 
 case $1 in
-	start|stop)
+	start|stop|status)
 		do_$1
 		;;
 	restart)
@@ -36,7 +61,7 @@ case $1 in
 		do_start
 		;;
 	*)
-		echo "Usage: $0 {start|stop|restart}"
+		echo "Usage: $0 {start|stop|restart|status}"
 		exit 1
 		;;
 esac
