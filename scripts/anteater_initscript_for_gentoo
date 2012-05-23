@@ -7,7 +7,7 @@ EXEC=${ANTEATER_EXEC:-/opt/local/anteater/bin/anteater}
 CONFIG_FILE=${ANTEATER_CONFIG_FILE:-/etc/anteater/anteater.conf}
 LOGS_DIR=${ANTEATER_LOGS_DIR:-/var/log/anteater}
 PID_DIR=${ANTEATER_PID_DIR:-/var/run/anteater}
-PID=${ANTEATER_PID:-"$PID_DIR"/anteater.pid}
+PID_FILE=${ANTEATER_PID:-"$PID_DIR"/anteater.pid}
 USER=${ANTEATER_USER:-at}
 GROUP=${ANTEATER_GROUP:-"$USER"}
 
@@ -26,7 +26,7 @@ start() {
 		--background \
 		--stdout $LOGS_DIR/info.log \
 		--stderr $LOGS_DIR/error.log \
-		--pidfile $PID \
+		--pidfile $PID_FILE \
 		--make-pidfile \
 		--exec $EXEC \
 		-- -f $CONFIG_FILE
@@ -36,12 +36,16 @@ start() {
 
 stop() {
 	ebegin "Stopping $SVCNAME"
-	if [ -f "$PID" ]; then
-		start-stop-daemon --signal 2 --quiet --pidfile "$PID"
-		sleep 1
-		start-stop-daemon --stop --quiet --pidfile "$PID"
+	if [ -f "$PID_FILE" ]; then
+		start-stop-daemon --signal 2 --quiet --pidfile "$PID_FILE"
+		echo -n "please wait"
+		while pgrep -f $EXEC > /dev/null; do
+			echo -n "."
+			sleep 1
+		done
+		start-stop-daemon --stop --quiet --pidfile "$PID_FILE"
 		ret=$?
-		rm -f "$PID"
+		rm -f "$PID_FILE"
 	else
 		echo "$SVCNAME already stopped"
 		ret=0
