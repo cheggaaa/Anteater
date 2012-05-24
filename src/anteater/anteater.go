@@ -103,7 +103,7 @@ func MainInit(config string) {
 	
 	// Set paths
 	IndexPath = Conf.DataPath + "/" + IndexPath
-	DataPath = Conf.DataPath + "/ " + DataPath
+	DataPath = Conf.DataPath + "/" + DataPath
 	
 	
 	// Load data from index
