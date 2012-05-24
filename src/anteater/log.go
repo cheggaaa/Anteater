@@ -21,7 +21,7 @@ type AntLog struct {
 func LogInit() (*AntLog, error) {
 	out := os.Stdout
 
-	if Conf.LogFile != "" {
+	if Conf != nil && Conf.LogFile != "" {
 		var err error
 		out, err = os.OpenFile(Conf.LogFile, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0644)
 		if err != nil {
@@ -29,7 +29,13 @@ func LogInit() (*AntLog, error) {
 		}
 	}
 	
-	return &AntLog{log.New(out, "", log.LstdFlags), Conf.LogLevel}, nil
+	level := LOG_INFO
+	
+	if Conf != nil {
+		level = Conf.LogLevel
+	}
+	
+	return &AntLog{log.New(out, "", log.LstdFlags), level}, nil
 }
 
 
