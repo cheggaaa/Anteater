@@ -1,7 +1,6 @@
 package anteater
 
 import (
-	"time"
 	"fmt"
 	"io"
 )
@@ -23,12 +22,11 @@ func init() {
 	Index = make(map[string]*FileInfo, 1000)
 }
 
-func IndexSet(name string, f *File) *FileInfo {
+func IndexSet(name string, f *FileInfo) {
 	IndexLock.Lock()
 	defer IndexLock.Unlock()
-	info := &FileInfo{f.Id, f.C.Id, f.Start, f.Size, 0, time.Now().Unix()}
-	Index[name] = info
-	return info
+	Index[name] = f
+	return
 }
 
 

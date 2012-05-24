@@ -4,8 +4,10 @@ BINNAME="anteater"
 AEROOT=$( cd "$( dirname "$0" )" && pwd )
 GOBIN=$AEROOT/bin
 
+echo "Run tests.."
+cd src/anteater && go test && cd ../../
+
 install -d $GOBIN
-cd src/
 echo "Building.."
-GOBIN=$GOBIN go install
-mv $GOBIN/src $GOBIN/$BINNAME
+GOBIN=$GOBIN go install ./src/main.go
+mv $GOBIN/main $GOBIN/$BINNAME

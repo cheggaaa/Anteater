@@ -3,12 +3,13 @@ package anteater
 import (
 	"errors"
 	"io"
+	"time"
 )
 
 
 var Targets = []int{TARGET_SPACE_EQ, TARGET_SPACE_FREE, TARGET_NEW}
 
-func GetFile(name string, size int64) (*File, *FileInfo, error) {
+func GetFile(name string, size int64) (*File, error) {
 	GetFileLock.Lock()
 	defer GetFileLock.Unlock()
 	for _, target := range(Targets) {
@@ -16,25 +17,23 @@ func GetFile(name string, size int64) (*File, *FileInfo, error) {
 			if c.MaxSpace() >= size {
 				f, err := c.Allocate(size, target)
 				if err == nil {
-					fi := IndexSet(name, f)
 					AllocCn.CTarget(target)
-					return f, fi, nil
+					return f, nil
 				}
 			}
 		}
 	}
 	cId, err := NewContainer(DataPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	 
 	f, err := FileContainers[cId].Allocate(size, TARGET_NEW)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	
-	fi := IndexSet(name, f)
-	return f, fi, nil
+		
+	return f, nil
 }
 
 
@@ -55,5 +54,9 @@ func (f *File) WriteAt(b []byte, off int64) (int, error) {
 
 func (f *File) GetReader() *io.SectionReader {
 	return io.NewSectionReader(f.C.F, f.Start,f.Size)
+}
+
+func (f *File) Info() *FileInfo {
+	return &FileInfo{f.Id, f.C.Id, f.Start, f.Size, 0, time.Now().Unix()}
 }
 

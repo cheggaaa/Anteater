@@ -206,7 +206,19 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	}
 	
 	Log.Debugln("Start upload file", name, size, "bytes")
-	f, fi, err := GetFile(name, size)
+	
+	f, err := GetFile(name, size)
+	fi := f.Info()
+	
+	isOk := false
+
+	defer func() {
+		if isOk {
+			IndexSet(name, fi)
+		} else {
+			FileContainers[fi.ContainerId].Delete(fi)
+		}
+	}()
 	
 	var written int64
 	h := md5.New()
@@ -243,6 +255,7 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	HttpCn.CAdd()
 	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)
+	isOk = true
 }
 
 func deleteFile(name string, w http.ResponseWriter) {
