@@ -4,6 +4,9 @@ BINNAME="anteater"
 AEROOT=$( cd "$( dirname "$0" )" && pwd )
 GOBIN=$AEROOT/bin
 
+echo "Install go pkgs.."
+go get testing github.com/kless/goconfig/config
+
 echo "Run tests.."
 cd src/anteater && go test && cd ../../
 
