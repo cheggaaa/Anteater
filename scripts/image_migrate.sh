@@ -26,7 +26,7 @@ fi
 install -d $WDIR
 ## Get file list
 echo "Get file lists"
-#find $DATA_PATH -type f > $FILE_LIST
+find $DATA_PATH -type f > $FILE_LIST
 COUNT_LINES=`wc -l $FILE_LIST | awk '{print $1}'`
 STEP=$((COUNT_LINES / FLOW))
 
