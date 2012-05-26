@@ -26,6 +26,7 @@ type FileInfo struct {
 	ContainerId int32
 	Start       int64
 	Size        int64
+	Md5         []byte
 	C           int64
 	T			int64
 }

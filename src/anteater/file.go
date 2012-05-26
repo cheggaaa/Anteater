@@ -73,6 +73,6 @@ func (f *File) GetReader() *io.SectionReader {
 }
 
 func (f *File) Info() *FileInfo {
-	return &FileInfo{f.Id, f.C.Id, f.Start, f.Size, 0, time.Now().Unix()}
+	return &FileInfo{f.Id, f.C.Id, f.Start, f.Size, nil, 0, time.Now().Unix()}
 }
 

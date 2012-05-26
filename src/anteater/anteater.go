@@ -199,6 +199,10 @@ func Cleanup() {
 	}
 }
 
+
+/**
+ * Register Mime types from config
+ */
 func RegisterMime() {
 	types := Conf.MimeTypes
 	for k, v := range types {

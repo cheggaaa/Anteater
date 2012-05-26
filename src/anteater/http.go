@@ -264,12 +264,15 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	
-	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", h.Sum(nil)));	
+	md5 := h.Sum(nil)
+	
+	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", md5));	
 	w.Header().Set("Etag", fi.ETag());
 	w.Header().Set("Location", name);
 	w.Header().Set("Content-Length", "0")
 	w.WriteHeader(http.StatusCreated)
 	HttpCn.CAdd()
+	fi.Md5 = md5
 	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)
 	isOk = true
 }
