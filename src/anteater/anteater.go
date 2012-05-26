@@ -22,6 +22,7 @@ import (
 	"time"
 	"sync"
 	"log"
+	"mime"
 )
 
 const (
@@ -145,6 +146,8 @@ func MainInit(config string) {
 		}
 	}()
 	
+	RegisterMime()
+	
 	Log.Infoln("Start server with config", config)
 }
 
@@ -193,5 +196,12 @@ func Cleanup() {
 		if err != nil {
 			Log.Infoln("Dump error:", err)
 		}
+	}
+}
+
+func RegisterMime() {
+	types := Conf.MimeTypes
+	for k, v := range types {
+		mime.AddExtensionType(k, v)
 	}
 }
