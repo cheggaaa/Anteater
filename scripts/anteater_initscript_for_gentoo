@@ -3,7 +3,7 @@
 # Distributed under the terms of the GNU General Public License v2
 # $Header: $
 
-EXEC=${ANTEATER_EXEC:-/opt/local/anteater/bin/anteater}
+EXEC=${ANTEATER_EXEC:-/usr/sbin/anteater}
 CONFIG_FILE=${ANTEATER_CONFIG_FILE:-/etc/anteater/anteater.conf}
 LOGS_DIR=${ANTEATER_LOGS_DIR:-/var/log/anteater}
 PID_DIR=${ANTEATER_PID_DIR:-/var/run/anteater}
