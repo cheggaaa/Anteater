@@ -67,8 +67,11 @@ func HttpRead(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "GET,HEAD")
 		w.WriteHeader(http.StatusOK)
 		return
-	case "GET", "HEAD":
-		getFile(filename, w, r)
+	case "GET":
+		getFile(filename, w, r, true)
+		return
+	case "HEAD":
+		getFile(filename, w, r, false)
 		return
 	}
 	errorFunc(w, 501)
@@ -98,8 +101,11 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Allow", "GET,HEAD,POST,PUT,DELETE")
 		w.WriteHeader(http.StatusOK)
 		return
-	case "GET", "HEAD":
-		getFile(filename, w, r)
+	case "GET":
+		getFile(filename, w, r, true)
+		return
+	case "HEAD":
+		getFile(filename, w, r, false)
 		return
 	case "POST":
 		saveFile(filename, w, r)
@@ -133,7 +139,7 @@ func errorFunc(w http.ResponseWriter, status int) {
 }
 
 
-func getFile(name string, w http.ResponseWriter, r *http.Request) {
+func getFile(name string, w http.ResponseWriter, r *http.Request, writeBody bool) {
 	i, ok := IndexGet(name)
 	if !ok {
 		errorFunc(w, 404)
@@ -179,13 +185,13 @@ func getFile(name string, w http.ResponseWriter, r *http.Request) {
 	
 	w.Header().Set("Content-Length", strconv.FormatInt(i.Size, 10))
 	
-	if r.Method == "HEAD" {
+	if ! writeBody {
 		w.WriteHeader(http.StatusOK)
 		return
 	}
 	
 	// else just copy content to output
-	n, err := io.CopyN(w, reader, i.Size)	
+	n, err := io.Copy(w, reader)	
 	if err != nil {
 		Log.Warnf("GET %s (%s); Size: %d; Error! %v", r.URL, r.RemoteAddr, i.Size, err)
 		errorFunc(w, 500)

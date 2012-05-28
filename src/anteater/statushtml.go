@@ -397,4 +397,8 @@ func HumanBytes(size int64) (result string) {
 	return
 }
 
+func DurationToString(d *time.Duration) (result string) {
+	return
+}
+
 

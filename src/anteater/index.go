@@ -17,8 +17,8 @@
 package anteater
 
 import (
-	"fmt"
 	"io"
+	"strconv"
 )
 
 type FileInfo struct {
@@ -69,5 +69,5 @@ func (f *FileInfo) GetReader() *io.SectionReader {
 }
 
 func (f *FileInfo) ETag () string {
-	return fmt.Sprintf("\"%x%x%x\"", f.ContainerId, f.T, f.Id)
+	return strconv.FormatInt(int64(f.ContainerId), 36)  + "." + strconv.FormatInt(f.T, 36) + "." + strconv.FormatInt(f.Id, 36)
 }
