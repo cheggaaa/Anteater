@@ -14,6 +14,9 @@ GROUP=${ANTEATER_GROUP:-"$USER"}
 # Create logs dir
 install -o $USER -g $GROUP -d $LOGS_DIR $PID_DIR
 
+# fix access
+chown -R $USER:$GROUP $LOGS_DIR $PID_DIR
+
 depend() {
 	use net localmount
 }
