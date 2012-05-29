@@ -46,6 +46,7 @@ type Container struct {
 
 type ContainerDumpData struct {
 	Id     int32
+	Path   string
 	Size   int64
 	Offset int64
 	Count  int64
@@ -216,5 +217,13 @@ func (c *Container) MaxSpace() int64 {
 func (c *Container) GetDumpData() *ContainerDumpData {
 	c.WLock.Lock()
 	defer c.WLock.Unlock()
-	return &ContainerDumpData{c.Id, c.Size, c.Offset, c.Count, c.LastId, c.Spaces, c.MaxSpaceSize}
+	return &ContainerDumpData{
+		Id : c.Id, 
+		Size : c.Size, 
+		Offset : c.Offset, 
+		Count : c.Count, 
+		LastId : c.LastId, 
+		Spaces : c.Spaces, 
+		MaxSpaceSize : c.MaxSpaceSize,
+	}
 }
