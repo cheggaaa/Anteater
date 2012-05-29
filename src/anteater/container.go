@@ -34,7 +34,6 @@ const (
 type Container struct {
 	Id	   int32
 	F     *os.File
-	Path   string
 	Size   int64
 	Offset int64
 	Count  int64
@@ -47,7 +46,6 @@ type Container struct {
 
 type ContainerDumpData struct {
 	Id     int32
-	Path   string
 	Size   int64
 	Offset int64
 	Count  int64
@@ -70,7 +68,7 @@ func NewContainer(path string) (int32, error) {
 	if err != nil {
 		return 0, err
 	}	
-	c := &Container{ContainerLastId, f, path, size, 0, 0, 0, &sync.Mutex{}, make([]*Space, 0), 0, true}
+	c := &Container{ContainerLastId, f, size, 0, 0, 0, &sync.Mutex{}, make([]*Space, 0), 0, true}
 
 	if err != nil {
 		return 0, err
@@ -92,11 +90,12 @@ func NewContainer(path string) (int32, error) {
  */
 func ContainerFromData(data *ContainerDumpData) (*Container, error) {
 	Log.Infoln("Init container", data.Id);	
-	f, err := os.OpenFile(data.Path, os.O_RDWR, 0666)
+	path := DataPath + "." + strconv.FormatInt(int64(data.Id), 10)
+	f, err := os.OpenFile(path, os.O_RDWR, 0666)
 	if err != nil {
 		return nil, err
 	}
-	c := &Container{data.Id, f, data.Path, data.Size, data.Offset, data.Count, data.LastId, &sync.Mutex{}, data.Spaces, data.MaxSpaceSize, false}
+	c := &Container{data.Id, f, data.Size, data.Offset, data.Count, data.LastId, &sync.Mutex{}, data.Spaces, data.MaxSpaceSize, false}
 	return c, nil
 }
 
@@ -119,6 +118,10 @@ func (c *Container) Init() error {
 	return nil
 }
 
+func (c *Container) Path() string {
+	return DataPath + "." + strconv.FormatInt(int64(c.Id), 10)
+}
+
 /**
  * Try Allocate space for new file
  */
@@ -126,7 +129,7 @@ func (c *Container) Allocate(size int64, target int) (*File, error) {
 	c.WLock.Lock()
 	defer c.WLock.Unlock()
 	if size > c.Size {
-		return nil, errors.New("Can't allocate space in container " + c.Path)
+		return nil, errors.New("Can't allocate space in container " + c.Path())
 	}
 	start, err := c.GetSpace(size, target)
 	if err != nil {
@@ -213,5 +216,5 @@ func (c *Container) MaxSpace() int64 {
 func (c *Container) GetDumpData() *ContainerDumpData {
 	c.WLock.Lock()
 	defer c.WLock.Unlock()
-	return &ContainerDumpData{c.Id, c.Path, c.Size, c.Offset, c.Count, c.LastId, c.Spaces, c.MaxSpaceSize}	
+	return &ContainerDumpData{c.Id, c.Size, c.Offset, c.Count, c.LastId, c.Spaces, c.MaxSpaceSize}
 }
