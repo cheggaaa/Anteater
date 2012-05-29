@@ -11,13 +11,18 @@
 WDIR="/tmp/`basename $0`"
 FILE_LIST="$WDIR/file_list"
 FILE_LIST_PREFIX="$WDIR/file_list_"
-FLOW="10"
-UPLOAD_URL="http://anteater.talkover.com:8081"
+FLOW="20"
 DATA_PATH="$1"
+UPLOAD_URL="$2"
 
 ### Check args
-if [ -z "$DATA_PATH" ] || ! [ -d "$DATA_PATH" ]; then
-	echo "Usage: $0 data_path"
+if [ -z "$DATA_PATH" ] || ! [ -d "$DATA_PATH" ] || [ -z "$UPLOAD_URL" ]; then
+	cat <<EOF
+Usage: $0 data_path upload_url
+
+Example:
+	$0 /tmp/imgdir/ http://example.com:8081
+EOF
 	exit 1
 fi
 
