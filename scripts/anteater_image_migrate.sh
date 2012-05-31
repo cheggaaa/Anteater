@@ -21,7 +21,7 @@ if [ -z "$DATA_PATH" ] || ! [ -d "$DATA_PATH" ] || [ -z "$UPLOAD_URL" ]; then
 Usage: $0 data_path upload_url
 
 Example:
-	$0 /tmp/imgdir/ http://example.com:8081
+	$0 /tmp/imgdir/ http://localhost:8081
 EOF
 	exit 1
 fi
