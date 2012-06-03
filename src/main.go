@@ -84,7 +84,7 @@ func main() {
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
 	s := <-interrupt
-	fmt.Println(s)
+
 	if *memprofile != "" {
         f, err := os.Create(*memprofile)
         if err != nil {
@@ -94,7 +94,7 @@ func main() {
         f.Close()
         return
     }
-	anteater.Log.Debugln("\nCatched shutdown signal...")
+	anteater.Log.Debugln("\nCatched signal", s)
 	time.Sleep(time.Second)
 	anteater.Stop()
 }
