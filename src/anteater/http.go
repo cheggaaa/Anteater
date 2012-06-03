@@ -56,43 +56,49 @@ func RunServer(handler http.Handler, addr string) {
 	Log.Fatal(s.ListenAndServe())
 }
 
+/**
+ * Http read-only handler
+ */
 func HttpRead(w http.ResponseWriter, r *http.Request) {
-	filename := r.URL.Path[1:]
+		
+	filename := GetFilename(r)
+	
 	if len(filename) == 0 {
-		errorFunc(w, 404)
+		HttpError(w, 404)
 		return
 	}
+	
 	switch r.Method {
 	case "OPTIONS":
 		w.Header().Set("Allow", "GET,HEAD")
 		w.WriteHeader(http.StatusOK)
 		return
 	case "GET":
-		getFile(filename, w, r, true)
+		HttpGetFile(filename, w, r, true)
 		return
 	case "HEAD":
-		getFile(filename, w, r, false)
+		HttpGetFile(filename, w, r, false)
 		return
 	}
-	errorFunc(w, 501)
+	HttpError(w, 501)
 }
 
+/**
+ * Http read-write handler
+ */
 func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
-	filename := r.URL.Path[1:]
-	if len(filename) == 0 {
-		errorFunc(w, 404)
-		return
-	}
+
+	filename := GetFilename(r)
 	
 	switch filename {
 		case "":
-			errorFunc(w, 404)
+			HttpError(w, 404)
 			return
 		case Conf.StatusJson:
-			printStatusJson(w)
+			HttpPrintStatusJson(w)
 			return
 		case Conf.StatusHtml:
-			printStatusHtml(w)
+			HttpPrintStatusHtml(w)
 			return
 	}
 
@@ -102,28 +108,46 @@ func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		return
 	case "GET":
-		getFile(filename, w, r, true)
+		HttpGetFile(filename, w, r, true)
 		return
 	case "HEAD":
-		getFile(filename, w, r, false)
+		HttpGetFile(filename, w, r, false)
 		return
 	case "POST":
-		saveFile(filename, w, r)
+		HttpSaveFile(filename, w, r)
 		return
 	case "PUT":
-		deleteFile(filename, nil)
-		saveFile(filename, w, r)
+		HttpDeleteFile(filename, nil)
+		HttpSaveFile(filename, w, r)
 		return
 	case "DELETE":
-		deleteFile(filename, w)
+		HttpDeleteFile(filename, w)
 		return
 	default:
-		Log.Infoln("Unhandled method", r.Method)
-		errorFunc(w, 501)
+		Log.Infoln("Unhandled http method", r.Method)
+		HttpError(w, 501)
 	}
 }
 
-func errorFunc(w http.ResponseWriter, status int) {
+/**
+ * Return filename without first slashes
+ */
+func GetFilename(r *http.Request) string {
+	var i int
+	for _, s := range r.URL.Path {	
+		if string(s) != "/" {
+			break
+		}
+		i++
+	}
+	return r.URL.Path[i:]
+}
+
+
+/**
+ * Http error handler
+ */
+func HttpError(w http.ResponseWriter, status int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	switch status {
@@ -138,11 +162,13 @@ func errorFunc(w http.ResponseWriter, status int) {
 	fmt.Fprintf(w, ERROR_PAGE, httpErrors[status], httpErrors[status])
 }
 
-
-func getFile(name string, w http.ResponseWriter, r *http.Request, writeBody bool) {
+/**
+ * Move file and headers to http response
+ */
+func HttpGetFile(name string, w http.ResponseWriter, r *http.Request, writeBody bool) {
 	i, ok := IndexGet(name)
 	if !ok {
-		errorFunc(w, 404)
+		HttpError(w, 404)
 		return
 	}
 	
@@ -194,23 +220,26 @@ func getFile(name string, w http.ResponseWriter, r *http.Request, writeBody bool
 	n, err := io.Copy(w, reader)	
 	if err != nil {
 		Log.Warnf("GET %s (%s); Size: %d; Error! %v", r.URL, r.RemoteAddr, i.Size, err)
-		errorFunc(w, 500)
+		HttpError(w, 500)
 		return
 	}
 	if n != i.Size {
 		Log.Warnf("GET %s (%s); Size: %d; Error! %s", r.URL, r.RemoteAddr, n, "Size not match")
-		errorFunc(w, 500)
+		HttpError(w, 500)
 		return
 	}
 	
 	Log.Debugf("GET %s (%s); Size: %d; ", r.URL, r.RemoteAddr, n)
 }
 
-func saveFile(name string, w http.ResponseWriter, r *http.Request) {
+/**
+ * Save file from http request
+ */
+func HttpSaveFile(name string, w http.ResponseWriter, r *http.Request) {
 	_, ok := IndexGet(name)
 	if ok {
 		// File exists
-		errorFunc(w, 409)
+		HttpError(w, 409)
 		return
 	}
 
@@ -218,12 +247,12 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	size := r.ContentLength
 	
 	if size == 0 {
-		errorFunc(w,  411)
+		HttpError(w,  411)
 		return
 	}
 	
 	if size > Conf.ContainerSize {
-		errorFunc(w, 413)
+		HttpError(w, 413)
 		return
 	}
 	
@@ -265,7 +294,7 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			Log.Warnln(err)
-			errorFunc(w, 500)
+			HttpError(w, 500)
 			return
 		}
 	}
@@ -283,7 +312,10 @@ func saveFile(name string, w http.ResponseWriter, r *http.Request) {
 	isOk = true
 }
 
-func deleteFile(name string, w http.ResponseWriter) {
+/**
+ * Delete file
+ */
+func HttpDeleteFile(name string, w http.ResponseWriter) {
 	if i, ok := IndexDelete(name); ok {
 		FileContainers[i.ContainerId].Delete(i)
 		HttpCn.CDelete()
@@ -293,11 +325,13 @@ func deleteFile(name string, w http.ResponseWriter) {
 		return
 	}
 	if w != nil {
-		errorFunc(w, 404)
+		HttpError(w, 404)
 	}
 }
 
-
+/**
+ * Handle http headers. Check cache, content-type, etc.
+ */
 func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.Request) (h map[string]string, isContinue bool) {
 	// Check ETag
 	if Conf.ETagSupport {
@@ -327,15 +361,20 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 	return 
 }
 
-func printStatusJson(w http.ResponseWriter) {
+/**
+ * Print json status
+ */
+func HttpPrintStatusJson(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Server", SERVER_SIGN)
 	b := GetState().AsJson()
 	w.Write(b)
 }
 
-
-func printStatusHtml(w http.ResponseWriter) {
+/**
+ * Print html status
+ */
+func HttpPrintStatusHtml(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Server", SERVER_SIGN)
 	GetState().AsHtml(w)
