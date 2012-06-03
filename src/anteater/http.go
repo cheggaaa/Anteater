@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	errorPage = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>Anteater " + version + "</center></body></html>\n"
+	ERROR_PAGE = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>" + SERVER_SIGN + "</center></body></html>\n"
 )
 
 
@@ -135,7 +135,7 @@ func errorFunc(w http.ResponseWriter, status int) {
 			HttpCn.CNotFound()
 	}
 
-	fmt.Fprintf(w, errorPage, httpErrors[status], httpErrors[status])
+	fmt.Fprintf(w, ERROR_PAGE, httpErrors[status], httpErrors[status])
 }
 
 
@@ -329,7 +329,7 @@ func httpHeadersHandle(name string, i *FileInfo, w http.ResponseWriter, r *http.
 
 func printStatusJson(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Server", serverSign)
+	w.Header().Set("Server", SERVER_SIGN)
 	b := GetState().AsJson()
 	w.Write(b)
 }
@@ -337,7 +337,7 @@ func printStatusJson(w http.ResponseWriter) {
 
 func printStatusHtml(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Server", serverSign)
+	w.Header().Set("Server", SERVER_SIGN)
 	GetState().AsHtml(w)
 }
 

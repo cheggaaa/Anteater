@@ -25,7 +25,7 @@ import (
 
 
 const (
-	tmplMain = `
+	TMPL_MAIN = `
 <html>
 	<head>
 		<title>{{.Title}}</title>
@@ -251,7 +251,7 @@ var (
 func init() {
 	var err error
 	TmplMain = template.New("Main")
-	TmplMain, err = TmplMain.Parse(tmplMain)
+	TmplMain, err = TmplMain.Parse(TMPL_MAIN)
 	if err != nil {
 		Log.Warnln(err)
 	}
@@ -288,7 +288,7 @@ func (s *State) AsHtml(w io.Writer) {
 	m := &HtmlTable{
 		Title : "Main info",
 		Values : []*KeyValue{
-			&KeyValue{"AntEater version", version},
+			&KeyValue{"AntEater version", VERSION},
 			&KeyValue{"Uptime", fmt.Sprintf("%v", nt.Sub(st))},
 			&KeyValue{"Goroutines count", fmt.Sprintf("%d", s.Main.Goroutines)},
 			&KeyValue{"Dump file size", HumanBytes(s.Main.IndexFileSize)},

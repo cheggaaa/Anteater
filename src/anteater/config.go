@@ -127,7 +127,7 @@ func LoadConfig(filename string) (*Config, error) {
 		}
 	}
 	if _, ok := headers["Server"]; !ok {
-		headers["Server"] = serverSign
+		headers["Server"] = SERVER_SIGN
 	}
 	
 	// Mime	
