@@ -22,13 +22,26 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 	"runtime"
 	"log"
 	"runtime/pprof"
 )
 
+const HELP = anteater.SERVER_SIGN + `
+Usage:
+	
+	-f=/path/to/config/file
+	
+	-v - print version end exit
+	
+	-h - show this page
+`;
+
 var config = flag.String("f", "", "Path to your config file")
+var isPrintVersion = flag.Bool("v", false, "Print version")
+var isPrintHelp = flag.Bool("h", false, "Show help")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 var memprofile = flag.String("memprofile", "", "write memory profile to this file")
 
@@ -46,8 +59,18 @@ func main() {
         defer pprof.StopCPUProfile()
     }
 
+	if *isPrintVersion {
+		printVersion()
+		return
+	}
+	
+	if *isPrintHelp {
+		printHelp()
+		return
+	}
+
 	if *config == "" {
-		fmt.Println("Need to specify path to config file\n Use flag -f\n anteater -f /path/to/file.conf")
+		printHelp()
 		return
 	}
 	
@@ -59,9 +82,9 @@ func main() {
 	}()
 
 	interrupt := make(chan os.Signal, 1)
-	signal.Notify(interrupt, os.Kill, os.Interrupt)
-	<-interrupt
-	fmt.Println("")
+	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
+	s := <-interrupt
+
 	if *memprofile != "" {
         f, err := os.Create(*memprofile)
         if err != nil {
@@ -71,7 +94,15 @@ func main() {
         f.Close()
         return
     }
-	anteater.Log.Debugln("\nCatched shutdown signal...")
+	anteater.Log.Debugln("\nCatched signal", s)
 	time.Sleep(time.Second)
 	anteater.Stop()
+}
+
+func printVersion() {
+	fmt.Println(anteater.SERVER_SIGN);
+}
+
+func printHelp() {
+	fmt.Println(HELP);
 }

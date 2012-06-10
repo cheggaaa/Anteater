@@ -17,11 +17,13 @@
 package anteater
 
 import (
+	"fmt"
 	"time"
 	"runtime"
 	"sort"
 	"sync/atomic"
 	"encoding/json"
+	"errors"
 )
 
 
@@ -29,6 +31,7 @@ var FiveSecondsCounters []*StateHttpCounters = make([]*StateHttpCounters, 61)
 var FiveSecondsCursor int
 
 type State struct {
+	Version string
 	Main  *StateMain
 	Files *StateFiles
 	Counters *StateHttpCounters
@@ -149,6 +152,7 @@ func GetState() *State {
 	
 	
 	return &State{
+		Version  : VERSION,
 		Main     : m,
 		Files    : f,
 		Counters : HttpCn,
@@ -258,4 +262,34 @@ func (s *StateAllocateCounters) CTarget(target int) {
 	 	case TARGET_NEW:
 	 		atomic.AddInt64(&s.ToEnd, 1)
 	}
+}
+
+func (s *State) Info(present string) (info string, err error) {
+	var all bool
+	switch present {
+		case "all":
+			all = true
+		case "short":
+			all = false
+		default:
+			return "", errors.New("Undefined present type " + present)
+	}
+	
+	var nt = time.Unix(s.Main.Time, 0)
+	var st = time.Unix(s.Main.StartTime, 0)
+	
+	info += "Anteater version: " + s.Version + "\n"
+	info += fmt.Sprintf("Uptime: %v\n\n", nt.Sub(st))
+	
+	info += fmt.Sprintf("Containers count: %d\n", s.Files.ContainersCount)
+	info += fmt.Sprintf("Files count: %d\n", s.Files.FilesCount)
+	info += fmt.Sprintf("Files size: %s\n", HumanBytes(s.Files.FilesSize))
+	if all {
+		info += fmt.Sprintf("Spaces count: %d\n", s.Files.SpacesCount)
+		info += fmt.Sprintf("Spaces size: %s\n\n", HumanBytes(s.Files.SpacesSize))	
+		info += fmt.Sprintf("Index file size: %s\n\n", HumanBytes(s.Main.IndexFileSize))
+		info += fmt.Sprintf("Goroutines count: %d\n", s.Main.Goroutines)
+	}
+	
+	return
 }

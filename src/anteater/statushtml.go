@@ -25,7 +25,7 @@ import (
 
 
 const (
-	tmplMain = `
+	TMPL_MAIN = `
 <html>
 	<head>
 		<title>{{.Title}}</title>
@@ -251,7 +251,7 @@ var (
 func init() {
 	var err error
 	TmplMain = template.New("Main")
-	TmplMain, err = TmplMain.Parse(tmplMain)
+	TmplMain, err = TmplMain.Parse(TMPL_MAIN)
 	if err != nil {
 		Log.Warnln(err)
 	}
@@ -288,7 +288,7 @@ func (s *State) AsHtml(w io.Writer) {
 	m := &HtmlTable{
 		Title : "Main info",
 		Values : []*KeyValue{
-			&KeyValue{"AntEater version", version},
+			&KeyValue{"AntEater version", VERSION},
 			&KeyValue{"Uptime", fmt.Sprintf("%v", nt.Sub(st))},
 			&KeyValue{"Goroutines count", fmt.Sprintf("%d", s.Main.Goroutines)},
 			&KeyValue{"Dump file size", HumanBytes(s.Main.IndexFileSize)},
@@ -372,33 +372,6 @@ func (s *State) AsHtml(w io.Writer) {
 	body.Tables = []*HtmlTable{m, f, a, c}
 	body.Rates = rates
 	TmplMain.Execute(w, body)
-}
-
-func SafeDivision(a, b int64) int64 {
-	if b <= 0 {
-		return 0
-	}
-	return a / b
-}
-
-func HumanBytes(size int64) (result string) {
-	switch {
-		case size > (1024 * 1024 * 1024 * 1024):
-			result = fmt.Sprintf("%6.2f TiB", float64(size) / 1024 / 1024 / 1024 / 1024)
-		case size > (1024 * 1024 * 1024):
-			result = fmt.Sprintf("%6.2f GiB", float64(size) / 1024 / 1024 / 1024)
-		case size > (1024 * 1024):
-			result = fmt.Sprintf("%6.2f MiB", float64(size) / 1024 / 1024)
-		case size > 1024:
-			result = fmt.Sprintf("%6.2f KiB", float64(size) / 1024)
-		default :
-			result = fmt.Sprintf("%d B", size)
-	}
-	return
-}
-
-func DurationToString(d *time.Duration) (result string) {
-	return
 }
 
 

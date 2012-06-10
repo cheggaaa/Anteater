@@ -19,7 +19,6 @@ package anteater
 import (
 	"github.com/kless/goconfig/config"
 	"errors"
-	"strconv"
 )
 
 type Config struct {
@@ -35,6 +34,9 @@ type Config struct {
 	ContentRange  int64
 	StatusJson    string
 	StatusHtml    string
+	
+	// Rpc
+	RpcAddr       string
 	
 	// Http Headers
 	Headers       map[string]string
@@ -108,10 +110,15 @@ func LoadConfig(filename string) (*Config, error) {
 		statusJson = ""
 	}
 	
-	// Status json
+	// Status html
 	statusHtml, err := c.String("http", "status_html")
 	if err != nil {
 		statusHtml = ""
+	}
+	
+	rpcAddr, err := c.String("rpc", "addr")
+	if err != nil {
+		rpcAddr = ":32032"
 	}
 
 	
@@ -127,7 +134,7 @@ func LoadConfig(filename string) (*Config, error) {
 		}
 	}
 	if _, ok := headers["Server"]; !ok {
-		headers["Server"] = serverSign
+		headers["Server"] = SERVER_SIGN
 	}
 	
 	// Mime	
@@ -163,36 +170,5 @@ func LoadConfig(filename string) (*Config, error) {
 		logFile = ""
 	}
 	
-	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, contentRange, statusJson, statusHtml, headers, mimeTypes, logLevel, logFile}, nil
-}
-
-func GetSizeFromString(s string) (int64, error) {
-	if s == "" {
-		return 0, nil
-	}
-
-	var m int64 = 1
-
-	switch s[len(s)-1] {
-	case 'K', 'k':
-		m = 1024
-	case 'M', 'm':
-		m = 1024 * 1024
-	case 'G', 'g':
-		m = 1024 * 1024 * 1024
-	case 'T', 't':
-		m = 1024 * 1024 * 1024 * 1024
-	}
-
-	if m != 1 {
-		s = s[0 : len(s)-1]
-	}
-
-	res, err := strconv.ParseInt(s, 0, 64)
-	
-	if err != nil {
-		return 0, err
-	}
-	
-	return res * m, nil
+	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, contentRange, statusJson, statusHtml, rpcAddr, headers, mimeTypes, logLevel, logFile}, nil
 }

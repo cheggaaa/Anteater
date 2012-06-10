@@ -26,8 +26,8 @@ import (
 )
 
 const (
-	version   = "0.03.3"
-	serverSign = "AE " + version
+	VERSION   = "0.03.3"
+	SERVER_SIGN = "Anteater " + VERSION
 )
 
 /**
@@ -55,6 +55,8 @@ var ContainerLastId int32
  * Map with container objects
  */
 var FileContainers map[int32]*Container = make(map[int32]*Container)
+
+var Containers map[int32]*Container = make(map[int32]*Container)
 
 
 /**
@@ -153,6 +155,7 @@ func MainInit(config string) {
 
 
 func Start() {
+	StartRpcServer()
 	if Conf.HttpReadAddr != Conf.HttpWriteAddr {
 		go RunServer(http.HandlerFunc(HttpRead), Conf.HttpReadAddr)
 	}
@@ -165,6 +168,7 @@ func Stop() {
 	fmt.Println("Server stopping now")
 	Cleanup()
 	for _, c := range(FileContainers) {
+		c.Disable()
 		c.F.Close()
 	}
 	fmt.Println("Bye")

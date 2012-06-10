@@ -29,7 +29,7 @@ func GetFile(name string, size int64) (*File, error) {
 	GetFileLock.Lock()
 	defer GetFileLock.Unlock()
 	for _, target := range(Targets) {
-		for _, c := range(FileContainers) {
+		for _, c := range(Containers) {
 			if c.MaxSpace() >= size {
 				f, err := c.Allocate(size, target)
 				if err == nil {
@@ -44,7 +44,7 @@ func GetFile(name string, size int64) (*File, error) {
 		return nil, err
 	}
 	 
-	f, err := FileContainers[cId].Allocate(size, TARGET_NEW)
+	f, err := Containers[cId].Allocate(size, TARGET_NEW)
 	if err != nil {
 		return nil, err
 	}
