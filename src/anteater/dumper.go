@@ -21,6 +21,8 @@ import (
 	"os"
 	"bytes"
 	"time"
+	"fmt"
+	"io"
 )
 
 type Data struct {
@@ -31,7 +33,6 @@ type Data struct {
 
 func DumpData(filename string) error {
 	Log.Debugln("Dump. Start dump data...")
-	
 	// Timer
 	tm := time.Now()
 	
@@ -41,31 +42,39 @@ func DumpData(filename string) error {
 	}
 	IndexLock.Lock()
 	d := &Data{ContainerLastId, cs, Index}
+	size, err := dumpTo(filename, d)
+	IndexLock.Unlock()
+	if err != nil {
+		return err
+	}
+	IndexFileSize = int64(size)
+	LastDump = time.Now()	
+	LastDumpTime = 	time.Now().Sub(tm)
+	Log.Debugf("Dump. %d bytes successfully written to file\n", IndexFileSize)
+	return nil
+}
+
+func dumpTo(filename string, d *Data) (int, error) {
 	b := new(bytes.Buffer)
 	enc := gob.NewEncoder(b)
 	Log.Debugln("Dump. Encoder created... Start encode")
 	err := enc.Encode(d)
-	IndexLock.Unlock()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	
 	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)
 	defer fh.Close()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	Log.Debugln("Dump. Write to", filename)
 	bytes := b.Bytes()
 	n, err := fh.Write(bytes)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	LastDump = time.Now()	
-	IndexFileSize = int64(len(bytes))
-	LastDumpTime = 	time.Now().Sub(tm)
-	Log.Debugf("Dump. %d bytes successfully written to file\n", n)
-	return nil
+	return n, nil
 }
 
 func LoadData(filename string) error {
@@ -95,4 +104,64 @@ func LoadData(filename string) error {
     Index = d.Index
     Log.Debugln("Index loaded")
     return nil
+}
+
+
+func DumpAllTo(path string) error {
+	Log.Debugln("Strat dump all")
+	cs := []*ContainerDumpData{}
+	var dumpIndex map[string]*FileInfo = make(map[string]*FileInfo)
+	var err error
+	for _, c := range FileContainers {		
+		cs = append(cs, c.GetDumpData())
+		dumpIndex, err = dumpContainer(path, c, dumpIndex)
+		if err != nil {
+			Log.Warn(err)
+			return err
+		}
+	}
+	
+	d := &Data{ContainerLastId, cs, dumpIndex}
+	filename := fmt.Sprintf("%s/file.index", path)
+	_, err = dumpTo(filename, d)
+	if err != nil {
+		Log.Warn(err)
+		return err
+	}
+	Log.Debugln("All containers dumped");
+	return nil
+}
+
+func dumpContainer(path string, c *Container, i map[string]*FileInfo) (map[string]*FileInfo, error) {
+	Log.Debugln("Strat dump container", c.Id);
+	// copy container file 
+	c.Disable()
+	c.WLock.Lock()
+	defer c.WLock.Unlock()
+	defer c.Enable()
+	
+	dpath := fmt.Sprintf("%s/file.data.%d", path, c.Id)
+	dst, err := os.OpenFile(dpath, os.O_CREATE|os.O_WRONLY, 0666)
+	if err != nil {
+		return nil, err
+	}
+	defer dst.Close()
+	dst.Truncate(c.Size)
+	reader := io.NewSectionReader(c.F, 0, c.Size)
+	n, err := io.Copy(dst, reader)
+	Log.Debugln("Done!", n, "bytes copied");
+	if err != nil {
+	   return nil, err
+	}
+	
+	//copy index
+	IndexLock.Lock()
+	defer IndexLock.Unlock()
+	for n, fi := range Index {
+		if fi.ContainerId == c.Id {
+			i[n] = fi
+		}	
+	}
+	
+	return i, nil
 }

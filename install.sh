@@ -13,7 +13,8 @@ cd src/anteater && go test && cd ../../
 
 if [[ $1 != "test" ]]; then
 	install -d $GOBIN
-	echo "Building.."
-	GOBIN=$GOBIN go install ./src/main.go
-	mv $GOBIN/main $GOBIN/$BINNAME
+	echo "Building anteater.."
+	GOBIN=$GOBIN go install ./src/anteater.go
+	echo "Building aecommand.."
+	GOBIN=$GOBIN go install ./src/aecommand.go
 fi

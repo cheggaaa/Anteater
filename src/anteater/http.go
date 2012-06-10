@@ -188,7 +188,7 @@ func HttpGetFile(name string, w http.ResponseWriter, r *http.Request, writeBody 
 	if i.Size > Conf.ContentRange {
 		reader := i.GetReader()
 		http.ServeContent(w, r, name, time.Unix(i.T, 0), reader)
-		Log.Debugf("GET %s (%s) Size %d; Go Serve", r.URL, r.RemoteAddr)
+		Log.Debugf("GET %s (%s) Size %d; Go Serve", r.URL, r.RemoteAddr, i.Size)
 		return
 	}
 	

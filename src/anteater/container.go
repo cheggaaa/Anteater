@@ -83,6 +83,7 @@ func NewContainer(path string) (int32, error) {
 	}	
 	Log.Debugln("Container", c.Id, "created");	
 	FileContainers[c.Id] = c
+	c.Enable()
 	return c.Id, err
 }
 
@@ -97,6 +98,7 @@ func ContainerFromData(data *ContainerDumpData) (*Container, error) {
 		return nil, err
 	}
 	c := &Container{data.Id, f, data.Size, data.Offset, data.Count, data.LastId, &sync.Mutex{}, data.Spaces, data.MaxSpaceSize, false}
+	c.Enable()
 	return c, nil
 }
 
@@ -121,6 +123,14 @@ func (c *Container) Init() error {
 
 func (c *Container) Path() string {
 	return DataPath + "." + strconv.FormatInt(int64(c.Id), 10)
+}
+
+func (c *Container) Enable() {
+	Containers[c.Id] = c
+}
+
+func (c *Container) Disable() {
+	delete(Containers, c.Id)
 }
 
 /**

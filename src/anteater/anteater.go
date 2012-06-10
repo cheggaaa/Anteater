@@ -56,6 +56,8 @@ var ContainerLastId int32
  */
 var FileContainers map[int32]*Container = make(map[int32]*Container)
 
+var Containers map[int32]*Container = make(map[int32]*Container)
+
 
 /**
  *	Mutex for allocate new files
@@ -153,6 +155,7 @@ func MainInit(config string) {
 
 
 func Start() {
+	StartRpcServer()
 	if Conf.HttpReadAddr != Conf.HttpWriteAddr {
 		go RunServer(http.HandlerFunc(HttpRead), Conf.HttpReadAddr)
 	}
@@ -165,6 +168,7 @@ func Stop() {
 	fmt.Println("Server stopping now")
 	Cleanup()
 	for _, c := range(FileContainers) {
+		c.Disable()
 		c.F.Close()
 	}
 	fmt.Println("Bye")
