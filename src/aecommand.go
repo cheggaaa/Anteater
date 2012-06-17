@@ -19,25 +19,15 @@ package main
 import (
 	"fmt"
 	"log"
-	//"time"
-	"net/rpc"
-	"os"
-	"flag"
 	"strings"
 	"./anteater"
+	"./aerpc"
 )
 
 const USAGE = `
 Usage:
 	aecommand [-s=server_addr] command [arguments]
-
-Server addr format:
-	default addr: 127.0.0.1:32032
-	examples:
-		-s=192.168.1.2 will be 192.168.1.2:32032
-		-s=:32033 will be 127.0.0.1:32033
-		-s=anteater.local:3234 will be anteater.local:3234
-		
+` + aerpc.SERVER_FLAG_FORMAT + `		
 Commands:
 	
 	STATUS (or INFO)
@@ -57,79 +47,34 @@ Commands:
 	Dump may take some time (depending on your storage size)
 `;
 
-const (
-	DEFAULT_HOST = "127.0.0.1"
-	DEFAULT_PORT = "32032"
-)
+
 
 var (
-	ServerAddr *string = flag.String("s", DEFAULT_HOST + ":" + DEFAULT_PORT, "Path to your config file")
-	Client *rpc.Client
-	Command string 
-	Args []string
-	ShowHelp bool
+	Conn *aerpc.Conn
+	Command string
 )
 
 func init() {
-	flag.Parse();
-	var s int = 1
-	if flag.NFlag() == 1 {
-		s++
-	}
-	
-	if len(os.Args) - s >= 1 {
-		Command = os.Args[s]
-		s++
-	} else {
-		ShowHelp = true
+	var err error
+	Conn, err = aerpc.ParseFAndConnect()
+	if err != nil {
+		log.Fatal(err)
 		return
 	}
-	
-	if len(os.Args) - s >= 1 {
-		Args = os.Args[s:]
-	}
-	Command = strings.ToLower(Command)
-	Command = strings.ToUpper(string(Command[0])) + Command[1:]
-	
-	// check server addr
-	addr := strings.Split(*ServerAddr, ":")
-	var host, port string
-	if len(addr) == 1 {
-		host = addr[0]
-		port = DEFAULT_PORT
-	} else if len(addr) == 2 {
-		host = addr[0]
-		port = addr[1]
-	}
-	if len(host) == 0 {
-		host = DEFAULT_HOST 
-	}
-	if len(port) == 0 {
-		port = DEFAULT_PORT
-	}
-	*ServerAddr = host + ":" + port
 }
 
 func main() {
-	if ShowHelp {
+	if Conn.ShowHelp {
 		fmt.Print(USAGE)
 		return
 	}
-	//fmt.Printf("Server:%s; Command:%s; args:%v;\n", *ServerAddr, Command, Args);	
-	connect();
-	defer Client.Close()
+	defer Conn.Client.Close()
+	Command = strings.ToLower(Conn.Command)
+	Command = strings.ToUpper(string(Command[0])) + Command[1:]
 	
 	Execute()
 }
 
-func connect() {
-	var err error
-	Client, err = rpc.DialHTTP("tcp", *ServerAddr)
-	if err != nil {
-		log.Fatal(err)
-	}
-	
-}
 
 func Execute() () {
 	var command string = "Rpc." + Command
@@ -142,14 +87,14 @@ func Execute() () {
 			command = "Rpc.Status"
 			args := true
 			replyStatus = new(anteater.State)
-			err = Client.Call(command, args, &replyStatus)
+			err = Conn.Client.Call(command, args, &replyStatus)
 			if err != nil {
 				log.Fatal("Error:", err)
 			}
 			
 			present := "short"			
-			if len(Args) > 0 {
-				present = Args[0]
+			if len(Conn.Args) > 0 {
+				present = Conn.Args[0]
 			}
 			
 			res, err := replyStatus.Info(present)
@@ -159,17 +104,17 @@ func Execute() () {
 			fmt.Printf("%s\n", res)
 		case "Ping", "Version":
 			args := true
-			err = Client.Call(command, args, &replyString)
+			err = Conn.Client.Call(command, args, &replyString)
 			if err != nil {
 				log.Fatal("Rpc error:", err)
 			}
 			fmt.Println(replyString)
 		case "Dump":
-			if len(Args) == 0 {
+			if len(Conn.Args) == 0 {
 				log.Fatalln("Need specified path\nExample: aecommand -s=127.0.0.1:32032 dump /path/to/you/dump/folder")
 			}
-			args := Args[0]
-			err = Client.Call(command, args, &replyBool)
+			args := Conn.Args[0]
+			err = Conn.Client.Call(command, args, &replyBool)
 			if err != nil {
 				log.Fatal("Rpc error:", err)
 			}

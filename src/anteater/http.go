@@ -246,7 +246,7 @@ func HttpSaveFile(name string, w http.ResponseWriter, r *http.Request) {
 	file := r.Body
 	size := r.ContentLength
 	
-	if size == 0 {
+	if size <= 0 {
 		HttpError(w,  411)
 		return
 	}

@@ -109,9 +109,17 @@ func LoadData(filename string) error {
 
 func DumpAllTo(path string) error {
 	Log.Debugln("Strat dump all")
+	var err error
+	
+	err = os.MkdirAll(path, 0666)
+	
+	if err != nil {
+		return err
+	}
+		
 	cs := []*ContainerDumpData{}
 	var dumpIndex map[string]*FileInfo = make(map[string]*FileInfo)
-	var err error
+	
 	for _, c := range FileContainers {		
 		cs = append(cs, c.GetDumpData())
 		dumpIndex, err = dumpContainer(path, c, dumpIndex)
