@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	VERSION   = "0.03.3"
+	VERSION   = "0.04"
 	SERVER_SIGN = "Anteater " + VERSION
 )
 
