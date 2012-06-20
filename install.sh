@@ -18,5 +18,5 @@ if [[ $1 != "test" ]]; then
 	echo "Building aecommand.."
 	GOBIN=$GOBIN go install ./src/aecommand.go
 	echo "Building aeimport.."
-        GOBIN=$GOBIN go install ./src/aeimport.go
+	GOBIN=$GOBIN go install ./src/aeimport.go
 fi
