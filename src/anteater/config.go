@@ -47,6 +47,11 @@ type Config struct {
 	// Log
 	LogLevel      int
 	LogFile		  string
+	
+	// Uploader
+	UploaderEnable    bool
+	UploaderCtrlUrl   string
+	UploaderTokenName string
 }
 
 
@@ -170,5 +175,39 @@ func LoadConfig(filename string) (*Config, error) {
 		logFile = ""
 	}
 	
-	return &Config{dataPath, containerSize, minEmptySpace, httpWriteAddr, httpReadAddr, etagSupport, contentRange, statusJson, statusHtml, rpcAddr, headers, mimeTypes, logLevel, logFile}, nil
+	// Uploader
+	uploaderEnable, err := c.Bool("uploader", "enable")
+	if err != nil {
+		uploaderEnable = false
+	}
+	
+	uploaderCtrlUrl, err := c.String("uploader", "ctrl_url")
+	if err != nil && uploaderEnable {
+		return nil, errors.New("Incorrect uploader ctrl_url:" + err.Error())
+	}
+	
+	uploaderTokenName, err := c.String("uploader", "token_name")
+	if err != nil && uploaderEnable {
+		return nil, errors.New("Incorrect uploader token_name:" + err.Error())
+	}
+	
+	return &Config{
+		dataPath,
+		containerSize,
+		minEmptySpace,
+		httpWriteAddr,
+		httpReadAddr,
+		etagSupport,
+		contentRange,
+		statusJson,
+		statusHtml,
+		rpcAddr,
+		headers,
+		mimeTypes,
+		logLevel,
+		logFile,
+		uploaderEnable,
+		uploaderCtrlUrl,
+		uploaderTokenName,
+	}, nil
 }
