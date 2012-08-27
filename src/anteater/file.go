@@ -20,11 +20,68 @@ import (
 	"errors"
 	"io"
 	"time"
+	"crypto/md5"
+	"fmt"
 )
 
 
 var Targets = []int{TARGET_SPACE_EQ, TARGET_SPACE_FREE, TARGET_NEW}
 
+/**
+ * Create and write file to storage
+ */
+func WriteFileToStorage(r io.ReadCloser, name string, size int64) (*FileInfo, error) {
+	f, err := GetFile(name, size)
+	fi := f.Info()
+	
+	isOk := false
+
+	defer func() {
+		r.Close()
+		if isOk {
+			IndexSet(name, fi)
+			HttpCn.CAdd()
+		} else {
+			FileContainers[fi.ContainerId].Delete(fi)
+		}
+	}()
+	
+	var written int64
+	h := md5.New()
+	for {
+		buf := make([]byte, 100*1024)
+		nr, er := io.ReadFull(r, buf)
+		if nr > 0 {
+			nw, ew := f.WriteAt(buf[0:nr], written)
+			if nw > 0 {
+				written += int64(nw)
+				h.Write(buf[0:nw])
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+		}
+		if er != nil {
+			err = er
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+	}
+	
+	fi.Md5 = h.Sum(nil)	
+	isOk = true
+	
+	Log.Debugln("File saved. Name:", name, "Size:", size, "Md5:", fmt.Sprintf("%x", fi.Md5))
+	
+	return fi, nil
+}
+
+/**
+ * Allocate space, select container and create file object
+ */
 func GetFile(name string, size int64) (*File, error) {
 	GetFileLock.Lock()
 	defer GetFileLock.Unlock()

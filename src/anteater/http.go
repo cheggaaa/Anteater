@@ -25,7 +25,7 @@ import (
 	"path/filepath"
 	"mime"
 	"os"
-	"crypto/md5"
+	
 )
 
 const (
@@ -60,7 +60,7 @@ func RunServer(handler http.Handler, addr string) {
  * Http read-only handler
  */
 func HttpRead(w http.ResponseWriter, r *http.Request) {
-		
+	defer r.Body.Close()	
 	filename := GetFilename(r)
 	
 	if len(filename) == 0 {
@@ -87,12 +87,11 @@ func HttpRead(w http.ResponseWriter, r *http.Request) {
  * Http read-write handler
  */
 func HttpReadWrite(w http.ResponseWriter, r *http.Request) {
-
+	defer r.Body.Close()
 	filename := GetFilename(r)
-	
 	switch filename {
 		case "":
-			HttpError(w, 404)
+			UploaderHandle(w, r)
 			return
 		case Conf.StatusJson:
 			HttpPrintStatusJson(w)
@@ -258,58 +257,20 @@ func HttpSaveFile(name string, w http.ResponseWriter, r *http.Request) {
 	
 	Log.Debugln("Start upload file", name, size, "bytes")
 	
-	f, err := GetFile(name, size)
-	fi := f.Info()
-	
-	isOk := false
-
-	defer func() {
-		if isOk {
-			IndexSet(name, fi)
-		} else {
-			FileContainers[fi.ContainerId].Delete(fi)
-		}
-	}()
-	
-	var written int64
-	h := md5.New()
-	for {
-		buf := make([]byte, 256*1024)
-		nr, er := io.ReadAtLeast(file, buf, 256*1024)
-		if nr > 0 {
-			nw, ew := f.WriteAt(buf[0:nr], written)
-			if nw > 0 {
-				written += int64(nw)
-				h.Write(buf[0:nw])
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-		}
-		if er != nil {
-			err = er
-			break
-		}
-
-		if err != nil {
-			Log.Warnln(err)
-			HttpError(w, 500)
-			return
-		}
+	fi, err := WriteFileToStorage(file, name, size)	
+	if err != nil {
+		Log.Warnln(err)
+		HttpError(w, 500)
+		return
 	}
 	
-	md5 := h.Sum(nil)
-	
-	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", md5));	
+	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", fi.Md5));	
 	w.Header().Set("Etag", fi.ETag());
 	w.Header().Set("Location", name);
 	w.Header().Set("Content-Length", "0")
 	w.WriteHeader(http.StatusCreated)
-	HttpCn.CAdd()
-	fi.Md5 = md5
+	
 	Log.Debugf("File %s (%d:%d) uploaded.\n", name, fi.ContainerId, fi.Id)
-	isOk = true
 }
 
 /**
