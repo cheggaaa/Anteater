@@ -107,17 +107,26 @@ func (i *Image) Resize(format string, w, h, q int) error {
 } 
 
 func (i *Image) Crop(format string, w, h, q int) error {
-	s := w
-	if i.Width > i.Height {
-		w = 0
+	var s int 
+	rw, rh := w, h
+	if w > h {
+		s = w
 	} else {
-		h = 0
+		s = h
 	}
-	err := i.Resize(format, w, h, q)
+	
+	if i.Width > i.Height {
+		rh = s
+		rw = 0
+	} else {
+		rw = s
+		rh = 0
+	}
+	err := i.Resize(format, rw, rh, q)
 	if err != nil {
 		return err
 	}
-	crop := fmt.Sprintf("%dx%d+0+0", s, s)
+	crop := fmt.Sprintf("%dx%d+0+0", w, h)
 	cmd := exec.Command("convert", i.Filename, "-gravity", "Center", "-crop", crop, i.Filename)
 	_, err = cmd.Output()
 	if err != nil {
