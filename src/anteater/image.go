@@ -107,14 +107,6 @@ func (i *Image) Resize(format string, w, h, q int) error {
 } 
 
 func (i *Image) Crop(format string, w, h, q int) error {
-	
-	// if($w > $h){
-   //   exec("convert ".$src." -resize x".$size." -quality 100 ".$dest);
-   //}else{
-   //   exec("convert ".$src." -resize ".$size." -quality 100 ".$dest);
-   //}
-
-   //exec("convert ".$dest." -gravity Center -crop ".$size."x".$size."+0+0 ".$dest);
 	s := w
 	if i.Width > i.Height {
 		w = 0
@@ -127,9 +119,7 @@ func (i *Image) Crop(format string, w, h, q int) error {
 	}
 	crop := fmt.Sprintf("%dx%d+0+0", s, s)
 	cmd := exec.Command("convert", i.Filename, "-gravity", "Center", "-crop", crop, i.Filename)
-	Log.Debugln("Crop:", crop)
-	o, err := cmd.Output()
-	Log.Debugln("Output:", o)
+	_, err = cmd.Output()
 	if err != nil {
 		return err
 	}
