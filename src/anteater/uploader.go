@@ -129,13 +129,13 @@ func UploaderHandle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	write(token, params)
+	write(token, params.Response)
 	return
 }
 
 
 func UploaderGetParams(token string) (*UploaderParams, error) {
-	r, err := UploaderRequest("params", url.Values{token : {token}})
+	r, err := UploaderRequest("params", &url.Values{"token" : {token}})
 	if err != nil {
 		return nil, err
 	}
@@ -162,12 +162,12 @@ func UploaderSetStatus(token string, params interface{}) (*http.Response, error)
 		return nil, err
 	}
 	jsonData := string(data)
-	return UploaderRequest("status", url.Values{"token":{token},"data":{jsonData}})
+	return UploaderRequest("status", &url.Values{"token":{token},"data":{jsonData}})
 }
 
-func UploaderRequest(uri string, params url.Values) (*http.Response, error) {
+func UploaderRequest(uri string, params *url.Values) (*http.Response, error) {
 	req_url := strings.TrimRight(Conf.UploaderCtrlUrl, "/") + "/" + strings.TrimLeft(uri, "/") + ".json"
-	return http.PostForm(req_url, params)
+	return http.PostForm(req_url, *params)
 }
 
 func UploaderLoadFormFile(f multipart.File) (tf *os.File, size int64, err error) {
@@ -235,9 +235,11 @@ func (uf *UploaderFile) Upload(r *http.Request, ufs *UploaderFiles) error {
 			}
 			Log.Debugln("open: ", i.Filename)
 			uf._tf, err = os.Open(i.Filename)
+			defer os.Remove(i.Filename)
 			if err != nil {
 				return err
 			}
+			defer uf._tf.Close()
 			finfo, err := uf._tf.Stat()
 			if err != nil {
 				return err
@@ -256,7 +258,10 @@ func (uf *UploaderFile) Upload(r *http.Request, ufs *UploaderFiles) error {
 }
 
 func (uf *UploaderFile) Delete() {
-	HttpDeleteFile(uf.Name, nil)
+	HttpDeleteFile(uf.Name, nil)		
+	if uf.State != nil {
+		uf.State.Uploaded = false
+	}
 	return 
 }
 
@@ -272,6 +277,7 @@ func (uf *UploaderFile) Clean() {
 	if uf._tf != nil {
 		i, err := uf._tf.Stat()
 		if err == nil {
+			Log.Debugln(i.Name())
 			os.Remove(i.Name())
 		}
 	}

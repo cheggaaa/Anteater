@@ -35,14 +35,7 @@ type Image struct {
 
 func ImageIdenty(filename string) (*Image, error) {
 	var err error
-	
-	identify, err := exec.LookPath("identify")
-	
-	if err != nil {
-		return nil, err
-	}
-	Log.Debugln(identify)
-	cmd := exec.Command(identify, filename)
+	cmd := exec.Command("identify", filename)
 	res, err := cmd.Output()
 	if err != nil {
 		return nil, err
@@ -72,28 +65,32 @@ func ImageIdenty(filename string) (*Image, error) {
 		return nil, err
 	}	
 	
-	Log.Debugln("Identy:", image)
-	
 	return image, nil
 }
 
 
 func (i *Image) Resize(format string, w, h, q int) error {
 	wh := fmt.Sprintf("%dx%d", w, h)
-	if q > 0 {
-		wh = fmt.Sprintf("%s -quality %d", q)
+	if w == 0 {
+		wh = fmt.Sprintf("x%d", h)
+	}	
+	if h == 0 {
+		wh = fmt.Sprintf("%d", w)
 	}
 	
+	if format == "" {
+		format = i.Type
+	}
 	dst := i.Filename + "." + strings.ToLower(format)
 	
 	Log.Debugln("Convert from:", i.Filename, "to:", dst, "w:", w, "h:", h, "q:", q)
-	
-	convert, err := exec.LookPath("convert")
-	if err != nil {
-		return err
+	var cmd *exec.Cmd
+	if q > 0 {
+		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, "-quality",  fmt.Sprintf("%d", q), dst)
+	} else {
+		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, dst)
 	}
-	cmd := exec.Command(convert, i.Filename, "-resize", wh, dst)
-	_, err = cmd.Output()
+	_, err := cmd.Output()
 	if err != nil {
 		return err
 	}
@@ -110,5 +107,33 @@ func (i *Image) Resize(format string, w, h, q int) error {
 } 
 
 func (i *Image) Crop(format string, w, h, q int) error {
+	
+	// if($w > $h){
+   //   exec("convert ".$src." -resize x".$size." -quality 100 ".$dest);
+   //}else{
+   //   exec("convert ".$src." -resize ".$size." -quality 100 ".$dest);
+   //}
+
+   //exec("convert ".$dest." -gravity Center -crop ".$size."x".$size."+0+0 ".$dest);
+	s := w
+	if i.Width > i.Height {
+		w = 0
+	} else {
+		h = 0
+	}
+	err := i.Resize(format, w, h, q)
+	if err != nil {
+		return err
+	}
+	crop := fmt.Sprintf("%dx%d+0+0", s, s)
+	cmd := exec.Command("convert", i.Filename, "-gravity", "Center", "-crop", crop, i.Filename)
+	Log.Debugln("Crop:", crop)
+	o, err := cmd.Output()
+	Log.Debugln("Output:", o)
+	if err != nil {
+		return err
+	}
+	i.Width = s
+	i.Height = s
 	return nil
 } 
