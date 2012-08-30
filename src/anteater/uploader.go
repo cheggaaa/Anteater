@@ -120,9 +120,7 @@ func UploaderHandle(w http.ResponseWriter, r *http.Request) {
 		write(token, &UploaderStatusError{&UploaderError{500, err.Error()}})
 		return
 	}
-
 	err = params.Upload(r)
-	
 	if err != nil {
 		Log.Warnln(err)
 		write(token, &UploaderStatusError{&UploaderError{500, err.Error()}})
@@ -186,6 +184,7 @@ func (up *UploaderParams) Upload(r *http.Request) error {
 	for i, uf := range up.Response {
 		err = uf.Upload(r, &up.Response)
 		if err != nil {
+			Log.Debugln("Err:", err, err_n)
 			err_n = i
 			break;
 		}
@@ -210,19 +209,21 @@ func (uf *UploaderFile) Upload(r *http.Request, ufs *UploaderFiles) error {
 	if err != nil {
 		return err
 	}
-	
 	uf._tf, uf._size, err = UploaderLoadFormFile(mf)
 	if err != nil {
 		return err
 	}
 	uf._tf.Seek(0, 0)
 	
+	err = uf.IsValid()
+	if err != nil {
+		return err
+	}
+	
 	switch(strings.ToLower(uf.Type)) {
 		case "file":
-			Log.Debugln("Type: file")
 			break
 		case "image":
-			Log.Debugln("Type: image")
 			i, err := ImageIdenty(uf._tf.Name())
 			if err != nil {
 				return err
@@ -233,7 +234,6 @@ func (uf *UploaderFile) Upload(r *http.Request, ufs *UploaderFiles) error {
 			} else {
 				i.Resize(uf.Format, uf.Width, uf.Height, uf.Quality)
 			}
-			Log.Debugln("open: ", i.Filename)
 			uf._tf, err = os.Open(i.Filename)
 			defer os.Remove(i.Filename)
 			if err != nil {
@@ -269,15 +269,19 @@ func (uf *UploaderFile) Prepare(ufs *UploaderFiles) error {
 	return nil
 }
 
-func (uf *UploaderFile) IsValid() bool {
-	return true
+func (uf *UploaderFile) IsValid() error {
+	if uf.Valid != nil {
+		if uf.Valid.MaxSize > 0 && uf._size > uf.Valid.MaxSize {
+			return errors.New("File too large")
+		}
+	}
+	return nil
 }
 
 func (uf *UploaderFile) Clean() {
 	if uf._tf != nil {
 		i, err := uf._tf.Stat()
 		if err == nil {
-			Log.Debugln(i.Name())
 			os.Remove(i.Name())
 		}
 	}
