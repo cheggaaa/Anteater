@@ -69,6 +69,7 @@ type UploaderFile struct {
 	_is_uploaded bool
 	_fi          *FileInfo
 	_tf          *os.File
+	_tfn         string
 	_size        int64
 }
 
@@ -235,18 +236,18 @@ func (uf *UploaderFile) Upload(r *http.Request, ufs *UploaderFiles) error {
 				i.Resize(uf.Format, uf.Width, uf.Height, uf.Quality)
 			}
 			uf._tf, err = os.Open(i.Filename)
-			defer os.Remove(i.Filename)
 			if err != nil {
 				return err
 			}
-			defer uf._tf.Close()
-			finfo, err := uf._tf.Stat()
-			if err != nil {
-				return err
-			}
-			uf._size = finfo.Size()
 			break
 	}
+	
+	finfo, err := uf._tf.Stat()
+	if err != nil {
+		return err
+	}
+	uf._size = finfo.Size()
+	uf._tfn = uf._tf.Name()
 	
 	uf._fi, err = WriteFileToStorage(uf._tf, uf.Name, uf._size)
 	if err != nil {
@@ -280,9 +281,9 @@ func (uf *UploaderFile) IsValid() error {
 
 func (uf *UploaderFile) Clean() {
 	if uf._tf != nil {
-		i, err := uf._tf.Stat()
-		if err == nil {
-			os.Remove(i.Name())
-		}
+		uf._tf.Close()
+	}
+	if uf._tfn != "" {		
+		os.Remove(uf._tfn)
 	}
 }
