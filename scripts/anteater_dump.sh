@@ -24,5 +24,5 @@ EOF
 esac
 
 ### Backup
-echo "install -o $USER -g $GROUP -m 0750 -d $BACKUPS_DIR $DUMP_DIR &&"
-echo "aecommand dump $DUMP_DIR"
+install -o $USER -g $GROUP -m 0750 -d $BACKUPS_DIR $DUMP_DIR &&
+aecommand dump $DUMP_DIR
