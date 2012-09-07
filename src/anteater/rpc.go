@@ -66,3 +66,8 @@ func (r *Rpc) Dump(args string, reply *bool) error {
 	*reply = true
 	return nil
 }
+
+func (r *Rpc) Checkmd5(args bool, reply *string) error {
+	_, *reply = CheckStorage()
+	return nil
+}

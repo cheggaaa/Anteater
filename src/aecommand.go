@@ -45,6 +45,9 @@ Commands:
 	Folder must be exists on remote server
 	Server return TRUE or error
 	Dump may take some time (depending on your storage size)
+	
+	CHECKMD5
+	Check all files in storage for md5 file hash
 `;
 
 
@@ -102,7 +105,7 @@ func Execute() () {
 				log.Fatal("Error:", err)
 			}
 			fmt.Printf("%s\n", res)
-		case "Ping", "Version":
+		case "Ping", "Version", "Checkmd5":
 			args := true
 			err = Conn.Client.Call(command, args, &replyString)
 			if err != nil {

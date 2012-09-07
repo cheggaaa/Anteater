@@ -23,10 +23,12 @@ import (
 	"sync"
 	"log"
 	"mime"
+	"crypto/md5"
+	"io"
 )
 
 const (
-	VERSION   = "0.06.4 Narr8"
+	VERSION   = "0.06.5 Narr8"
 	SERVER_SIGN = "Anteater " + VERSION
 )
 
@@ -201,6 +203,30 @@ func Cleanup() {
 			Log.Infoln("Dump error:", err)
 		}
 	}
+}
+
+
+func CheckStorage () (ok bool, description string) {
+	ok = true
+	for name, fi := range Index {
+		Log.Debugf("Check %s ..", name)
+		h := md5.New()
+		io.Copy(h, fi.GetReader())
+		actual := fmt.Sprintf("%x", h.Sum(nil))
+		expect := fmt.Sprintf("%x", fi.Md5)
+		if actual != expect {
+			msg := fmt.Sprintf("File %s md5 not equals! Actual: %s; Expect: %s", name, actual, expect)
+			Log.Info(msg)
+			description += "\n"
+			ok = false
+		} else {
+			Log.Debugf("Ok")
+		}
+	}
+	if ok {
+		description = "Ok!"
+	}
+	return
 }
 
 
