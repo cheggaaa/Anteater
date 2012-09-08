@@ -14,11 +14,10 @@
   limitations under the License.
 */
 
-package anteater
+package storage
 
 import (
 	"sort"
-	"errors"
 )
 
 type Space struct {
@@ -80,14 +79,14 @@ func (s Spaces) Join() (Spaces, int64) {
 	return s.FilterByStart(rem), maxSpaceSize
 }
 
-func (s Spaces) Get(size int64, target int) (int64, error) {
+func (s Spaces) Get(size int64, target int) (int64, bool) {
 	switch target {
 	case TARGET_SPACE_EQ:
 		for i, space := range(s) {
 			if space.Size == size {			
 				start := space.Start
 				s[i].Size = 0
-				return start, nil
+				return start, true
 			}
 		}
 	case TARGET_SPACE_FREE:
@@ -96,27 +95,23 @@ func (s Spaces) Get(size int64, target int) (int64, error) {
 				start := space.Start
 				s[i].Start += size
 				s[i].Size  -= size
-				return start, nil
+				return start, true
 			}
 		}
 	}
-	return 0, errors.New("Can't allocate space")
+	return 0, false
 }
 
 // Sort interface
-
 func (s Spaces) Len() int {
 	return len(s)
 }
-
 func (s Spaces) Less(i, j int) bool {
 	return s[i].Start < s[j].Start
 }
-
 func (s Spaces) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
-
 func (s Spaces) Sort() {
 	sort.Sort(s)
 }

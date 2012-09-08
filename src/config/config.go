@@ -14,11 +14,14 @@
   limitations under the License.
 */
 
-package anteater
+package config
 
 import (
 	"github.com/kless/goconfig/config"
+	"strings"
 	"errors"
+	"utils"
+	"cnst"
 )
 
 type Config struct {
@@ -55,51 +58,49 @@ type Config struct {
 }
 
 
-func LoadConfig(filename string) (*Config, error) {
+func (conf *Config) ReadFile(filename string) (err error) {
 	c, err := config.ReadDefault(filename)
 	if err != nil {
-		return nil, err
+		return
 	}
 	
 	// Data path
-	dataPath, err := c.String("data", "path")
+	conf.DataPath, err = c.String("data", "path")
 	if err != nil {
-		return nil, err
+		return
 	}
-	if len(dataPath) == 0 {
-		return nil, errors.New("Empty data path in config " + filename)
-	}
+	conf.DataPath = strings.TrimRight(conf.DataPath, "/")
 	
 	// Container size
 	s, err := c.String("data", "container_size")
 	if err != nil {
-		return nil, err
+		return
 	}
-	containerSize, err := GetSizeFromString(s)
+	conf.ContainerSize, err = utils.BytesFromString(s)
 	
 	// Min empty space
 	s, err = c.String("data", "min_empty_space")
 	if err != nil {
-		return nil, err
+		return
 	}
-	minEmptySpace, err := GetSizeFromString(s)
+	conf.MinEmptySpace, err = utils.BytesFromString(s)
 	
 	// Http write addr
-	httpWriteAddr, err := c.String("http", "write_addr")
+	conf.HttpWriteAddr, err = c.String("http", "write_addr")
 	if err != nil {
-		return nil, err
+		return
 	}
 	
 	// Http read addr
-	httpReadAddr, err := c.String("http", "read_addr")
-	if err != nil || len(httpReadAddr) == 0 {
-		httpReadAddr = httpWriteAddr
+	conf.HttpReadAddr, err = c.String("http", "read_addr")
+	if err != nil || len(conf.HttpReadAddr) == 0 {
+		conf.HttpReadAddr = conf.HttpWriteAddr
 	}
 	
 	// ETag flag
-	etagSupport, err := c.Bool("http", "etag")
+	conf.ETagSupport, err = c.Bool("http", "etag")
 	if err != nil {
-		etagSupport = true
+		conf.ETagSupport = true
 	}
 	
 	// Range support
@@ -107,23 +108,23 @@ func LoadConfig(filename string) (*Config, error) {
 	if err != nil {
 		cr = "5M"
 	}
-	contentRange, err := GetSizeFromString(cr)
+	conf.ContentRange, err = utils.BytesFromString(cr)
 	
 	// Status json
-	statusJson, err := c.String("http", "status_json")
+	conf.StatusJson, err = c.String("http", "status_json")
 	if err != nil {
-		statusJson = ""
+		conf.StatusJson = ""
 	}
 	
 	// Status html
-	statusHtml, err := c.String("http", "status_html")
+	conf.StatusHtml, err = c.String("http", "status_html")
 	if err != nil {
-		statusHtml = ""
+		conf.StatusHtml = ""
 	}
 	
-	rpcAddr, err := c.String("rpc", "addr")
+	conf.RpcAddr, err = c.String("rpc", "addr")
 	if err != nil {
-		rpcAddr = ":32032"
+		conf.RpcAddr = ":32032"
 	}
 
 	
@@ -139,8 +140,10 @@ func LoadConfig(filename string) (*Config, error) {
 		}
 	}
 	if _, ok := headers["Server"]; !ok {
-		headers["Server"] = SERVER_SIGN
+		headers["Server"] = cnst.SIGN
 	}
+	
+	conf.Headers = headers
 	
 	// Mime	
 	mimeTypes := make(map[string]string, 0)
@@ -154,11 +157,13 @@ func LoadConfig(filename string) (*Config, error) {
 		}
 	}
 	
+	conf.MimeTypes = mimeTypes
+	
 	// Log level
 	levels := map[string]int {
-		"debug" : LOG_DEBUG,
-		"info"  : LOG_INFO,
-		"warn"  : LOG_WARN,
+		"debug" : cnst.LOG_DEBUG,
+		"info"  : cnst.LOG_INFO,
+		"warn"  : cnst.LOG_WARN,
 	}
 	llv, err := c.String("log", "level")
 	if err != nil {
@@ -167,47 +172,33 @@ func LoadConfig(filename string) (*Config, error) {
 	logLevel, ok := levels[llv]
 	if ! ok {
 		logLevel = levels["info"]
-	}
+	}	
+	conf.LogLevel = logLevel
 	
 	// Log file
-	logFile, err := c.String("log", "file")
+	conf.LogFile, err = c.String("log", "file")
 	if err != nil {
-		logFile = ""
+		conf.LogFile = ""
 	}
 	
 	// Uploader
-	uploaderEnable, err := c.Bool("uploader", "enable")
+	conf.UploaderEnable, err = c.Bool("uploader", "enable")
 	if err != nil {
-		uploaderEnable = false
+		conf.UploaderEnable = false
 	}
 	
-	uploaderCtrlUrl, err := c.String("uploader", "ctrl_url")
-	if err != nil && uploaderEnable {
-		return nil, errors.New("Incorrect uploader ctrl_url:" + err.Error())
+	conf.UploaderCtrlUrl, err = c.String("uploader", "ctrl_url")
+	if err != nil && conf.UploaderEnable {
+		err = errors.New("Incorrect uploader ctrl_url:" + err.Error())
+		return
 	}
 	
-	uploaderTokenName, err := c.String("uploader", "token_name")
-	if err != nil && uploaderEnable {
-		return nil, errors.New("Incorrect uploader token_name:" + err.Error())
+	conf.UploaderTokenName, err = c.String("uploader", "token_name")
+	if err != nil && conf.UploaderEnable {
+		err = errors.New("Incorrect uploader token_name:" + err.Error())
+		return
 	}
 	
-	return &Config{
-		dataPath,
-		containerSize,
-		minEmptySpace,
-		httpWriteAddr,
-		httpReadAddr,
-		etagSupport,
-		contentRange,
-		statusJson,
-		statusHtml,
-		rpcAddr,
-		headers,
-		mimeTypes,
-		logLevel,
-		logFile,
-		uploaderEnable,
-		uploaderCtrlUrl,
-		uploaderTokenName,
-	}, nil
+	err = nil
+	return
 }

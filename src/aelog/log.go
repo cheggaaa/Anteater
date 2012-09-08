@@ -14,18 +14,14 @@
   limitations under the License.
 */
 
-package anteater
+package aelog
 
 import (
 	"log"
 	"os"
+	"cnst"
 )
 
-const (
-	LOG_DEBUG = 0
-	LOG_INFO  = 1
-	LOG_WARN  = 2
-)
 
 
 type AntLog struct {
@@ -34,23 +30,20 @@ type AntLog struct {
 }
 
 
-func LogInit() (*AntLog, error) {
+func New(filename string, level int) (*AntLog, error) {
 	out := os.Stdout
 
-	if Conf != nil && Conf.LogFile != "" {
+	if filename != "" {
 		var err error
-		out, err = os.OpenFile(Conf.LogFile, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0644)
+		out, err = os.OpenFile(filename, os.O_WRONLY | os.O_APPEND | os.O_CREATE, 0644)
 		if err != nil {
 			return nil, err
 		}
 	}
 	
-	level := LOG_INFO
-	
-	if Conf != nil {
-		level = Conf.LogLevel
-	}
-	
+	if level == 0 {
+		level = cnst.LOG_INFO
+	}	
 	return &AntLog{log.New(out, "", log.LstdFlags), level}, nil
 }
 
@@ -74,39 +67,39 @@ func (a *AntLog) Println(level int, v ...interface{}) {
 }
 
 func (a *AntLog) Debug(v ...interface{}) {
-	a.Print(LOG_DEBUG, v...)
+	a.Print(cnst.LOG_DEBUG, v...)
 }
 
 func (a *AntLog) Info(v ...interface{}) {
-	a.Print(LOG_INFO, v...)
+	a.Print(cnst.LOG_INFO, v...)
 }
 
 func (a *AntLog) Warn(v ...interface{}) {
-	a.Print(LOG_WARN, v...)
+	a.Print(cnst.LOG_WARN, v...)
 }
 
 func (a *AntLog) Debugln(v ...interface{}) {
-	a.Println(LOG_DEBUG, v...)
+	a.Println(cnst.LOG_DEBUG, v...)
 }
 
 func (a *AntLog) Infoln(v ...interface{}) {
-	a.Println(LOG_INFO, v...)
+	a.Println(cnst.LOG_INFO, v...)
 }
 
 func (a *AntLog) Warnln(v ...interface{}) {
-	a.Println(LOG_WARN, v...)
+	a.Println(cnst.LOG_WARN, v...)
 }
 
 func (a *AntLog) Debugf(format string, v ...interface{}) {
-	a.Printf(LOG_DEBUG, format, v...)
+	a.Printf(cnst.LOG_DEBUG, format, v...)
 }
 
 func (a *AntLog) Infof(format string, v ...interface{}) {
-	a.Printf(LOG_INFO, format, v...)
+	a.Printf(cnst.LOG_INFO, format, v...)
 }
 
 func (a *AntLog) Warnf(format string, v ...interface{}) {
-	a.Printf(LOG_WARN, format, v...)
+	a.Printf(cnst.LOG_WARN, format, v...)
 }
 
 func (a *AntLog) Fatal(v ...interface{}) {

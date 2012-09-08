@@ -14,7 +14,7 @@
   limitations under the License.
 */
 
-package anteater
+package utils
 
 import (
 	"testing"
@@ -25,7 +25,7 @@ type TestSize struct {
 	Value  int64
 }
 
-var TestSizeSet = []TestSize{
+var TestBytesFromStringSet = []TestSize{
 	{"0", 0},
 	{"1k", 1024},
 	{"3456K", 1024 * 3456},
@@ -35,16 +35,46 @@ var TestSizeSet = []TestSize{
 	{"43G", 43 * 1024 * 1024 * 1024},
 	{"1t", 1024 * 1024 * 1024 * 1024},
 	{"3t", 3 * 1024 * 1024 * 1024 * 1024},
+	{"3T", 3 * 1024 * 1024 * 1024 * 1024},
 }
 
-func TestGetSizeFromString(t *testing.T) {
-	for _, set := range TestSizeSet {
-		res, err := GetSizeFromString(set.String)
+var TestHumanBytesSet = []TestSize{
+	{"0 B", 0},
+	{"100 B", 100},
+	{"1.00 KiB", 1025},
+	{"1.01 KiB", 1035},
+	{"3.38 MiB", 1024 * 3456},
+	{"337.50 MiB", 1024 * 3456 * 100},
+	{"3.30 GiB", 1024 * 3456 * 1000},
+	{"3.30 TiB", 1024 * 3456 * 1000 * 1024},
+}
+
+func TestBytesFromString(t *testing.T) {
+	for _, set := range TestBytesFromStringSet {
+		res, err := BytesFromString(set.String)
 		if err != nil {
-			t.Errorf("GetSizeFromString has error: %v", err)
+			t.Errorf("BytesFromString has error: %v", err)
 		}
 		if res != set.Value {
 			t.Errorf("%s must be == %d, but result: %d", set.String, set.Value, res)
+		}
+	}
+	
+	res, err := BytesFromString("ololo")
+	if err == nil {
+		t.Errorf("BytesFromString must be return error")
+	}
+	if res != 0 {
+		t.Errorf("%s must be == %d, but result: %d", "ololo", 0, res)
+	}
+}
+
+
+func TestHumanBytes(t *testing.T) {
+	for _, set := range TestHumanBytesSet {
+		res := HumanBytes(set.Value)
+		if set.String != res {
+			t.Errorf("%d must be == %s, but result: %s", set.Value, set.String, res)
 		}
 	}
 }
