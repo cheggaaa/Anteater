@@ -22,10 +22,10 @@ func (i *Index) Get(name string) (f *File, ok bool) {
 	return
 }
 
-func (i *Index) Delete(name string) (ok bool) {
+func (i *Index) Delete(name string) (f *File, ok bool) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	_, ok = i.Files[name]
+	f, ok = i.Files[name]
 	if ok {
 		delete(i.Files, name)
 	}

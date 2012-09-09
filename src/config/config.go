@@ -69,7 +69,7 @@ func (conf *Config) ReadFile(filename string) (err error) {
 	if err != nil {
 		return
 	}
-	conf.DataPath = strings.TrimRight(conf.DataPath, "/")
+	conf.DataPath = strings.TrimRight(conf.DataPath, "/") + "/"
 	
 	// Container size
 	s, err := c.String("data", "container_size")

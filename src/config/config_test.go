@@ -63,7 +63,7 @@ func TestReadFile(t *testing.T) {
 
 var TestConfig *Config = &Config{
 	// Data path
-	DataPath      : "/opt/DB/anteater",
+	DataPath      : "/opt/DB/anteater/",
 	ContainerSize : 200 * 1024,
 	MinEmptySpace : 50 * 1024,
 	HttpWriteAddr : ":8081",
@@ -100,7 +100,7 @@ const TEST_CONFIG = `
 
 # Path to folder for store files
 #path : /path/to/data/folder
-path : /opt/DB/anteater/
+path : /opt/DB/anteater
 
 # Size for one file container
 container_size : 200K

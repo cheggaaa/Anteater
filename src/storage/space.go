@@ -50,13 +50,19 @@ func (s Spaces) FilterByStart(rem []int64) Spaces {
 	return n
 }
 
-func (s Spaces) Join() (Spaces, int64) {
+func (s Spaces) Join(offset int64) (Spaces, int64, int64) {
 	var prev *Space
 	var f bool = true
 	var maxSpaceSize int64
 	rem := make([]int64, 0)
 	for _, space := range(s) {
 		if space.Size == 0 {
+			rem = append(rem, space.Start)
+			continue
+		}
+		
+		if space.Start + space.Size == offset {
+			offset = space.Start
 			rem = append(rem, space.Start)
 			continue
 		}
@@ -76,7 +82,7 @@ func (s Spaces) Join() (Spaces, int64) {
 		}
 		f = false	
 	}
-	return s.FilterByStart(rem), maxSpaceSize
+	return s.FilterByStart(rem), maxSpaceSize, offset
 }
 
 func (s Spaces) Get(size int64, target int) (int64, bool) {

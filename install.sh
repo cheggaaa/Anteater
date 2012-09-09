@@ -9,8 +9,8 @@ go get testing
 go get github.com/kless/goconfig/config
 
 echo "Run tests.."
-cd $GOPATH/src 
-GOPATH=$GOPATH go test utils config dump
+cd $GOPATH/src
+GOPATH=$GOPATH go test utils config dump storage
 cd ../
 
 if [[ $1 != "test" ]]; then
