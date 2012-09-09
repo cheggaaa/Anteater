@@ -6,6 +6,7 @@ import (
 	"sync"
 	"errors"
 	"crypto/md5"
+	"os"
 )
 
 const (
@@ -135,6 +136,18 @@ func (s *Storage) Delete(name string) (ok bool) {
 	}
 	return
 }
+
+func (s *Storage) Drop() (err error) {
+	if s.Containers != nil {
+		for _, c := range s.Containers.Containers {
+			err = os.Remove(c.Filename())
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return
+} 
 
 func (s *Storage) Close() {
 	for _, c := range s.Containers.Containers {

@@ -141,6 +141,13 @@ func TestClose(t *testing.T) {
 	s.Close()
 }
 
+func TestDrop(t *testing.T) {
+	err := s.Drop()
+	if err != nil {
+		t.Errorf("Storage.Drop() has error: %v", err)
+	}
+}
+
 func addAndAssert(t *testing.T, name string, size int64) {
 	rnd := randReader(size)
 	f := s.Add(name, rnd, size)
