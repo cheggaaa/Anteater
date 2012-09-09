@@ -35,10 +35,7 @@ func TestReadFile(t *testing.T) {
 	f.Write([]byte(TEST_CONFIG))
 	
 	c := &Config{}
-	err = c.ReadFile("test.conf")
-	if err != nil {
-		t.Errorf("Config.ReadFile() has err: %v", err)
-	}
+	c.ReadFile("test.conf")
 	
 	if configToString(c) != configToString(TestConfig) {
 		t.Errorf("TestConfig and Config from file mismatched \nACTUAL:\n%s\nEXPECTED:\n%s\n", configToString(TestConfig), configToString(c))

@@ -36,14 +36,17 @@ func (s *Storage) Init() (err error) {
 	return
 }
 
-func (s *Storage) Create() (err error) {
+func (s *Storage) Create() {
 	s.Index = &Index{make(map[string]*File), &sync.Mutex{}}
 	s.Containers = &Containers{
 		s : s,
 		m : &sync.Mutex{},
 		Containers : make(map[int32]*Container),
 	}
-	_, err = s.Containers.Create()
+	_, err := s.Containers.Create()
+	if err != nil {
+		panic(err)
+	}
 	return
 }
 

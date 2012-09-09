@@ -21,10 +21,7 @@ var randFiles map[string]int64
 func TestCreate(t *testing.T) {
 	conf := storageConf()
 	s = GetStorage(conf)
-	err := s.Create()
-	if err != nil {
-		t.Fatal(err)
-	}
+	s.Create()
 	if len(s.Containers.Containers) != 1 {
 		t.Fatalf("Wrong container count: %d", len(s.Containers.Containers))
 	}

@@ -58,37 +58,37 @@ type Config struct {
 }
 
 
-func (conf *Config) ReadFile(filename string) (err error) {
+func (conf *Config) ReadFile(filename string) {
 	c, err := config.ReadDefault(filename)
 	if err != nil {
-		return
+		panic(err)
 	}
 	
 	// Data path
 	conf.DataPath, err = c.String("data", "path")
 	if err != nil {
-		return
+		panic(err)
 	}
 	conf.DataPath = strings.TrimRight(conf.DataPath, "/") + "/"
 	
 	// Container size
 	s, err := c.String("data", "container_size")
 	if err != nil {
-		return
+		panic(err)
 	}
 	conf.ContainerSize, err = utils.BytesFromString(s)
 	
 	// Min empty space
 	s, err = c.String("data", "min_empty_space")
 	if err != nil {
-		return
+		panic(err)
 	}
 	conf.MinEmptySpace, err = utils.BytesFromString(s)
 	
 	// Http write addr
 	conf.HttpWriteAddr, err = c.String("http", "write_addr")
 	if err != nil {
-		return
+		panic(err)
 	}
 	
 	// Http read addr
@@ -190,13 +190,11 @@ func (conf *Config) ReadFile(filename string) (err error) {
 	conf.UploaderCtrlUrl, err = c.String("uploader", "ctrl_url")
 	if err != nil && conf.UploaderEnable {
 		err = errors.New("Incorrect uploader ctrl_url:" + err.Error())
-		return
 	}
 	
 	conf.UploaderTokenName, err = c.String("uploader", "token_name")
 	if err != nil && conf.UploaderEnable {
-		err = errors.New("Incorrect uploader token_name:" + err.Error())
-		return
+		panic("Incorrect uploader token_name:" + err.Error())
 	}
 	
 	err = nil
