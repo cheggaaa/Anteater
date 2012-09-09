@@ -140,7 +140,7 @@ func TestDeleteRandom(t *testing.T) {
 
 
 func TestCreateContainer(t *testing.T) {
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 3; i++ {
 		addAndAssert(t, fmt.Sprintf("f%d", i), 1024 * 1024)
 	}
 	if len(s.Containers.Containers) != 1 {
@@ -205,16 +205,17 @@ func TestAtomic(t *testing.T) {
 	}
 	
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 8; i++ {
 		wg.Add(1)
-		createRandFiles(50)
+		createRandFiles(400)
 		f := randFiles
 		go func (f map[string]int64) {
-			w(f, 10)
+			w(f, 2)
 			wg.Done()
 		}(f)
 	}
 	wg.Wait()
+	//t.Errorf("%d", len(s.Containers.Containers))
 }
 
 
@@ -266,7 +267,7 @@ func randReader(n int64) io.Reader {
 func createRandFiles(count int) {
 	randFiles = make(map[string]int64, count)
 	for len(randFiles) < count {
-		randFiles[fmt.Sprintf("rf-%d", mrand.Int())] = int64(mrand.Intn(9000) + 1000)  
+		randFiles[fmt.Sprintf("rf-%d", mrand.Int())] = int64(mrand.Intn(5000) + 10)  
 	}
 }
 
@@ -276,7 +277,7 @@ func storageConf() *config.Config {
 	return &config.Config{
 		// Data path
 		DataPath : "",
-		ContainerSize : 5 * mb,
+		ContainerSize : 3 * mb,
 		MinEmptySpace : 1  * mb,
 	}
 }
