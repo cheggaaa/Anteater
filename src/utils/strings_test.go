@@ -50,6 +50,7 @@ var TestHumanBytesSet = []TestSize{
 }
 
 func TestBytesFromString(t *testing.T) {
+	t.Parallel()
 	for _, set := range TestBytesFromStringSet {
 		res, err := BytesFromString(set.String)
 		if err != nil {
@@ -71,6 +72,7 @@ func TestBytesFromString(t *testing.T) {
 
 
 func TestHumanBytes(t *testing.T) {
+	t.Parallel()
 	for _, set := range TestHumanBytesSet {
 		res := HumanBytes(set.Value)
 		if set.String != res {
