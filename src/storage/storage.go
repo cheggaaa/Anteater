@@ -147,7 +147,7 @@ func (s *Storage) Drop() (err error) {
 		}
 	}
 	return
-} 
+}
 
 func (s *Storage) Close() {
 	for _, c := range s.Containers.Containers {

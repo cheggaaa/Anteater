@@ -9,11 +9,12 @@ import (
 	"crypto/md5"
 	mrand "math/rand"
 	"fmt"
+	"sync"
 )
 
 var s *Storage
 
-var fsize int64 = 10000
+var fsize int64 = 1000
 var it int64 = 100
 var randFiles map[string]int64
 
@@ -137,6 +138,86 @@ func TestDeleteRandom(t *testing.T) {
 	}
 }
 
+
+func TestCreateContainer(t *testing.T) {
+	for i := 0; i < 5; i++ {
+		addAndAssert(t, fmt.Sprintf("f%d", i), 1024 * 1024)
+	}
+	if len(s.Containers.Containers) != 1 {
+		t.Errorf("Must be 1 container, expected:%d", len(s.Containers.Containers))
+	}
+	c := s.Containers.Get(1)
+	if c.Offset != c.Size {
+		t.Errorf("Offset (%d) must be equals size (%d)", c.Offset, c.Size)
+	}
+	
+	addAndAssert(t, "new", 1024 * 1024)
+	
+	if len(s.Containers.Containers) != 2 {
+		t.Errorf("Must be 2 containers, expected:%d", len(s.Containers.Containers))
+	}
+	
+	c = s.Containers.Get(2)
+	
+	if c == nil {
+		t.Errorf("New Container has invalid id")
+	}
+	
+	if c.Offset != 1024 * 1024 {
+		t.Errorf("Invalid offset: %d, must be %d", c.Offset, 1024 * 1024)
+	}
+}
+
+func TestAtomic(t *testing.T) {
+	w := func(f map[string]int64, c int) {
+		for i := 0; i < c; i++ {
+			fc := f
+			for n, sz := range fc {
+				addAndAssert(t, n, sz)
+				if mrand.Intn(2) > 1  {
+					if ! s.Delete(n) {
+						t.Errorf("Storage.Delete(%s) return false", n)
+					}
+					delete(fc, n)
+				} 
+			}
+			for n, _ := range fc {
+				f, ok := s.Get(n)
+				if ! ok {
+					t.Errorf("Storage.Get(%s) return false", n)
+				}
+				
+				h := md5.New()
+				io.Copy(h, f.GetReader())
+				
+				act := fmt.Sprintf("%x", h.Sum(nil))
+				exp := fmt.Sprintf("%x", f.Md5)
+				
+				if act != exp {
+					t.Error("Md5 file %s mismatch. Actual: %s, expected: %s", n, act, exp)
+				}
+				
+				if ! s.Delete(n) {
+					t.Errorf("Storage.Delete(%s) return false", n)
+				}
+			}
+		}
+	}
+	
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 10; i++ {
+		wg.Add(1)
+		createRandFiles(50)
+		f := randFiles
+		go func (f map[string]int64) {
+			w(f, 10)
+			wg.Done()
+		}(f)
+	}
+	wg.Wait()
+}
+
+
 func TestClose(t *testing.T) {
 	s.Close()
 }
@@ -175,8 +256,6 @@ func addAndAssert(t *testing.T, name string, size int64) {
 	if act != exp {
 		t.Error("Md5 file %s mismatch. Actual: %s, expected: %s", name, act, exp)
 	}
-	
-	t.Logf("File %s added. Size:%d; Start: %d", name, fg.Size, fg.Start)
 }
 
 
@@ -187,7 +266,7 @@ func randReader(n int64) io.Reader {
 func createRandFiles(count int) {
 	randFiles = make(map[string]int64, count)
 	for len(randFiles) < count {
-		randFiles[fmt.Sprintf("rf-%d", mrand.Int())] = int64(mrand.Intn(90000) + 10000)  
+		randFiles[fmt.Sprintf("rf-%d", mrand.Int())] = int64(mrand.Intn(9000) + 1000)  
 	}
 }
 
@@ -197,8 +276,8 @@ func storageConf() *config.Config {
 	return &config.Config{
 		// Data path
 		DataPath : "",
-		ContainerSize : 20 * mb,
-		MinEmptySpace : 3  * mb,
+		ContainerSize : 5 * mb,
+		MinEmptySpace : 1  * mb,
 	}
 }
 
