@@ -4,6 +4,8 @@ import (
 	"time"
 	"io"
 	"fmt"
+	"errors"
+	"sync/atomic"
 )
 
 type File struct {
@@ -14,6 +16,9 @@ type File struct {
 	Md5 []byte
 	s *Storage
 	c *Container
+	openCount int32
+	isDeleted bool
+	willBeDeleted bool
 }
 
 func (f *File) Init(s *Storage) {
@@ -26,8 +31,19 @@ func (f *File) Init(s *Storage) {
 	}
 }
 
+func (f *File) Open() error {
+	if f.isDeleted {
+		return errors.New("File already deleted")
+	}
+	if f.willBeDeleted {
+		return errors.New("File will be deleted")
+	}
+	atomic.AddInt32(&f.openCount, 1)
+	return nil
+}
+
 func (f *File) GetReader() *io.SectionReader {
-	return io.NewSectionReader(f.c.F, f.Start,f.Size)
+	return io.NewSectionReader(f.c.F, f.Start, f.Size)
 }
 
 
@@ -40,5 +56,17 @@ func (f *File) WriteAt(b []byte, off int64) (int, error) {
 }
 
 func (f *File) Delete() {
-	f.c.Delete(f)
+	if f.openCount == 0 {
+		f.isDeleted = true
+		f.c.Delete(f)
+	} else {
+		f.willBeDeleted = true
+	}
+}
+
+func (f *File) Close() {
+	v := atomic.AddInt32(&f.openCount, -1)
+	if f.willBeDeleted && v == 0 {
+		f.Delete()
+	}
 }

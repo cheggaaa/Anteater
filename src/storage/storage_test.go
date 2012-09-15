@@ -10,6 +10,7 @@ import (
 	mrand "math/rand"
 	"fmt"
 	"sync"
+	"time"
 )
 
 var s *Storage
@@ -165,6 +166,74 @@ func TestCreateContainer(t *testing.T) {
 	}
 }
 
+func TestReadAndDeleteParallel(t *testing.T) {
+	mustGo := true
+	var i int
+	go func() {
+		for mustGo {
+			i++
+			n := fmt.Sprintf("f-%d", i)
+			addAndAssert(t, n, 1000)
+			s.Delete(n)
+		}
+	}()
+	
+	for i := 0; i < 5; i++ {
+		addAndAssert(t, "test", 1024 * 1024)
+		f, ok := s.Get("test")
+		if ! ok {
+			t.Errorf("Storage.Get(%s) return false", "test")
+		}
+		err := f.Open()
+		if err != nil {
+			t.Errorf("Error while file.Open(%s)", "test")
+		}
+		if f.openCount != 1 {
+			t.Errorf("file.openCount must be equal 1, expected %d", f.openCount)
+		}
+		c := make(chan int)	
+		go func(c chan int) {
+			r := f.GetReader() 
+			for n := 0; n < 5; n++ {	
+				r.Seek(0, 0)			
+				// check md5
+				h := md5.New()
+				io.Copy(h, r)
+				
+				act := fmt.Sprintf("%x", h.Sum(nil))
+				exp := fmt.Sprintf("%x", f.Md5)
+				
+				if act != exp {
+					t.Errorf("Md5 file %s mismatch. Actual: %s, expected: %s", "test", act, exp)
+				}
+				time.Sleep(time.Millisecond * 5)
+			}
+			f.Close()
+			c <- 1
+		}(c)
+		s.Delete("test")
+		_, ok = s.Get("test")
+		if ok {
+			t.Error("File already deleted, but s.Get return true")
+		}
+		err = f.Open()
+		if err == nil {
+			t.Error("File.Open() must return error")
+		}
+		if f.isDeleted {
+			t.Error("Must be false")
+		}
+		if ! f.willBeDeleted {
+			t.Error("Must be true")
+		}
+		<-c
+		if ! f.isDeleted {
+			t.Error("Must be true")
+		}
+	}
+	mustGo = false
+}
+
 func TestAtomic(t *testing.T) {
 	w := func(f map[string]int64, c int) {
 		for i := 0; i < c; i++ {
@@ -184,6 +253,10 @@ func TestAtomic(t *testing.T) {
 					t.Errorf("Storage.Get(%s) return false", n)
 				}
 				
+				if f == nil {
+					t.Errorf("Storage return f == nil for file %s")
+				}
+				f.Open()
 				h := md5.New()
 				io.Copy(h, f.GetReader())
 				
@@ -191,20 +264,21 @@ func TestAtomic(t *testing.T) {
 				exp := fmt.Sprintf("%x", f.Md5)
 				
 				if act != exp {
-					t.Error("Md5 file %s mismatch. Actual: %s, expected: %s", n, act, exp)
+					t.Errorf("Md5 file %s mismatch. Actual: %s, expected: %s", n, act, exp)
 				}
 				
 				if ! s.Delete(n) {
 					t.Errorf("Storage.Delete(%s) return false", n)
 				}
+				f.Close()
 			}
 		}
 	}
 	
 	wg := &sync.WaitGroup{}
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 10; i++ {
 		wg.Add(1)
-		createRandFiles(400)
+		createRandFiles(300)
 		f := randFiles
 		go func (f map[string]int64) {
 			w(f, 2)
@@ -237,6 +311,8 @@ func addAndAssert(t *testing.T, name string, size int64) {
 	if ! ok {
 		t.Errorf("Storage.Get(%s) return false", name)
 	}
+	fg.Open()
+	defer fg.Close()
 	if fg != f {
 		t.Error("Files not match")
 	}
@@ -264,7 +340,7 @@ func randReader(n int64) io.Reader {
 func createRandFiles(count int) {
 	randFiles = make(map[string]int64, count)
 	for len(randFiles) < count {
-		randFiles[fmt.Sprintf("rf-%d", mrand.Int())] = int64(mrand.Intn(5000) + 10)  
+		randFiles[fmt.Sprintf("rf-%d-%d", mrand.Int(), time.Now().UnixNano())] = int64(mrand.Intn(5000) + 10)  
 	}
 }
 
