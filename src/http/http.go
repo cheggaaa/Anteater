@@ -119,7 +119,13 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 			Err(500, w)
 			return
 	}
-	switch r.Method {
+	
+	m := r.Header.Get("X-Http-Method-Override")
+	if m == "" {
+		m = r.Method
+	}
+	
+	switch m {
 	case "OPTIONS":
 		w.Header().Set("Allow", "GET,HEAD,POST,PUT,DELETE")
 		w.WriteHeader(http.StatusOK)
