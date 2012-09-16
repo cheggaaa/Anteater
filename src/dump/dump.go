@@ -30,9 +30,12 @@ func DumpTo(filename string, d interface{}) (n int, err error) {
 	if err != nil {
 		return
 	}
-	
-	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)
+	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)	
 	defer fh.Close()
+	if err != nil {
+		return 0, err
+	}
+	err = fh.Truncate(0)
 	if err != nil {
 		return 0, err
 	}
@@ -41,11 +44,12 @@ func DumpTo(filename string, d interface{}) (n int, err error) {
 	return
 }
 
-func LoadData(filename string, d interface{}) (err error) {	
+func LoadData(filename string, d interface{}) (err error, exists bool) {	
 	fh, err := os.Open(filename)
     if err != nil {
     	return
     }
+    exists = true
     dec := gob.NewDecoder(fh)
     err = dec.Decode(d)
     return

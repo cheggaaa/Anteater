@@ -24,12 +24,12 @@ func main() {
 	c := &config.Config{}
 	c.ReadFile("etc/anteater.conf")	
 	s := storage.GetStorage(c)
-	s.Create()
-	
+	defer s.Close()
 	http.RunServer(s)
 		
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
 	sig := <-interrupt
+	s.Dump()
 	fmt.Printf("stopped (%v)\n", sig)
 }

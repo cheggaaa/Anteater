@@ -7,6 +7,10 @@ import (
 	"errors"
 	"crypto/md5"
 	"os"
+	"time"
+	"cnst"
+	"dump"
+	"fmt"
 )
 
 const (
@@ -14,6 +18,13 @@ const (
 	TARGET_SPACE_FREE = 1
 	TARGET_NEW        = 2
 )
+
+type StorageDump struct {
+	Index IndexDump
+	Containers []ContainerDump
+	Version string
+	Time time.Time
+}
 
 type Storage struct {
 	Index *Index
@@ -28,16 +39,39 @@ func GetStorage(c *config.Config) (s *Storage) {
 		Conf : c,
 		wm   : &sync.Mutex{},
 	}
+	fmt.Printf("Try restore from %s... ", s.DumpFilename())
+	err, exists := s.Restore()
+	if err != nil {
+		if  ! exists {
+			fmt.Printf("index does not exists, create new storage.. ")
+			s.Create()
+		} else {
+			panic(err)
+		}
+	}
+	fmt.Print("done\n")
+	s.Init()
 	return
 }
 
 
-func (s *Storage) Init() (err error) {
+func (s *Storage) Init() {
+	go func() { 
+			ch := time.Tick(s.Conf.DumpTime)
+			for _ = range ch {
+				func () {
+					err := s.Dump()
+					if err != nil {
+						panic(err)
+					}
+				}()
+			}
+		}()
 	return
 }
 
 func (s *Storage) Create() {
-	s.Index = &Index{make(map[string]*File), &sync.Mutex{}}
+	s.Index = &Index{make(map[string]*File), &sync.Mutex{}, 0}
 	s.Containers = &Containers{
 		s : s,
 		m : &sync.Mutex{},
@@ -50,10 +84,39 @@ func (s *Storage) Create() {
 	return
 }
 
+func (s *Storage) Restore() (err error, exists bool) {
+	data := new(StorageDump)
+	err, exists = dump.LoadData(s.DumpFilename(), data)
+	if err != nil {
+		return
+	}
+	// restore containers
+	containers := &Containers{
+		s : s,
+		m : &sync.Mutex{},	
+	}
+	containers.Containers = make(map[int32]*Container, len(data.Containers))
+	for _, ct := range data.Containers {
+		containers.Containers[ct.Id], err = ct.Restore(s)
+		if err != nil {
+			return
+		}
+		if ct.Id > containers.LastId {
+			containers.LastId = ct.Id
+		}
+	}
+	s.Containers = containers
+	// restore index
+	s.Index = data.Index.Restore(s)
+	return 
+}
+
 func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	f = &File{
 		Size: size,
 		s : s,
+		name : name,
+		Time : time.Now(),
 	}
 	var ok bool
 	defer func() {
@@ -140,6 +203,32 @@ func (s *Storage) Delete(name string) (ok bool) {
 	return
 }
 
+func (s *Storage) Dump() (err error) {
+	s.wm.Lock()
+	s.Index.m.Lock()
+	defer s.Index.m.Unlock()
+	defer s.wm.Unlock()
+	
+	containers := make([]ContainerDump, 0)
+	
+	for _, c := range s.Containers.Containers {
+		containers = append(containers, c.DumpData())
+	}
+	dumpData := &StorageDump{
+		Version : cnst.VERSION,
+		Time : time.Now(),
+		Containers : containers,
+		Index : s.Index.DumpData(),
+	}
+	fname := s.DumpFilename()
+	n, err := dump.DumpTo(fname, dumpData)
+	if err != nil {
+		return
+	}
+	fmt.Printf("Dump: %d bytes writed to %s\n", n, fname)
+	return
+}
+
 func (s *Storage) Drop() (err error) {
 	if s.Containers != nil {
 		for _, c := range s.Containers.Containers {
@@ -149,6 +238,7 @@ func (s *Storage) Drop() (err error) {
 			}
 		}
 	}
+	os.Remove(s.DumpFilename())
 	return
 }
 
@@ -156,4 +246,8 @@ func (s *Storage) Close() {
 	for _, c := range s.Containers.Containers {
 		c.Close()
 	}
+}
+
+func (s *Storage) DumpFilename() string {
+	return s.Conf.DataPath + "index"
 }

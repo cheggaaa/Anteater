@@ -72,7 +72,6 @@ var TestConfig *Config = &Config{
 	RpcAddr       : ":32000",
 	Headers       : map[string]string{
 		"Cache-Control" : "public, max-age=315360000",
-		"Server" : "Anteater 0.1",
 	},
 	MimeTypes    : map[string]string{
 		".jpg"   : "image/jpeg",
@@ -87,7 +86,7 @@ var TestConfig *Config = &Config{
 
 func configToString(c *Config) string {
 	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
-	c.HttpReadAddr, c.ETagSupport, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
+	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
 	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderTokenName)
 }
 
@@ -115,6 +114,8 @@ write_addr : :8081
 
 # ETag support
 etag : on
+
+md5_header : off
 
 # Content-Range enable for file biggest then 
 # By default it's 5M

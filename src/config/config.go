@@ -22,18 +22,21 @@ import (
 	"errors"
 	"utils"
 	"cnst"
+	"time"
 )
 
 type Config struct {
-	// Data path
+	// Data
 	DataPath      string
 	ContainerSize int64
 	MinEmptySpace  int64
+	DumpTime time.Duration
 	
 	// Http
 	HttpWriteAddr string
 	HttpReadAddr  string
 	ETagSupport   bool
+	Md5Header     bool
 	ContentRange  int64
 	StatusJson    string
 	StatusHtml    string
@@ -85,6 +88,22 @@ func (conf *Config) ReadFile(filename string) {
 	}
 	conf.MinEmptySpace, err = utils.BytesFromString(s)
 	
+	
+	// Min empty space
+	s, err = c.String("data", "dump_duration")
+	if err != nil {
+		conf.DumpTime = time.Minute
+	} else {
+		conf.DumpTime, err = time.ParseDuration(s)
+		if err != nil {
+			panic("Incorrect dump time duration")
+		}
+		if conf.DumpTime <= 0 {
+			panic("Incorrect dump time duration")
+		} 
+	}
+	
+	
 	// Http write addr
 	conf.HttpWriteAddr, err = c.String("http", "write_addr")
 	if err != nil {
@@ -101,6 +120,12 @@ func (conf *Config) ReadFile(filename string) {
 	conf.ETagSupport, err = c.Bool("http", "etag")
 	if err != nil {
 		conf.ETagSupport = true
+	}
+	
+	// Md5 header
+	conf.Md5Header, err = c.Bool("http", "md5_header")
+	if err != nil {
+		conf.Md5Header = true
 	}
 	
 	// Range support
@@ -138,9 +163,6 @@ func (conf *Config) ReadFile(filename string) {
 				headers[o] = v
 			} 
 		}
-	}
-	if _, ok := headers["Server"]; !ok {
-		headers["Server"] = cnst.SIGN
 	}
 	
 	conf.Headers = headers

@@ -14,7 +14,6 @@ type Container struct {
 	Size   int64
 	Offset int64
 	Count  int64
-	LastId int64
 	Spaces Spaces
 	MaxSpaceSize int64
 	ch    bool
@@ -22,15 +21,12 @@ type Container struct {
 	s	  *Storage
 }
 
-type ContainerDumpData struct {
+type ContainerDump struct {
 	Id     int32
-	Path   string
 	Size   int64
 	Offset int64
 	Count  int64
-	LastId int64
 	Spaces Spaces
-	MaxSpaceSize int64
 }
 
 
@@ -134,6 +130,36 @@ func (c *Container) MaxSpace() int64 {
 func (c *Container) allocate() (err error) {
 	err = syscall.Fallocate(int(c.F.Fd()), 0, 0, c.Size)
 	return
+}
+
+/**
+ * Return dump data
+ */
+func (c *Container) DumpData() (dump ContainerDump) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	dump.Count = c.Count
+	dump.Id = c.Id
+	dump.Size = c.Size
+	dump.Offset = c.Offset
+	dump.Spaces = c.Spaces
+	return
+}
+
+func (cd *ContainerDump) Restore(s *Storage) (*Container, error) {
+	c := &Container {
+		Id : cd.Id,
+		Count : cd.Count,
+		Size : cd.Size,
+		Offset : cd.Offset,
+		Spaces : cd.Spaces,
+		s : s,
+	}
+	err := c.Init()
+	if err != nil {
+		return nil, err
+	}
+	return c, nil
 }
 
 

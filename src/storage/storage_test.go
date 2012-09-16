@@ -22,7 +22,6 @@ var randFiles map[string]int64
 func TestCreate(t *testing.T) {
 	conf := storageConf()
 	s = GetStorage(conf)
-	s.Create()
 	if len(s.Containers.Containers) != 1 {
 		t.Fatalf("Wrong container count: %d", len(s.Containers.Containers))
 	}
@@ -42,6 +41,42 @@ func TestAddSerial(t *testing.T) {
 	
 	if !c.ch {
 		t.Errorf("Container must has status change")
+	}
+	
+	if c.Offset != fsize * it {
+		t.Errorf("Mismatch container offset! Expected: %d, actual: %d", fsize * it, c.Offset)
+	}
+}
+
+func TestDumpAndRestore(t *testing.T) {
+	err := s.Dump()
+	if err != nil {
+		t.Errorf("Storage.Dump() has error: %v", err)
+	}
+	s.Close()
+	s = GetStorage(storageConf())
+	
+	if len(s.Containers.Containers) != 1 {
+		t.Errorf("Must be 1 container, expected %d: %v", len(s.Containers.Containers), s.Containers.Containers)
+	}
+	
+	if len(s.Index.Files) != int(it) {
+		t.Errorf("Count files before (%d) and after (%d) must be equal", it, len(s.Index.Files))
+	}
+	
+	f, ok := s.Index.Get("f-1")
+	if ! ok {
+		t.Error("File must be exists")
+	}
+	
+	if f.s == nil {
+		t.Error("File must have container")
+	}
+	
+	c := s.Containers.Get(1)
+	
+	if c.Count != int64(it) {
+		t.Errorf("Files count mismatched! Expected:%d, actual:%d", it, c.Count)
 	}
 	
 	if c.Offset != fsize * it {
@@ -136,6 +171,45 @@ func TestDeleteRandom(t *testing.T) {
 	}
 }
 
+func TestSpacesAndDumpSpaces(t *testing.T) {
+	count := 100
+	for i := 0; i < count; i++ {
+		n := fmt.Sprintf("s-%d", i)
+		addAndAssert(t, n, 100)
+	}
+	for i := 0; i < count; i++ {
+		if i % 2 == 0 {
+			n := fmt.Sprintf("s-%d", i)
+			s.Delete(n)
+		}
+	}
+	
+	err := s.Dump()
+	if err != nil {
+		t.Errorf("Storage.Dump() has error: %v", err)
+	}
+	s.Close()
+	s = GetStorage(storageConf())
+	
+	c := s.Containers.Get(1)
+	if len(c.Spaces) != count / 2 {
+		t.Errorf("len spaces must be %d, expected %d", count / 2, len(c.Spaces))
+	}
+	
+	for _, sp := range c.Spaces {
+		if sp.Size != 100 {
+			t.Errorf("Space size must be 100, expected %d", sp.Size)
+		}
+	}
+	
+	for i := 0; i < count; i++ {
+		if i % 2 != 0 {
+			n := fmt.Sprintf("s-%d", i)
+			s.Delete(n)
+		}
+	}
+}
+
 
 func TestCreateContainer(t *testing.T) {
 	for i := 0; i < 3; i++ {
@@ -165,6 +239,7 @@ func TestCreateContainer(t *testing.T) {
 		t.Errorf("Invalid offset: %d, must be %d", c.Offset, 1024 * 1024)
 	}
 }
+
 
 func TestReadAndDeleteParallel(t *testing.T) {
 	mustGo := true

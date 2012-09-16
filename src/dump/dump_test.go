@@ -29,25 +29,31 @@ var TestData *TD
 var TestCount int = 1000
 
 func TestDump(t *testing.T) {
-	makeTestData()
-	file := "test.dump"
-	defer os.Remove(file)
-	n, err := DumpTo(file, TestData)
-	if err != nil {
-		t.Errorf("Dump has error: %v", err)
-	}
-	if n <= 0 {
-		t.Errorf("Dump write %d bytes. Wrong.", n)
-	}
-	
-	data := new(TD)
-	err = LoadData(file, data)
-	if err != nil {
-		t.Errorf("LoadData has error: %v", err)
-	}
-	
-	if ! data.Assert() {
-		t.Errorf("Data mismatched")
+	for i := 0; i < 5; i++ {
+		TestCount -= i * 10
+		makeTestData()
+		file := "test.dump"
+		defer os.Remove(file)
+		n, err := DumpTo(file, TestData)
+		if err != nil {
+			t.Errorf("Dump has error: %v", err)
+		}
+		if n <= 0 {
+			t.Errorf("Dump write %d bytes. Wrong.", n)
+		}
+		
+		data := new(TD)
+		err, exists := LoadData(file, data)
+		if err != nil {
+			t.Errorf("LoadData has error: %v", err)
+		}
+		if ! exists {
+			t.Errorf("File must be exists")
+		}
+		
+		if ! data.Assert() {
+			t.Errorf("Data mismatched")
+		}
 	}
 }
 
