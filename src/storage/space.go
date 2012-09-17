@@ -122,10 +122,10 @@ func (s Spaces) Sort() {
 	sort.Sort(s)
 }
 
-func (s Spaces) Stats() (int64, int64) {
+func (s Spaces) Stats() (int, int64) {
 	var total int64
 	for _, space := range(s) {		
 		total += space.Size
 	}
-	return  int64(len(s)), total
+	return len(s), total
 } 

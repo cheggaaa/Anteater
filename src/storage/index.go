@@ -8,19 +8,19 @@ import (
 type Index struct {
 	Files map[string]*File
 	m *sync.Mutex
-	v int64
+	v uint64
 }
 
 type IndexDump struct {
 	F map[string]FileDump
-	V int64
+	V uint64
 }
 
 func (i *Index) Add(name string, file *File) {
 	i.m.Lock()
 	defer i.m.Unlock()
 	i.Files[name] = file
-	atomic.AddInt64(&i.v, 1)
+	atomic.AddUint64(&i.v, 1)
 	return
 }
 
@@ -35,7 +35,7 @@ func (i *Index) Delete(name string) (f *File, ok bool) {
 	f, ok = i.Files[name]
 	if ok {
 		delete(i.Files, name)
-		atomic.AddInt64(&i.v, 1)
+		atomic.AddUint64(&i.v, 1)
 	}
 	return
 }
@@ -48,6 +48,10 @@ func (i *Index) DumpData() (dump IndexDump) {
 	dump.F = df
 	dump.V = i.v
 	return
+}
+
+func (i *Index) Version() uint64 {
+	return atomic.LoadUint64(&i.v)
 }
 
 func (id *IndexDump) Restore(s *Storage) *Index {
