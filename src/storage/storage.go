@@ -11,6 +11,7 @@ import (
 	"cnst"
 	"dump"
 	"fmt"
+	"stats"
 )
 
 const (
@@ -30,6 +31,7 @@ type Storage struct {
 	Index *Index
 	Containers *Containers
 	Conf *config.Config
+	Stats *stats.Stats
 	wm   *sync.Mutex
 }
 
@@ -56,6 +58,7 @@ func GetStorage(c *config.Config) (s *Storage) {
 
 
 func (s *Storage) Init() {
+	s.Stats = stats.New()
 	go func() { 
 			ch := time.Tick(s.Conf.DumpTime)
 			for _ = range ch {
@@ -142,6 +145,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 			if nw > 0 {
 				written += int64(nw)
 				h.Write(buf[0:nw])
+				s.Stats.Traffic.Input.AddN(nw)
 			}
 			if ew != nil {
 				err = ew
@@ -174,6 +178,17 @@ func (s *Storage) allocateFile(f *File) (err error) {
 			if c.MaxSpace() >= f.Size {
 				ok = c.Add(f, target)
 				if ok {
+					switch target {
+					case TARGET_SPACE_EQ:
+						s.Stats.Allocate.Replace.Add()
+						break
+					case TARGET_SPACE_FREE:
+						s.Stats.Allocate.In.Add()
+						break
+					case TARGET_NEW:
+						s.Stats.Allocate.Append.Add()
+						break
+					}
 					return
 				}
 			}
@@ -186,7 +201,8 @@ func (s *Storage) allocateFile(f *File) (err error) {
 	ok = c.Add(f, TARGET_NEW)
 	if ! ok {
 		return errors.New("Can't allocate space")
-	} 
+	}
+	s.Stats.Allocate.Append.Add()
 	return
 }
 
@@ -250,4 +266,28 @@ func (s *Storage) Close() {
 
 func (s *Storage) DumpFilename() string {
 	return s.Conf.DataPath + "index"
+}
+
+func (s *Storage) GetStats() *stats.Stats {	
+	s.Stats.Refresh()
+	
+	s.Stats.Storage.ContainersCount = len(s.Containers.Containers)
+	s.Stats.Storage.FilesCount = len(s.Index.Files)
+	s.Stats.Storage.IndexVersion = s.Index.Version()
+	s.Stats.Storage.FilesSize = 0
+	s.Stats.Storage.TotalSize = 0
+	s.Stats.Storage.HoleCount = 0
+	s.Stats.Storage.HoleSize = 0
+	for _, c := range s.Containers.Containers {
+		s.Stats.Storage.TotalSize += c.Size
+		hc, hs := c.Spaces.Stats()
+		s.Stats.Storage.HoleCount += hc
+		s.Stats.Storage.HoleSize += hs
+	}
+	
+	for _, f := range s.Index.Files {
+		s.Stats.Storage.FilesSize += f.Size
+	}
+		
+	return s.Stats
 }

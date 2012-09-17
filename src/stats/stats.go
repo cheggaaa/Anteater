@@ -1,7 +1,6 @@
 package stats
 
 import (
-	"storage"
 	"time"
 	"cnst"
 )
@@ -11,10 +10,10 @@ type Stats struct {
 	Storage *Storage
 	Allocate *Allocate
 	Counters *StorageCounters
-	Http *Http
+	Traffic *Traffic
 	Env *Env
-	s *storage.Storage
 }
+
 
 type Allocate struct {
 	Append, Replace, In *Counter
@@ -26,14 +25,25 @@ type Anteater struct {
 }
 
 type StorageCounters struct {
-	Get, Add, Delete, NotFound *Counter
+	Get, Add, Delete, NotFound, NotModified *Counter
 }
 
-type Http struct {
+type Traffic struct {
 	Input, Output *Counter
 }
 
-func New(s *storage.Storage) *Stats {
+type Storage struct {
+	ContainersCount int
+	FilesCount int
+	FilesSize int64
+	TotalSize int64
+	FreeSpace int64
+	HoleCount int
+	HoleSize int64
+	IndexVersion uint64
+}
+
+func New() *Stats {
 	st := &Stats{}
 	
 	st.Anteater = &Anteater{
@@ -42,11 +52,10 @@ func New(s *storage.Storage) *Stats {
 	}
 	
 	st.Storage = &Storage{}
-	st.Storage.Refresh(s)
 	
 	st.Allocate = &Allocate{&Counter{}, &Counter{}, &Counter{}}
-	st.Counters = &StorageCounters{&Counter{}, &Counter{}, &Counter{}, &Counter{}}
-	st.Http = &Http{&Counter{}, &Counter{}}
+	st.Counters = &StorageCounters{&Counter{}, &Counter{}, &Counter{}, &Counter{}, &Counter{}}
+	st.Traffic = &Traffic{&Counter{}, &Counter{}}
 	st.Env = &Env{}
 	st.Env.Refresh()
 	
@@ -56,5 +65,4 @@ func New(s *storage.Storage) *Stats {
 
 func (s *Stats) Refresh() {
 	s.Env.Refresh()
-	s.Storage.Refresh(s.s)
 }

@@ -116,7 +116,7 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 			return
 		case s.conf.StatusJson:
 			fmt.Println("StatusJson")
-			Err(500, w)
+			s.StatsJson(w)
 			return
 	}
 	
@@ -155,6 +155,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	f, ok := s.stor.Get(name)
 	if ! ok {
 		Err(404, w)
+		s.stor.Stats.Counters.NotFound.Add()
 		return
 	}
 	f.Open()
@@ -164,9 +165,9 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	cont, status := s.checkCache(r, f)
 	if ! cont {
 		w.WriteHeader(status)
+		s.stor.Stats.Counters.NotModified.Add()
 		return
 	}
-	
 	w.Header().Set("Content-Type", f.ContentType())
 	w.Header().Set("Content-Length", strconv.Itoa(int(f.Size)))
 	w.Header().Set("Last-Modified", f.Time.UTC().Format(http.TimeFormat))
@@ -180,16 +181,21 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		w.Header().Add(k, v)
 	}
 	
+	s.stor.Stats.Counters.Get.Add()
+	
 	if ! writeBody {
 		w.WriteHeader(status)
 		return
 	}
 	
+	reader := f.GetReader()
+	
 	if f.Size > s.conf.ContentRange {
-		http.ServeContent(w, r, name, f.Time, f.GetReader())
+		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
-		_, _  = io.Copy(w, f.GetReader())	
-	}	
+		io.Copy(w, reader)
+	}
+	
 }
 
 func (s *Server) Save(name string, w http.ResponseWriter, r *http.Request) {
@@ -213,6 +219,8 @@ func (s *Server) Save(name string, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	s.stor.Stats.Counters.Add.Add()
+	
 	f := s.stor.Add(name, reader, size)
 	
 	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", f.Md5));	
@@ -228,12 +236,19 @@ func (s *Server) Delete(name string, w http.ResponseWriter) {
 		if w != nil {
 			w.WriteHeader(http.StatusNoContent)
 		}
+		s.stor.Stats.Counters.Delete.Add()
 		return
 	} else {
 		if w != nil {
 			Err(404, w)
 		}
 	}
+}
+
+func (s *Server) StatsJson(w http.ResponseWriter) {
+	b := s.stor.GetStats().AsJson()
+	w.Header().Add("Content-Type", "application/json;charset=utf-8")
+	w.Write(b)
 }
 
 

@@ -57,8 +57,8 @@ func (f *File) Open() error {
 	return nil
 }
 
-func (f *File) GetReader() *io.SectionReader {
-	return io.NewSectionReader(f.c.F, f.Start, f.Size)
+func (f *File) GetReader() *Reader {
+	return NewReader(f.c.F, f.Start, f.Size, f.s)
 }
 
 
