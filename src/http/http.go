@@ -72,6 +72,7 @@ func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(rec)
         	Err(500, w)
         }
+        r.Body.Close()
 	}()
 	filename := Filename(r)
 	if len(filename) == 0 {
@@ -103,6 +104,7 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 			fmt.Println(rec)
         	Err(500, w)
         }
+        r.Body.Close()
 	}()
 	filename := Filename(r)
 	switch filename {

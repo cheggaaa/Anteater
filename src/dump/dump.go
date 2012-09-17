@@ -20,27 +20,43 @@ import (
 	"encoding/gob"
 	"os"
 	"bytes"
+	"compress/gzip"
 )
 
 
 func DumpTo(filename string, d interface{}) (n int, err error) {
 	b := new(bytes.Buffer)
+	zb := new(bytes.Buffer)
 	enc := gob.NewEncoder(b)
 	err = enc.Encode(d)
 	if err != nil {
 		return
 	}
-	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)	
-	defer fh.Close()
+	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)		
 	if err != nil {
-		return 0, err
+		return
 	}
+	defer fh.Close()
+	
 	err = fh.Truncate(0)
 	if err != nil {
-		return 0, err
+		return
 	}
-	bytes := b.Bytes()
-	n, err = fh.Write(bytes)
+	
+	w, err := gzip.NewWriterLevel(zb, gzip.BestSpeed)
+	if err != nil {
+		return
+	}
+	
+	n, err = w.Write(b.Bytes())
+	if err != nil {
+		return
+	}
+	err = w.Close()
+	if err != nil {
+		return
+	}
+	n, err = fh.Write(zb.Bytes())
 	return
 }
 
@@ -49,9 +65,18 @@ func LoadData(filename string, d interface{}) (err error, exists bool) {
     if err != nil {
     	return
     }
+    defer fh.Close()
     exists = true
-    dec := gob.NewDecoder(fh)
-    err = dec.Decode(d)
+	
+	r, err := gzip.NewReader(fh)
+	if err != nil {
+		return
+	}
+	defer r.Close()
+	
+	dec := gob.NewDecoder(r)
+    err = dec.Decode(d)		
+     
     return
 }
 

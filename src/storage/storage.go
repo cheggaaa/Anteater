@@ -222,9 +222,7 @@ func (s *Storage) Delete(name string) (ok bool) {
 func (s *Storage) Dump() (err error) {
 	s.wm.Lock()
 	s.Index.m.Lock()
-	defer s.Index.m.Unlock()
-	defer s.wm.Unlock()
-	
+	st := time.Now()
 	containers := make([]ContainerDump, 0)
 	
 	for _, c := range s.Containers.Containers {
@@ -236,12 +234,16 @@ func (s *Storage) Dump() (err error) {
 		Containers : containers,
 		Index : s.Index.DumpData(),
 	}
+	s.Index.m.Unlock()
+	s.wm.Unlock()
+	prep := time.Since(st)
 	fname := s.DumpFilename()
 	n, err := dump.DumpTo(fname, dumpData)
 	if err != nil {
 		return
 	}
-	fmt.Printf("Dump: %d bytes writed to %s\n", n, fname)
+	tot := time.Since(st)
+	fmt.Printf("Dump: %d bytes writed to %s for %v prep(%v)\n", n, fname, tot, prep)
 	return
 }
 
