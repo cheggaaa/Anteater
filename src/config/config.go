@@ -21,8 +21,9 @@ import (
 	"strings"
 	"errors"
 	"utils"
-	"cnst"
 	"time"
+	"aelog"
+	"mime"
 )
 
 type Config struct {
@@ -53,6 +54,7 @@ type Config struct {
 	// Log
 	LogLevel      int
 	LogFile		  string
+	LogAccess     string
 	
 	// Uploader
 	UploaderEnable    bool
@@ -60,7 +62,7 @@ type Config struct {
 	UploaderTokenName string
 }
 
-
+// Parse file and set values to config
 func (conf *Config) ReadFile(filename string) {
 	c, err := config.ReadDefault(filename)
 	if err != nil {
@@ -183,9 +185,9 @@ func (conf *Config) ReadFile(filename string) {
 	
 	// Log level
 	levels := map[string]int {
-		"debug" : cnst.LOG_DEBUG,
-		"info"  : cnst.LOG_INFO,
-		"warn"  : cnst.LOG_WARN,
+		"debug" : aelog.LOG_DEBUG,
+		"info"  : aelog.LOG_INFO,
+		"warn"  : aelog.LOG_WARN,
 	}
 	llv, err := c.String("log", "level")
 	if err != nil {
@@ -201,6 +203,12 @@ func (conf *Config) ReadFile(filename string) {
 	conf.LogFile, err = c.String("log", "file")
 	if err != nil {
 		conf.LogFile = ""
+	}
+	
+	// Access log file
+	conf.LogAccess, err = c.String("log", "access_log")
+	if err != nil {
+		conf.LogAccess = ""
 	}
 	
 	// Uploader
@@ -220,5 +228,16 @@ func (conf *Config) ReadFile(filename string) {
 	}
 	
 	err = nil
+	
+	conf.RegisterMime()
 	return
+}
+
+// Register all mime types from config
+func (conf *Config) RegisterMime() {
+	if conf.MimeTypes != nil && len(conf.MimeTypes) > 0 {
+		for ext, extType := range conf.MimeTypes {
+			mime.AddExtensionType(ext, extType)
+		}
+	}
 }

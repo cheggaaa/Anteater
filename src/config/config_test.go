@@ -20,7 +20,8 @@ import (
 	"testing"
 	"os"
 	"fmt"
-	"cnst"
+	"aelog"
+	"mime"
 )
 
 
@@ -56,6 +57,10 @@ func TestReadFile(t *testing.T) {
 	compare(c.MimeTypes, TestConfig.MimeTypes)
 	compare(c.Headers, TestConfig.Headers)
 	
+	// Check mime register
+	if mime.TypeByExtension(".test") != "application/test" {
+		t.Error("Mime not registered")
+	}
 }
 
 var TestConfig *Config = &Config{
@@ -75,9 +80,9 @@ var TestConfig *Config = &Config{
 	},
 	MimeTypes    : map[string]string{
 		".jpg"   : "image/jpeg",
-		".test"  : "test/test",
+		".test"  : "application/test",
 	},
-	LogLevel     : cnst.LOG_INFO,
+	LogLevel     : aelog.LOG_INFO,
 	LogFile		 : "/var/log/anteater.log",
 	UploaderEnable : true,
 	UploaderCtrlUrl : "http://localhost/upload/",
@@ -136,7 +141,7 @@ Cache-Control : public, max-age=315360000
 # List of custom mime types, by default use native unix list
 [mime-types]
 jpg  : image/jpeg 
-test : test/test
+test : application/test
 
 [log]
 # Log level. Should be debug, info or warn

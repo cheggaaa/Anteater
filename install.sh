@@ -21,6 +21,6 @@ if [[ $1 != "test" ]]; then
 	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/anteater.go
 	#echo "Building aecommand.."
 	#GOBIN=$GOBIN go install ./src/aecommand.go
-	#echo "Building aeimport.."
-	#GOBIN=$GOBIN go install ./src/aeimport.go
+	echo "Building aeimport.."
+	GOBIN=$GOBIN go install ./src/aeimport.go
 fi

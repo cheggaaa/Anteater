@@ -19,16 +19,28 @@ package aelog
 import (
 	"log"
 	"os"
-	"cnst"
 )
 
+const (
+	LOG_PRINT = 0
+	LOG_DEBUG = 1
+	LOG_INFO  = 2
+	LOG_WARN  = 3
+)
 
+var Prefixes = map[int]string{
+	LOG_PRINT : "",
+	LOG_DEBUG : "[DEBUG]",
+	LOG_INFO  : "[INFO]",
+	LOG_WARN  : "[WARN]",
+}
 
 type AntLog struct {
-	logger *log.Logger
+	*log.Logger
 	level  int
 }
 
+var DefaultLogger *AntLog
 
 func New(filename string, level int) (*AntLog, error) {
 	out := os.Stdout
@@ -42,7 +54,7 @@ func New(filename string, level int) (*AntLog, error) {
 	}
 	
 	if level == 0 {
-		level = cnst.LOG_INFO
+		level = LOG_INFO
 	}	
 	return &AntLog{log.New(out, "", log.LstdFlags), level}, nil
 }
@@ -50,59 +62,103 @@ func New(filename string, level int) (*AntLog, error) {
 
 func (a *AntLog) Print(level int, v ...interface{}) {
 	if level >= a.level {
-		a.logger.Print(v...)
+		a.SetPrefix(Prefixes[level])
+		a.Logger.Print(v...)
 	}
 }
 
 func (a *AntLog) Printf(level int, format string, v ...interface{}) {
 	if level >= a.level {
-		a.logger.Printf(format, v...)
+		a.SetPrefix(Prefixes[level])
+		a.Logger.Printf(format, v...)
 	}
 }
 
 func (a *AntLog) Println(level int, v ...interface{}) {
 	if level >= a.level {
-		a.logger.Println(v...)
+		a.SetPrefix(Prefixes[level])
+		a.Logger.Println(v...)
 	}
 }
 
 func (a *AntLog) Debug(v ...interface{}) {
-	a.Print(cnst.LOG_DEBUG, v...)
+	a.Print(LOG_DEBUG, v...)
 }
 
 func (a *AntLog) Info(v ...interface{}) {
-	a.Print(cnst.LOG_INFO, v...)
+	a.Print(LOG_INFO, v...)
 }
 
 func (a *AntLog) Warn(v ...interface{}) {
-	a.Print(cnst.LOG_WARN, v...)
+	a.Print(LOG_WARN, v...)
 }
 
 func (a *AntLog) Debugln(v ...interface{}) {
-	a.Println(cnst.LOG_DEBUG, v...)
+	a.Println(LOG_DEBUG, v...)
 }
 
 func (a *AntLog) Infoln(v ...interface{}) {
-	a.Println(cnst.LOG_INFO, v...)
+	a.Println(LOG_INFO, v...)
 }
 
 func (a *AntLog) Warnln(v ...interface{}) {
-	a.Println(cnst.LOG_WARN, v...)
+	a.Println(LOG_WARN, v...)
 }
 
 func (a *AntLog) Debugf(format string, v ...interface{}) {
-	a.Printf(cnst.LOG_DEBUG, format, v...)
+	a.Printf(LOG_DEBUG, format, v...)
 }
 
 func (a *AntLog) Infof(format string, v ...interface{}) {
-	a.Printf(cnst.LOG_INFO, format, v...)
+	a.Printf(LOG_INFO, format, v...)
 }
 
 func (a *AntLog) Warnf(format string, v ...interface{}) {
-	a.Printf(cnst.LOG_WARN, format, v...)
+	a.Printf(LOG_WARN, format, v...)
 }
 
 func (a *AntLog) Fatal(v ...interface{}) {
 	a.Warnln(v ...)
 	log.Fatal(v ...)
+}
+
+
+func Debug(v ...interface{}) {
+	DefaultLogger.Debug(v)
+}
+
+func Info(v ...interface{}) {
+	DefaultLogger.Info(v)
+}
+
+func Warn(v ...interface{}) {
+	DefaultLogger.Warn(v)
+}
+
+func Debugln(v ...interface{}) {
+	DefaultLogger.Debugln(v)
+}
+
+func Infoln(v ...interface{}) {
+	DefaultLogger.Infoln(v)
+}
+
+func Warnln(v ...interface{}) {
+	DefaultLogger.Warnln(v)
+}
+
+func Debugf(format string, v ...interface{}) {
+	DefaultLogger.Debugf(format, v)
+}
+
+func Infof(format string, v ...interface{}) {
+	DefaultLogger.Infof(format, v)
+}
+
+func Warnf(format string, v ...interface{}) {
+	DefaultLogger.Warnf(format, v)
+}
+
+func Fatal(v ...interface{}) {
+	DefaultLogger.Fatal(v ...)
 }
