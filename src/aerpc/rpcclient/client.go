@@ -14,10 +14,14 @@
   limitations under the License.
 */
 
-package cnst
+package rpcclient
 
-const (
-	VERSION = "0.1"
-	SIGN    = "Anteater " + VERSION
+import (
+	"net/rpc"
 )
+
+
+func NewClient(addr string) (*rpc.Client, error) {
+	return rpc.DialHTTP("tcp", addr)
+}
 

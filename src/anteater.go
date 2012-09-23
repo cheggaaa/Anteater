@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"aelog"
 	"flag"
+	"aerpc/rpcserver"
 )
 
 const HELP = cnst.SIGN + `
@@ -70,8 +71,10 @@ func main() {
 	}
 	
 	// Init storage
-	s := storage.GetStorage(c)
-	defer s.Close()
+	stor := storage.GetStorage(c)
+	defer stor.Close()
+	
+	
 	
 	
 	// init access log is needed
@@ -84,13 +87,17 @@ func main() {
 	}
 	
 	// Run server
-	http.RunServer(s, al)
-		
+	http.RunServer(stor, al)
+	
+	
+	// Run rpc server
+	rpcserver.StartRpcServer(stor)
+	
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
 	sig := <-interrupt
 	aelog.Infof("Catched signal %v. Stop server", sig)
-	s.Dump()
+	stor.Dump()
 	aelog.Infoln("")
 }
 
