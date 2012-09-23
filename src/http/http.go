@@ -31,7 +31,7 @@ import (
 )
 
 const (
-	ERROR_PAGE = "<html><head><title>%s</title></head><body><center><h1>%s</h1></center><hr><center>" + cnst.SIGN + "</center></body></html>\n"
+	ERROR_PAGE = "<html><head><title>%s</title></head><body><center><h1>%d %s</h1></center><hr><center>" + cnst.SIGN + "</center></body></html>\n"
 )
 
 
@@ -248,8 +248,8 @@ func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
 		if w != nil {
 			w.WriteHeader(http.StatusNoContent)
 			s.accessLog(http.StatusCreated, r)
-		}
-		s.stor.Stats.Counters.Delete.Add()
+			s.stor.Stats.Counters.Delete.Add()
+		}		
 		return
 	} else {
 		if w != nil {
@@ -268,7 +268,7 @@ func (s *Server) StatsJson(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Err(code int, r *http.Request, w http.ResponseWriter) {
 	st := http.StatusText(code)
-	body := []byte(fmt.Sprintf(ERROR_PAGE, st, st))
+	body := []byte(fmt.Sprintf(ERROR_PAGE, st, code, st))
 	w.Header().Add("Content-Type", "text/html;charset=utf-8")
 	w.Header().Add("Content-Length", strconv.Itoa(len(body)))
 	w.WriteHeader(code)
