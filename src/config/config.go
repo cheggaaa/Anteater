@@ -32,6 +32,7 @@ type Config struct {
 	ContainerSize int64
 	MinEmptySpace  int64
 	DumpTime time.Duration
+	TmpDir        string
 	
 	// Http
 	HttpWriteAddr string
@@ -56,10 +57,15 @@ type Config struct {
 	LogFile		  string
 	LogAccess     string
 	
+	//Downloader
+	DownloaderEnable bool
+	DownloaderParamName string
+	
+	
 	// Uploader
 	UploaderEnable    bool
 	UploaderCtrlUrl   string
-	UploaderTokenName string
+	UploaderParamName string
 }
 
 // Parse file and set values to config
@@ -105,6 +111,11 @@ func (conf *Config) ReadFile(filename string) {
 		} 
 	}
 	
+	// Temp dir
+	conf.TmpDir, err = c.String("data", "tmp_dir")
+	if err == nil {
+		conf.TmpDir = strings.TrimRight(conf.TmpDir, "/")
+	}
 	
 	// Http write addr
 	conf.HttpWriteAddr, err = c.String("http", "write_addr")
@@ -211,6 +222,18 @@ func (conf *Config) ReadFile(filename string) {
 		conf.LogAccess = ""
 	}
 	
+	// Downloader
+	conf.DownloaderEnable, err = c.Bool("downloader", "enable")
+	if err != nil {
+		conf.DownloaderEnable = false
+	}
+	if conf.DownloaderEnable {
+		conf.DownloaderParamName, err = c.String("downloader", "param_name")
+		if err != nil {
+			panic("Downloader param_name has error: " + err.Error())
+		}
+	}
+	
 	// Uploader
 	conf.UploaderEnable, err = c.Bool("uploader", "enable")
 	if err != nil {
@@ -222,7 +245,7 @@ func (conf *Config) ReadFile(filename string) {
 		err = errors.New("Incorrect uploader ctrl_url:" + err.Error())
 	}
 	
-	conf.UploaderTokenName, err = c.String("uploader", "token_name")
+	conf.UploaderParamName, err = c.String("uploader", "token_name")
 	if err != nil && conf.UploaderEnable {
 		panic("Incorrect uploader token_name:" + err.Error())
 	}

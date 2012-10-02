@@ -28,6 +28,7 @@ import (
 	"io"
 	"aelog"
 	"strings"
+	"temp"
 )
 
 const (
@@ -131,8 +132,14 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 	if m == "" {
 		m = r.Method
 	}
+	sm := m
 	
-	switch m {
+	du := s.downloadUrl(r)
+	if du != "" { 
+		sm = "DOWNLOAD"
+	}
+	
+	switch sm {
 	case "OPTIONS":
 		w.Header().Set("Allow", "GET,HEAD,POST,PUT,DELETE")
 		w.WriteHeader(http.StatusOK)
@@ -152,6 +159,12 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	case "DELETE":
 		s.Delete(filename, w, r)
+		return
+	case "DOWNLOAD":
+		if m == "PUT" {
+			s.Delete(filename, nil, nil)
+		}
+		s.Download(filename, w, r)
 		return
 	default:
 		s.Err(501, r, w)
@@ -218,29 +231,48 @@ func (s *Server) Save(name string, w http.ResponseWriter, r *http.Request) {
 	
 	reader := r.Body
 	size := r.ContentLength
-	
+	s.save(name, size, reader, r, w)
+}
+
+
+func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
+	_, ok := s.stor.Get(name)
+	if ok {
+		// File exists
+		s.Err(409, r, w)
+		return
+	}
+	url := s.downloadUrl(r)
+	tf := temp.NewFile(s.conf.TmpDir)
+	aelog.Debugf("Start download from %s\n", url)
+	err := tf.LoadFromUrl(url)
+	if err != nil {
+		aelog.Infof("Can't download : %s, err: %v\n", url, err)
+		s.Err(500, r, w)
+		return
+	}
+	defer tf.Close()
+	s.save(name, tf.Size, tf.File, r, w)
+}
+
+
+func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request, w http.ResponseWriter) {
 	if size <= 0 {
 		s.Err(411, r, w)
 		return
-	}
-	
+	}	
 	if size > s.conf.ContainerSize {
 		s.Err(413, r, w)
 		return
 	}
-	
 	s.stor.Stats.Counters.Add.Add()
-	
 	f := s.stor.Add(name, reader, size)
-	
 	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", f.Md5));	
 	w.Header().Set("Etag", f.ETag());
 	w.Header().Set("Location", name);
 	w.WriteHeader(http.StatusCreated)
-	
 	s.accessLog(http.StatusCreated, r)
 }
-
 
 func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
 	ok := s.stor.Delete(name)
@@ -283,6 +315,21 @@ func (s *Server) Err(code int, r *http.Request, w http.ResponseWriter) {
 func Filename(r *http.Request) (fn string) {
 	fn = r.URL.Path
 	fn = strings.Trim(fn, "/")
+	return
+}
+
+
+/**
+ * Detect download url and return if found
+ */
+func (s *Server) downloadUrl(r *http.Request) (url string) {
+	if s.conf.DownloaderEnable {
+		p := s.conf.DownloaderParamName
+		url = r.FormValue(p)
+		if url == "" {
+			url = r.URL.Query().Get(p)
+		}
+	}
 	return
 }
 

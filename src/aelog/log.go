@@ -124,39 +124,39 @@ func (a *AntLog) Fatal(v ...interface{}) {
 
 
 func Debug(v ...interface{}) {
-	DefaultLogger.Debug(v)
+	DefaultLogger.Debug(v ...)
 }
 
 func Info(v ...interface{}) {
-	DefaultLogger.Info(v)
+	DefaultLogger.Info(v ...)
 }
 
 func Warn(v ...interface{}) {
-	DefaultLogger.Warn(v)
+	DefaultLogger.Warn(v ...)
 }
 
 func Debugln(v ...interface{}) {
-	DefaultLogger.Debugln(v)
+	DefaultLogger.Debugln(v ...)
 }
 
 func Infoln(v ...interface{}) {
-	DefaultLogger.Infoln(v)
+	DefaultLogger.Infoln(v ...)
 }
 
 func Warnln(v ...interface{}) {
-	DefaultLogger.Warnln(v)
+	DefaultLogger.Warnln(v ...)
 }
 
 func Debugf(format string, v ...interface{}) {
-	DefaultLogger.Debugf(format, v)
+	DefaultLogger.Debugf(format, v ...)
 }
 
 func Infof(format string, v ...interface{}) {
-	DefaultLogger.Infof(format, v)
+	DefaultLogger.Infof(format, v ...)
 }
 
 func Warnf(format string, v ...interface{}) {
-	DefaultLogger.Warnf(format, v)
+	DefaultLogger.Warnf(format, v ...)
 }
 
 func Fatal(v ...interface{}) {

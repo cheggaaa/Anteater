@@ -68,6 +68,8 @@ var TestConfig *Config = &Config{
 	DataPath      : "/opt/DB/anteater/",
 	ContainerSize : 200 * 1024,
 	MinEmptySpace : 50 * 1024,
+	TmpDir        : "/tmp/dir",
+	
 	HttpWriteAddr : ":8081",
 	HttpReadAddr  : ":8080",
 	ETagSupport   : true,
@@ -86,13 +88,16 @@ var TestConfig *Config = &Config{
 	LogFile		 : "/var/log/anteater.log",
 	UploaderEnable : true,
 	UploaderCtrlUrl : "http://localhost/upload/",
-	UploaderTokenName : "_token",
+	UploaderParamName : "_token",
+	
+	DownloaderEnable : true,
+	DownloaderParamName : "url",
 }
 
 func configToString(c *Config) string {
 	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
 	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
-	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderTokenName)
+	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir)
 }
 
 
@@ -108,6 +113,8 @@ container_size : 200K
 
 # Min empty space. After this value will be created new container
 min_empty_space : 50K
+
+tmp_dir : /tmp/dir/
 
 [http]
 
@@ -149,6 +156,11 @@ level : info
 
 # File to write log, by default it's stdOut
 file  : /var/log/anteater.log
+
+[downloader]
+enable : on
+param_name : url
+
 
 [uploader]
 # enable or disable uploader

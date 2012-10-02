@@ -161,6 +161,10 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 		}
 	}
 	
+	if written != size {
+		panic(fmt.Sprintf("Error while adding file. Requested size %d, but written only %d", size, written))
+	}
+	
 	f.Md5 = h.Sum(nil)	
 	
 	s.Index.Add(name, f)
