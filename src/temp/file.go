@@ -51,13 +51,35 @@ func (f *File) Reopen() (err error) {
 	return
 }
 
+func (f *File) Disconnect() {
+	if f.File != nil {
+		f.File.Close()
+	}
+}
+
+func (f *File) Connect() (err error) {
+	f.File, err = os.Open(f.Filename)
+	if err == nil {
+		err = f.setState()
+	}
+	return
+}
+
 func (f *File) Close() (err error) {
 	if f.Filename == "" { 
-		err = f.Close()
+		err = f.File.Close()
 		err = os.Remove(f.Filename)
 		f.Filename = ""
 		f.File = nil
 	}
+	return
+}
+
+func (f *File) Clone(suffix string) (fl *File, err error) {
+	fl = &File{
+		Filename : f.Filename + suffix,
+	}
+	err = fl.setState()
 	return
 }
 

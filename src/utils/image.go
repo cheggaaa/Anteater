@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"os"
 	"os/exec"
 	"strings"
 	"errors"
@@ -53,7 +52,7 @@ func ImageIdenty(filename string) (*Image, error) {
 }
 
 
-func (i *Image) Resize(format string, w, h, q int) error {
+func (i *Image) Resize(dst, format string, w, h, q int) error {
 	wh := fmt.Sprintf("%dx%d", w, h)
 	if w == 0 {
 		wh = fmt.Sprintf("x%d", h)
@@ -65,7 +64,6 @@ func (i *Image) Resize(format string, w, h, q int) error {
 	if format == "" {
 		format = i.Type
 	}
-	dst := i.Filename + "." + strings.ToLower(format)
 	
 	aelog.Debugln("Convert from:", i.Filename, "to:", dst, "w:", w, "h:", h, "q:", q)
 	var cmd *exec.Cmd
@@ -79,8 +77,6 @@ func (i *Image) Resize(format string, w, h, q int) error {
 		return err
 	}
 	
-	os.Remove(i.Filename)
-	err = os.Rename(dst, i.Filename)
 	if err != nil {
 		return err
 	}
@@ -90,7 +86,7 @@ func (i *Image) Resize(format string, w, h, q int) error {
 	return nil
 } 
 
-func (i *Image) Crop(format string, w, h, q int) error {
+func (i *Image) Crop(dst, format string, w, h, q int) error {
 	var s int 
 	rw, rh := w, h
 	if w > h {
@@ -106,12 +102,12 @@ func (i *Image) Crop(format string, w, h, q int) error {
 		rw = s
 		rh = 0
 	}
-	err := i.Resize(format, rw, rh, q)
+	err := i.Resize(dst, format, rw, rh, q)
 	if err != nil {
 		return err
 	}
 	crop := fmt.Sprintf("%dx%d+0+0", w, h)
-	cmd := exec.Command("convert", i.Filename, "-gravity", "Center", "-crop", crop, i.Filename)
+	cmd := exec.Command("convert", dst, "-gravity", "Center", "-crop", crop, dst)
 	_, err = cmd.Output()
 	if err != nil {
 		return err
