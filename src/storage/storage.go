@@ -171,6 +171,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	if err != nil {
 		panic(err)
 	}
+	s.Stats.Counters.Add.Add()
 	ok = true
 	return
 }

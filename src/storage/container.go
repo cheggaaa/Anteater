@@ -81,6 +81,13 @@ func (c *Container) Add(f *File, target int) (ok bool) {
 }
 
 func (c *Container) getSpace(size int64, target int) (start int64, ok bool) {
+	defer func(){
+		if ok {
+			c.Spaces.Sort()
+			c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(c.Offset)
+		}
+	}()
+
 	switch (target) {
 		case TARGET_SPACE_EQ, TARGET_SPACE_FREE:
 			if c.MaxSpaceSize >= size {

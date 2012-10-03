@@ -282,7 +282,6 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 		s.Err(413, r, w)
 		return
 	}
-	s.stor.Stats.Counters.Add.Add()
 	f := s.stor.Add(name, reader, size)
 	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", f.Md5));	
 	w.Header().Set("Etag", f.ETag());
