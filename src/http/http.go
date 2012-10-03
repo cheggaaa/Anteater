@@ -262,7 +262,13 @@ func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
 		aelog.Infof("Can't download : %s, err: %v\n", url, err)
 		s.Err(500, r, w)
 		return
-	}	
+	}
+	// again check for exists
+	_, ok = s.stor.Get(name)
+	if ok {
+		s.Err(409, r, w)
+		return
+	}
 	s.save(name, tf.Size, tf.File, r, w)
 }
 
