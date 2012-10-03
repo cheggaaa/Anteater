@@ -29,6 +29,7 @@ import (
 	"aelog"
 	"strings"
 	"temp"
+	"uploader"
 )
 
 const (
@@ -40,6 +41,7 @@ type Server struct {
 	stor *storage.Storage
 	conf *config.Config
 	aL *aelog.AntLog
+	up *uploader.Uploader
 }
 
 // Create new server and run it
@@ -48,6 +50,7 @@ func RunServer(s *storage.Storage, accessLog *aelog.AntLog) (server *Server) {
 		stor : s,
 		conf : s.Conf,
 		aL   : accessLog,
+		up   : uploader.NewUploader(s.Conf, s),
 	}
 	server.Run()
 	return
@@ -118,6 +121,14 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 	filename := Filename(r)
 	switch filename {
 		case "":
+			// check uploader
+			isU, err, errCode := s.up.TryRequest(r, w)
+			if isU {
+				if err == nil && errCode > 0 {
+					s.Err(errCode, r, w)
+				}
+				return
+			}
 			s.Err(404, r, w)
 			return;
 		case s.conf.StatusHtml:

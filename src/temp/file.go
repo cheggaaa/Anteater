@@ -28,6 +28,10 @@ func NewFile(tmpdir string) *File {
 
 
 func (f *File) LoadFromForm(ff multipart.File) (err error) {
+	err = f.Create()
+	if err != nil {
+		return
+	}
 	_, err = io.Copy(f.File, ff)
 	if err == nil {
 		err = f.setState()
@@ -66,11 +70,14 @@ func (f *File) Connect() (err error) {
 }
 
 func (f *File) Close() (err error) {
-	if f.Filename == "" { 
-		err = f.File.Close()
+	if f.Filename != "" { 
+		if f.File != nil {
+			err = f.File.Close()
+		}
 		err = os.Remove(f.Filename)
 		f.Filename = ""
 		f.File = nil
+		f.Size = 0
 	}
 	return
 }
@@ -90,7 +97,7 @@ func (f *File) setState() (err error) {
 			err = e
 			return
 		}
-		f.Filename = i.Name()
+		f.Filename = f.File.Name()
 		f.Size = i.Size()
 		f.File.Seek(0, 0)
 	}

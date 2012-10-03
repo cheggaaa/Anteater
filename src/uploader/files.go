@@ -60,6 +60,10 @@ func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 			return
 		}
 		f = temp.NewFile(t.tmpDir)
+		err = f.LoadFromForm(mf)
+		if err != nil {
+			return
+		}
 		t.fields[field] = f
 	}
 	return

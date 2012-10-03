@@ -18,7 +18,7 @@ type Ctrl struct {
 }
 
 type StatusOk struct {
-	Response []*File `json:"response,omitempty"`
+	Response *Files `json:"response,omitempty"`
 }
 
 type StatusError struct {
@@ -72,5 +72,11 @@ func (c *Ctrl) SetStatus(token string, params interface{}) (*http.Response, erro
 		return nil, err
 	}
 	jsonData := string(data)
-	return http.PostForm("status", url.Values{"token":{token},"data":{jsonData}})
+	curl := c.url + "/status.json"
+	return http.PostForm(curl, url.Values{"token":{token},"data":{jsonData}})
+}
+
+func (c *Ctrl) SetStatusErr(token string, err error) (*http.Response, error) {
+	statusErr := &StatusError{&Error{Code : 500, Msg : err.Error()}}
+	return c.SetStatus(token, statusErr)
 }

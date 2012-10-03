@@ -65,7 +65,7 @@ func (i *Image) Resize(dst, format string, w, h, q int) error {
 		format = i.Type
 	}
 	
-	aelog.Debugln("Convert from:", i.Filename, "to:", dst, "w:", w, "h:", h, "q:", q)
+	aelog.Debugln("Image: convert from:", i.Filename, "to:", dst, "w:", w, "h:", h, "q:", q)
 	var cmd *exec.Cmd
 	if q > 0 {
 		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, "-quality",  fmt.Sprintf("%d", q), dst)
