@@ -257,12 +257,12 @@ func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
 	tf := temp.NewFile(s.conf.TmpDir)
 	aelog.Debugf("Start download from %s\n", url)
 	err := tf.LoadFromUrl(url)
+	defer tf.Close()
 	if err != nil {
 		aelog.Infof("Can't download : %s, err: %v\n", url, err)
 		s.Err(500, r, w)
 		return
-	}
-	defer tf.Close()
+	}	
 	s.save(name, tf.Size, tf.File, r, w)
 }
 
