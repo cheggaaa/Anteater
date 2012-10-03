@@ -3,7 +3,10 @@ package storage
 import (
 	"sync"
 	"sync/atomic"
+	"errors"
 )
+
+var ErrIndexAlredyExists = errors.New("Index already exists")
 
 type Index struct {
 	Files map[string]*File
@@ -16,9 +19,14 @@ type IndexDump struct {
 	V uint64
 }
 
-func (i *Index) Add(name string, file *File) {
+func (i *Index) Add(name string, file *File) (err error) {
 	i.m.Lock()
 	defer i.m.Unlock()
+	_, isset := i.Files[name]
+	if isset {
+		err = ErrIndexAlredyExists
+		return
+	}
 	i.Files[name] = file
 	atomic.AddUint64(&i.v, 1)
 	return

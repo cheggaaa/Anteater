@@ -125,7 +125,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	defer func() {
 		if ! ok {
 			if f.CId != 0 {
-				f.c.Delete(f)
+				f.Delete()
 			}
 		}
 	}()
@@ -167,7 +167,10 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	
 	f.Md5 = h.Sum(nil)	
 	
-	s.Index.Add(name, f)
+	err = s.Index.Add(name, f)
+	if err != nil {
+		panic(err)
+	}
 	ok = true
 	return
 }
