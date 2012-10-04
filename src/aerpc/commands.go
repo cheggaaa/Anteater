@@ -41,6 +41,7 @@ func RegisterCommands() {
 	cmds = append(cmds, new(RpcCommandVersion))
 	cmds = append(cmds, new(RpcCommandPing))
 	cmds = append(cmds, new(RpcCommandStatus))
+	cmds = append(cmds, new(RpcCommandCheckMD5))
 	
 	for _, cmd := range cmds {
 		Commands[cmd.ShortName()] = cmd
@@ -95,6 +96,29 @@ func (c *RpcCommandStatus) Print() {
 	fmt.Printf("  Append: %d\n  Replace: %d\n  In hole: %d\n\n", c.Allocate["append"], c.Allocate["replace"], c.Allocate["in"])
 }
 func (c *RpcCommandStatus) Execute(client *rpc.Client) (err error) {
+	err = client.Call(c.RpcName(), true, c)
+	return
+}
+
+// CHECK MD5
+type RpcCommandCheckMD5 map[string]bool
+func (c *RpcCommandCheckMD5) ShortName() string { return "CHECKMD5" }
+func (c *RpcCommandCheckMD5) RpcName() string { return "Storage.CheckMD5" }
+func (c *RpcCommandCheckMD5) Help() string { return "Return PONG if server running" }
+func (c *RpcCommandCheckMD5) SetArgs(args []string) { return }
+func (c *RpcCommandCheckMD5) Print() {
+	var ok, e int
+	for n, r := range *c {
+		if ! r {
+			fmt.Printf("File: %s has md5 error\n", n)
+			e++
+		} else {
+			ok++
+		}
+	}
+	fmt.Printf("Total scaned: %d. Errors: %d\n", len(*c), e)
+}
+func (c *RpcCommandCheckMD5) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
 }
