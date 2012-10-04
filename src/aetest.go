@@ -30,8 +30,8 @@ func init() {
 func main() {
 
 	clients := make([]*Client, 2)
-	clients[0] = NewClient("s", 0, 100, 20, 70)
-	clients[1] = NewClient("f", 0, 100, 300000, 500000)
+	clients[0] = NewClient("s", 100001, 200000, 20,     70)
+	clients[1] = NewClient("f", 0,      100000, 300000, 500000)
 	go clients[0].Run()
 	go clients[1].Run()
 	
