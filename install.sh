@@ -23,4 +23,6 @@ if [[ $1 != "test" ]]; then
 	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aecommand.go
 	echo "Building aeimport.."
 	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aeimport.go
+	echo "Building aetest.."
+        GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aetest.go
 fi
