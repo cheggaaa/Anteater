@@ -174,7 +174,7 @@ func (c *Client) fdelete(id int64) (err error) {
 }
 
 func (c *Client) putId() (id int64) {
-	return mrand.Int63n(c.endId + c.startId) - c.startId
+	return mrand.Int63n(c.endId - c.startId) + c.startId
 }
 
 
