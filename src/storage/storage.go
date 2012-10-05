@@ -282,6 +282,7 @@ func (s *Storage) Drop() (err error) {
 		}
 	}
 	os.Remove(s.DumpFilename())
+	os.Remove(s.DumpFilename() + ".td")
 	return
 }
 

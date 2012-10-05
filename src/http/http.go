@@ -228,7 +228,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	} else {
 		io.Copy(w, reader)
 	}
-	
+		
 	s.accessLog(200, r)
 }
 

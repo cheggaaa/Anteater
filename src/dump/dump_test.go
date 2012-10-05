@@ -50,6 +50,7 @@ func TestDump(t *testing.T) {
 		makeTestData()
 		file := "test.dump"
 		defer os.Remove(file)
+		defer os.Remove(file + ".td")
 		n, err := DumpTo(file, TestData)
 		if err != nil {
 			t.Errorf("Dump has error: %v", err)
