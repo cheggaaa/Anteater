@@ -22,7 +22,8 @@ import (
 	"bytes"
 	"compress/gzip"
 	"io"
-	//"fmt"
+	"errors"
+	"fmt"
 )
 
 
@@ -70,10 +71,15 @@ func DumpTo(filename string, d interface{}) (n int, err error) {
 		return
 	}
 	defer f.Close()
+	f.Truncate(0)
 	fh.Seek(0, 0)
-	_, err = io.Copy(f, fh)
+	cp, err := io.Copy(f, fh)
 	if err != nil {
 		return
+	}
+	if cp != int64(n) {
+		err = errors.New(fmt.Sprintf("Writed %d bytes, but copied only %d", n, cp))
+		return 
 	}
 	return
 }
