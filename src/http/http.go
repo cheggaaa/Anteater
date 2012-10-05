@@ -295,7 +295,7 @@ func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
 	if ok {
 		if w != nil {
 			w.WriteHeader(http.StatusNoContent)
-			s.accessLog(http.StatusCreated, r)
+			s.accessLog(http.StatusNoContent, r)
 			s.stor.Stats.Counters.Delete.Add()
 		}		
 		return

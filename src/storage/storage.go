@@ -328,6 +328,9 @@ func (s *Storage) CheckMD5() (result map[string]bool) {
 		if ok {
 			aelog.Debugf("Checking md5 for %s\n", n)
 			result[n] = f.CheckMd5()
+			if ! result[n] {
+				aelog.Infof("File %s has mismatched md5\n", n)
+			}
 		}
 	}
 	return
