@@ -29,6 +29,8 @@ import (
 	"fmt"
 	"stats"
 	"aelog"
+	"amazon"
+	"utils"
 )
 
 const (
@@ -50,6 +52,7 @@ type Storage struct {
 	Conf *config.Config
 	Stats *stats.Stats
 	wm   *sync.Mutex
+	cf   *amazon.CloudFront
 }
 
 
@@ -87,6 +90,9 @@ func (s *Storage) Init() {
 				}()
 			}
 		}()
+	if s.Conf.AmazonCFEnable {
+		s.cf = amazon.NewCloudFront(s.Conf)
+	}
 	return
 }
 
@@ -240,6 +246,9 @@ func (s *Storage) Delete(name string) (ok bool) {
 	f, ok := s.Index.Delete(name)
 	if ok {
 		f.Delete()
+		if s.cf != nil {
+			s.cf.OnChange(name)
+		}
 	}
 	return
 }
@@ -268,7 +277,7 @@ func (s *Storage) Dump() (err error) {
 		return
 	}
 	tot := time.Since(st)
-	fmt.Printf("Dump: %d bytes writed to %s for %v prep(%v)\n", n, fname, tot, prep)
+	aelog.Debugf("Dump: %s bytes writed to %s for %v prep(%v)", utils.HumanBytes(int64(n)), fname, tot, prep)
 	return
 }
 

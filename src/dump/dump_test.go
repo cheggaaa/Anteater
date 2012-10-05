@@ -19,6 +19,7 @@ package dump
 import (
 	"testing"
 	"os"
+	"aelog"
 	"fmt"
 )
 
@@ -45,6 +46,7 @@ var TestData *TD
 var TestCount int = 1000
 
 func TestDump(t *testing.T) {
+	aelog.DefaultLogger, _ = aelog.New("", 0)
 	for i := 0; i < 5; i++ {
 		TestCount -= i * 10
 		makeTestData()

@@ -66,6 +66,12 @@ type Config struct {
 	UploaderEnable    bool
 	UploaderCtrlUrl   string
 	UploaderParamName string
+	
+	// Amazon
+	AmazonCFEnable    bool
+	AmazonCFDistributionId string
+	AmazonCFAuthentication string
+	AmazonInvalidationDuration time.Duration
 }
 
 // Parse file and set values to config
@@ -248,6 +254,36 @@ func (conf *Config) ReadFile(filename string) {
 	conf.UploaderParamName, err = c.String("uploader", "token_name")
 	if err != nil && conf.UploaderEnable {
 		panic("Incorrect uploader token_name:" + err.Error())
+	}
+	
+	
+	// Amazon
+	conf.AmazonCFEnable, err = c.Bool("amazon", "enable")
+	if err != nil {
+		conf.AmazonCFEnable = false
+	}
+	
+	if conf.AmazonCFEnable {
+		conf.AmazonCFDistributionId, err = c.String("amazon", "distribution_id")
+		if err != nil {
+			panic(err)
+		}
+		conf.AmazonCFAuthentication, err = c.String("amazon", "authentication")
+		if err != nil {
+			panic(err)
+		}
+		s, err = c.String("amazon", "duration")
+		if err != nil {
+			conf.AmazonInvalidationDuration = 10 * time.Minute
+		} else {
+			conf.AmazonInvalidationDuration, err = time.ParseDuration(s)
+			if err != nil {
+				panic("Incorrect amazon time duration")
+			}
+			if conf.AmazonInvalidationDuration <= 0 {
+				panic("Incorrect amazon time duration")
+			} 
+		}
 	}
 	
 	err = nil

@@ -30,9 +30,9 @@ const (
 
 var Prefixes = map[int]string{
 	LOG_PRINT : "",
-	LOG_DEBUG : "[DEBUG]",
-	LOG_INFO  : "[INFO]",
-	LOG_WARN  : "[WARN]",
+	LOG_DEBUG : "[DEBUG] ",
+	LOG_INFO  : "[INFO] ",
+	LOG_WARN  : "[WARN] ",
 }
 
 type AntLog struct {

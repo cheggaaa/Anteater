@@ -27,6 +27,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+	"aelog"
 )
 
 var s *Storage
@@ -36,6 +37,7 @@ var it int64 = 100
 var randFiles map[string]int64
 
 func TestCreate(t *testing.T) {
+	aelog.DefaultLogger, _ = aelog.New("", 0)
 	conf := storageConf()
 	s = GetStorage(conf)
 	if len(s.Containers.Containers) != 1 {
