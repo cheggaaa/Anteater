@@ -165,6 +165,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 		nr, er := r.Read(buf)
 		if nr > 0 {
 			nw, ew := f.WriteAt(buf[0:nr], written)
+			fmt.Printf("Debug write: %v, %v\n", nw, ew)
 			if nw > 0 {
 				written += int64(nw)
 				h.Write(buf[0:nw])
