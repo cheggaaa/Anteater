@@ -160,9 +160,9 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	
 	var written int64
 	h := md5.New()
+	buf := make([]byte, 32*1024)
 	for {
-		buf := make([]byte, 100*1024)
-		nr, er := io.ReadFull(r, buf)
+		nr, er := r.Read(buf)
 		if nr > 0 {
 			nw, ew := f.WriteAt(buf[0:nr], written)
 			if nw > 0 {
@@ -174,14 +174,22 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 				err = ew
 				break
 			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er == io.EOF {
+			break
 		}
 		if er != nil {
 			err = er
 			break
 		}
-		if err != nil {
-			panic(err)
-		}
+	}
+	
+	if err != nil {
+		panic(err)
 	}
 	
 	if written != size {
