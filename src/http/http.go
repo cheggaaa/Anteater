@@ -206,6 +206,9 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	if s.conf.ETagSupport {
 		w.Header().Set("E-Tag", f.ETag())
 	}
+	if s.conf.Md5Header {
+		w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", f.Md5));
+	}
 	
 	
 	// Add headers from config
