@@ -22,6 +22,7 @@ import (
 	"aerpc"
 	"aerpc/rpcclient"
 	"time"
+	"utils"
 )
 
 const USAGE = `
@@ -69,7 +70,7 @@ func main() {
 }
 
 func printHead() {
-	fmt.Printf("Get\tAdd\tDel\tNF\tOP\tHP\tHPS\n")
+	fmt.Printf("Get\tAdd\tDel\tNF\tOP\tHP\tHPS\tIn\tOut\n")
 }
 
 var old *aerpc.RpcCommandStatus
@@ -85,7 +86,10 @@ func printStats(stat *aerpc.RpcCommandStatus) {
 		hp  := float64(stat.Storage.HoleCount) / float64(stat.Storage.FilesCount) * 100 
 		hps := float64(stat.Storage.HoleSize) / float64(stat.Storage.FilesSize) * 100 
 		
-		fmt.Printf("%d\t%d\t%d\t%d\t%d\t%.2f%%\t%.2f%%\n", get, add, del, notfound, op, hp, hps)
+		in := stat.Traffic["in"] - old.Traffic["in"]
+		out := stat.Traffic["out"] - old.Traffic["out"]
+		
+		fmt.Printf("%d\t%d\t%d\t%d\t%d\t%.2f%%\t%.2f%%\t%s\t%s\n", get, add, del, notfound, op, hp, hps, utils.HumanBytes(int64(in)), utils.HumanBytes(int64(out)))
 	}
 	old = stat
 }
