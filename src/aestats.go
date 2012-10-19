@@ -70,7 +70,7 @@ func main() {
 }
 
 func printHead() {
-	fmt.Printf("Get\tAdd\tDel\tNF\tOP\tHP\tHPS\tIn\tOut\n")
+	fmt.Printf("Get\tAdd\tDel\tNF\tOP\tHP\tHPS\tIn / Out\n")
 }
 
 var old *aerpc.RpcCommandStatus
@@ -89,7 +89,7 @@ func printStats(stat *aerpc.RpcCommandStatus) {
 		in := stat.Traffic["in"] - old.Traffic["in"]
 		out := stat.Traffic["out"] - old.Traffic["out"]
 		
-		fmt.Printf("%d\t%d\t%d\t%d\t%d\t%.2f%%\t%.2f%%\t%s\t%s\n", get, add, del, notfound, op, hp, hps, utils.HumanBytes(int64(in)), utils.HumanBytes(int64(out)))
+		fmt.Printf("%d\t%d\t%d\t%d\t%d\t%.2f%%\t%.2f%%\t%s / %s\n", get, add, del, notfound, op, hp, hps, utils.HumanBytes(int64(in)), utils.HumanBytes(int64(out)))
 	}
 	old = stat
 }
