@@ -139,7 +139,7 @@ func (conf *Config) ReadFile(filename string) {
 	
 	// Http write timeout
 	s, err = c.String("http", "write_timeout")
-	if err == nil {
+	if err == nil && s != "0" && s != "" {
 		conf.HttpWriteTimeout, err = time.ParseDuration(s)
 		if err != nil {
 			panic("Incorrect http.write_timeout time duration")
@@ -151,7 +151,7 @@ func (conf *Config) ReadFile(filename string) {
 	
 	// Http read timeout
 	s, err = c.String("http", "read_timeout")
-	if err == nil {
+	if err == nil  && s != "0" && s != "" {
 		conf.HttpReadTimeout, err = time.ParseDuration(s)
 		if err != nil {
 			panic("Incorrect http.read_timeout time duration")
