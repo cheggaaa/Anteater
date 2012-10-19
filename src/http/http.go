@@ -62,6 +62,8 @@ func (s *Server) Run() {
 		serv := &http.Server{
 			Addr:         addr,
 			Handler:      handler,
+			ReadTimeout:  s.conf.HttpReadTimeout,
+			WriteTimeout: s.conf.HttpWriteTimeout,
 		}
 		log.Fatal(serv.ListenAndServe())
 	}

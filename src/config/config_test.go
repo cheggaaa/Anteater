@@ -73,6 +73,8 @@ var TestConfig *Config = &Config{
 	
 	HttpWriteAddr : ":8081",
 	HttpReadAddr  : ":8080",
+	HttpWriteTimeout : 31 * time.Second,
+	HttpReadTimeout : 2 * time.Minute,
 	ETagSupport   : true,
 	ContentRange  : 5 * 1024,
 	StatusJson    : "status.json",
@@ -104,7 +106,7 @@ func configToString(c *Config) string {
 	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
 	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
 	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir,
-	c.AmazonCFAuthentication, c.AmazonCFDistributionId, c.AmazonCFEnable, c.AmazonInvalidationDuration)
+	c.AmazonCFAuthentication, c.AmazonCFDistributionId, c.AmazonCFEnable, c.AmazonInvalidationDuration, c.HttpReadTimeout, c.HttpWriteTimeout)
 }
 
 
@@ -130,6 +132,9 @@ read_addr : :8080
 
 # Addr for listen read and write requests
 write_addr : :8081
+
+read_timeout : 2m
+write_timeout : 31s
 
 # ETag support
 etag : on
