@@ -135,6 +135,8 @@ func (conf *Config) ReadFile(filename string) {
 	conf.HttpReadAddr, err = c.String("http", "read_addr")
 	if err != nil || len(conf.HttpReadAddr) == 0 {
 		conf.HttpReadAddr = conf.HttpWriteAddr
+	} else {
+		err = nil
 	}
 	
 	// Http write timeout
@@ -147,6 +149,8 @@ func (conf *Config) ReadFile(filename string) {
 		if conf.HttpWriteTimeout <= 0 {
 			panic("Incorrect http.write_timeout time duration")
 		} 
+	} else {
+		err = nil
 	}
 	
 	// Http read timeout
