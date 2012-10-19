@@ -26,7 +26,7 @@ import (
 
 const USAGE = `
 Usage:
-	aecommand [-s=server_addr]
+	aestats [-s="server_addr"]
 ` + aerpc.SERVER_FLAG_FORMAT + `
 `;
 
@@ -92,10 +92,5 @@ func printStats(stat *aerpc.RpcCommandStatus) {
 
 
 func printHelp() {
-	var commandsHelp = ""
-	
-	for name, cmd := range aerpc.Commands {
-		commandsHelp += fmt.Sprintf("\n%s\n%s\n", name, cmd.Help())
-	}
-	fmt.Printf(USAGE, commandsHelp)
+	fmt.Print(USAGE)
 }

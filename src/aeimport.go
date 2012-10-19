@@ -38,17 +38,17 @@ const (
 
 const USAGE = `
 Usage:
-	aeimport [-s=host:port] [-v] [-m=method] [-c=concurrency] [-p=prefix] /path/to/dir
+	aeimport [-s="host:port"] [-v] [-m=method] [-c=concurrency] [-p=prefix] /path/to/dir
 		OR
-	aeimport [-s=host:port] [-v] [-m=method] [-c=concurrency] [-p=prefix] /path/to/file_with_urls
+	aeimport [-s="host:port"] [-v] [-m=method] [-c=concurrency] [-p=prefix] /path/to/file_with_urls
 	
 Options:
 	-s=server_addr
 		default addr: 127.0.0.1:8081
 		examples:
-			-s=192.168.1.2 will be 192.168.1.2:8081
-			-s=:82 will be 127.0.0.1:82
-			-s=anteater.local:82 will be anteater.local:82
+			-s="192.168.1.2" will be 192.168.1.2:8081
+			-s=":82" will be 127.0.0.1:82
+			-s="anteater.local:82" will be anteater.local:82
 		
 	-m=method
 		upload method

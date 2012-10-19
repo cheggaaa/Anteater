@@ -27,7 +27,7 @@ import (
 
 const USAGE = `
 Usage:
-	aecommand [-s=server_addr] command [arguments]
+	aecommand [-s="server_addr"] command [arguments]
 ` + aerpc.SERVER_FLAG_FORMAT + `		
 Commands:
 	%s
