@@ -31,6 +31,7 @@ type RpcCommand interface {
 	SetArgs(args []string)
 	Execute(client *rpc.Client) error
 	Print()
+	Data() interface{}
 }
 
 // All rpc commands as map[cmd_name] cmd
@@ -55,6 +56,7 @@ func (c *RpcCommandVersion) RpcName() string { return "Storage.Version" }
 func (c *RpcCommandVersion) Help() string { return "Print Anteater server version" }
 func (c *RpcCommandVersion) SetArgs(args []string) { return }
 func (c *RpcCommandVersion) Print() { fmt.Println(*c) }
+func (c *RpcCommandVersion) Data() interface{} { return c }
 func (c *RpcCommandVersion) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
@@ -67,6 +69,7 @@ func (c *RpcCommandPing) RpcName() string { return "Storage.Ping" }
 func (c *RpcCommandPing) Help() string { return "Return PONG if server running" }
 func (c *RpcCommandPing) SetArgs(args []string) { return }
 func (c *RpcCommandPing) Print() { fmt.Println(*c) }
+func (c *RpcCommandPing) Data() interface{} { return c }
 func (c *RpcCommandPing) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
@@ -95,6 +98,7 @@ func (c *RpcCommandStatus) Print() {
 	fmt.Println("Allocates")
 	fmt.Printf("  Append: %d\n  Replace: %d\n  In hole: %d\n\n", c.Allocate["append"], c.Allocate["replace"], c.Allocate["in"])
 }
+func (c *RpcCommandStatus) Data() interface{} { return c }
 func (c *RpcCommandStatus) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
@@ -118,6 +122,7 @@ func (c *RpcCommandCheckMD5) Print() {
 	}
 	fmt.Printf("Total scaned: %d. Errors: %d\n", len(*c), e)
 }
+func (c *RpcCommandCheckMD5) Data() interface{} { return c }
 func (c *RpcCommandCheckMD5) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
