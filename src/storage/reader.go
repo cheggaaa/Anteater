@@ -77,4 +77,39 @@ func (s *Reader) ReadAt(p []byte, off int64) (n int, err error) {
 	return
 }
 
+func (s *Reader) WriteTo(dst io.Writer) (written int64, err error) {
+	var bs int64
+	if s.limit > 100 * 1024 {
+		bs = 64 * 1024
+	} else {
+		bs = s.limit
+	}
+	buf := make([]byte, bs)
+	for {
+		nr, er := s.Read(buf)
+		if nr > 0 {
+			nw, ew := dst.Write(buf[0:nr])
+			if nw > 0 {
+				written += int64(nw)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er == io.EOF {
+			break
+		}
+		if er != nil {
+			err = er
+			break
+		}
+	}
+	return written, err
+}
+
 func (s *Reader) Size() int64 { return s.limit - s.base }

@@ -160,8 +160,8 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	var written int64
 	h := md5.New()
 	var bs int
-	if size > 16 * 1024 {
-		bs = 16 * 1024
+	if size > 100 * 1024 {
+		bs = 64 * 1024
 	} else {
 		bs = int(size)
 	}
