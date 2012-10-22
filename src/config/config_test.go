@@ -69,6 +69,7 @@ var TestConfig *Config = &Config{
 	DataPath      : "/opt/DB/anteater/",
 	ContainerSize : 200 * 1024,
 	MinEmptySpace : 50 * 1024,
+	DumpTime      : time.Minute,
 	TmpDir        : "/tmp/dir",
 	
 	HttpWriteAddr : ":8081",
@@ -106,7 +107,8 @@ func configToString(c *Config) string {
 	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
 	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
 	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir,
-	c.AmazonCFAuthentication, c.AmazonCFDistributionId, c.AmazonCFEnable, c.AmazonInvalidationDuration, c.HttpReadTimeout, c.HttpWriteTimeout)
+	c.AmazonCFAuthentication, c.AmazonCFDistributionId, c.AmazonCFEnable, c.AmazonInvalidationDuration, c.HttpReadTimeout, c.HttpWriteTimeout,
+	c.DumpTime)
 }
 
 
@@ -122,6 +124,8 @@ container_size : 200K
 
 # Min empty space. After this value will be created new container
 min_empty_space : 50K
+
+dump_duration : 1m
 
 tmp_dir : /tmp/dir/
 

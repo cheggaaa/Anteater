@@ -105,7 +105,7 @@ func (conf *Config) ReadFile(filename string) {
 	conf.MinEmptySpace, err = utils.BytesFromString(s)
 	
 	
-	// Min empty space
+	// Dump time duration
 	s, err = c.String("data", "dump_duration")
 	if err != nil {
 		conf.DumpTime = time.Minute
