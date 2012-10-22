@@ -449,7 +449,7 @@ func storageConf() *config.Config {
 }
 
 
-func BenchmarkAdd100B(b *testing.B) {
+func Benchmark_Add100B(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
 	st := GetStorage(conf)
@@ -457,25 +457,28 @@ func BenchmarkAdd100B(b *testing.B) {
 	st.Drop()
 }
 
-func BenchmarkAdd100K(b *testing.B) {
+func Benchmark_Add100K(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
+	conf.ContainerSize = 1024 * 1024 * 200
 	st := GetStorage(conf)
 	benchmarkAdd(st, b, 100 * 1024)
 	st.Drop()
 }
 
-func BenchmarkAdd1M(b *testing.B) {
+func Benchmark_Add1Mb(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
+	conf.ContainerSize = 1024 * 1024 * 200
 	st := GetStorage(conf)
 	benchmarkAdd(st, b, 1024 * 1024)
 	st.Drop()
 }
 
-func BenchmarkAddRand(b *testing.B) {
+func Benchmark_AddRand(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
+	conf.ContainerSize = 1024 * 1024 * 200
 	st := GetStorage(conf)
 	benchmarkAdd(st, b, 0)
 	st.Drop()
@@ -499,7 +502,7 @@ func benchmarkAdd(st *Storage, b *testing.B, size int) {
 	}
 }
 
-func BenchmarkGet100B(b *testing.B) {
+func Benchmark_Get100B(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
 	st := GetStorage(conf)
@@ -507,7 +510,7 @@ func BenchmarkGet100B(b *testing.B) {
 	st.Drop()
 }
 
-func BenchmarkGet100K(b *testing.B) {
+func Benchmark_Get100K(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
 	st := GetStorage(conf)
@@ -515,7 +518,7 @@ func BenchmarkGet100K(b *testing.B) {
 	st.Drop()
 }
 
-func BenchmarkGet1M(b *testing.B) {
+func Benchmark_Get1Mb(b *testing.B) {
 	b.StopTimer()
 	conf := storageConf()
 	st := GetStorage(conf)
@@ -551,7 +554,7 @@ func benchmarkDelete(st *Storage, b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		n := fmt.Sprintf("b-%d", i)
-		st.Add(n, randReader(10), 10)
+		st.Add(n, randReader(1), 1)
 		b.StartTimer()
 		st.Delete(n)
 		b.StopTimer()
