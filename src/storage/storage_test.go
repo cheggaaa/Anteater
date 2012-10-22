@@ -37,7 +37,7 @@ var it int64 = 100
 var randFiles map[string]int64
 
 func TestCreate(t *testing.T) {
-	aelog.DefaultLogger, _ = aelog.New("", 0)
+	aelog.DefaultLogger, _ = aelog.New("", aelog.LOG_WARN)
 	conf := storageConf()
 	s = GetStorage(conf)
 	if len(s.Containers.Containers) != 1 {
@@ -446,5 +446,125 @@ func storageConf() *config.Config {
 		ContainerSize : 3 * mb,
 		MinEmptySpace : 1  * mb,
 	}
+}
+
+
+func BenchmarkAdd100B(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkAdd(st, b, 100)
+	st.Drop()
+}
+
+func BenchmarkAdd100K(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkAdd(st, b, 100 * 1024)
+	st.Drop()
+}
+
+func BenchmarkAdd1M(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkAdd(st, b, 1024 * 1024)
+	st.Drop()
+}
+
+func BenchmarkAddRand(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkAdd(st, b, 0)
+	st.Drop()
+}
+
+func benchmarkAdd(st *Storage, b *testing.B, size int) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+	 	var sz int64
+		if size == 0 {
+			sz = int64(mrand.Intn(1023 * 1024) + 1024)
+		} else {
+			sz = int64(size)
+		}
+		f := randReader(sz)
+		n := fmt.Sprintf("b-%d", i)
+		b.StartTimer()
+		st.Add(n, f, sz)
+		b.StopTimer()
+		b.SetBytes(sz)
+	}
+}
+
+func BenchmarkGet100B(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkGet(st, b, 100)
+	st.Drop()
+}
+
+func BenchmarkGet100K(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkGet(st, b, 100 * 1024)
+	st.Drop()
+}
+
+func BenchmarkGet1M(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkGet(st, b, 1024 * 1024)
+	st.Drop()
+}
+
+
+func benchmarkGet(st *Storage, b *testing.B, size int64) {
+	var n = "test"
+	st.Add(n, randReader(size), size)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w := &CWriter{}
+		b.StartTimer()
+		f,_ := st.Get(n)
+		io.Copy(w, f.GetReader())
+		b.StopTimer()
+		b.SetBytes(int64(w.L))
+	}
+}
+
+func BenchmarkDelete(b *testing.B) {
+	b.StopTimer()
+	conf := storageConf()
+	st := GetStorage(conf)
+	benchmarkDelete(st, b)
+	st.Drop()
+}
+
+
+func benchmarkDelete(st *Storage, b *testing.B) {
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		n := fmt.Sprintf("b-%d", i)
+		st.Add(n, randReader(10), 10)
+		b.StartTimer()
+		st.Delete(n)
+		b.StopTimer()
+	}
+}
+
+
+type CWriter struct {
+	L int
+}
+func (w *CWriter) Write(b []byte) (n int, err error) {
+	n = len(b)
+	w.L += n
+	return
 }
 

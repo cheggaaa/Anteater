@@ -61,17 +61,16 @@ func GetStorage(c *config.Config) (s *Storage) {
 		Conf : c,
 		wm   : &sync.Mutex{},
 	}
-	fmt.Printf("Try restore from %s... ", s.DumpFilename())
+	aelog.Infof("Try restore from %s... ", s.DumpFilename())
 	err, exists := s.Restore()
 	if err != nil {
 		if  ! exists {
-			fmt.Printf("index does not exists, create new storage.. ")
+			aelog.Infof("index does not exists, create new storage.. ")
 			s.Create()
 		} else {
 			panic(err)
 		}
 	}
-	fmt.Print("done\n")
 	s.Init()
 	return
 }

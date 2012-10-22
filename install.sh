@@ -11,7 +11,7 @@ go get github.com/kless/goconfig/config
 if [[ $1 != "notest" ]]; then
 	echo "Run tests.."
 	cd $GOPATH/src
-	GOPATH=$GOPATH go test utils config dump storage
+	GOPATH=$GOPATH go test utils config dump storage $2
 	cd ../
 fi
 
