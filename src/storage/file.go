@@ -105,7 +105,46 @@ func (f *File) ContentType() (ctype string) {
 		f.ctype = ctype
 	}	
 	return
-} 
+}
+
+func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
+	h := md5.New()
+	var bs int
+	if f.Size > 100 * 1024 {
+		bs = 64 * 1024
+	} else {
+		bs = int(f.Size)
+	}
+	buf := make([]byte, bs)
+	for {
+		nr, er := r.Read(buf)
+		if nr > 0 {
+			nw, ew := f.WriteAt(buf[0:nr], written)
+			if nw > 0 {
+				written += int64(nw)
+				h.Write(buf[0:nw])
+				f.s.Stats.Traffic.Input.AddN(nw)
+			}
+			if ew != nil {
+				err = ew
+				break
+			}
+			if nr != nw {
+				err = io.ErrShortWrite
+				break
+			}
+		}
+		if er == io.EOF {
+			break
+		}
+		if er != nil {
+			err = er
+			break
+		}
+	}
+	f.Md5 = h.Sum(nil)
+	return
+}
 
 func (f *File) Delete() {
 	if f.openCount == 0 {

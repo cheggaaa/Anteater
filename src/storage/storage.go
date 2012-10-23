@@ -21,7 +21,6 @@ import (
 	"config"
 	"sync"
 	"errors"
-	"crypto/md5"
 	"os"
 	"time"
 	"cnst"
@@ -157,41 +156,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 		panic(err)
 	}
 	
-	var written int64
-	h := md5.New()
-	var bs int
-	if size > 100 * 1024 {
-		bs = 64 * 1024
-	} else {
-		bs = int(size)
-	}
-	buf := make([]byte, bs)
-	for {
-		nr, er := r.Read(buf)
-		if nr > 0 {
-			nw, ew := f.WriteAt(buf[0:nr], written)
-			if nw > 0 {
-				written += int64(nw)
-				h.Write(buf[0:nw])
-				s.Stats.Traffic.Input.AddN(nw)
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-			if nr != nw {
-				err = io.ErrShortWrite
-				break
-			}
-		}
-		if er == io.EOF {
-			break
-		}
-		if er != nil {
-			err = er
-			break
-		}
-	}
+	written, err := f.ReadFrom(r)
 	
 	if err != nil {
 		panic(err)
@@ -200,8 +165,6 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	if written != size {
 		panic(fmt.Sprintf("Error while adding file. Requested size %d, but written only %d", size, written))
 	}
-	
-	f.Md5 = h.Sum(nil)	
 	
 	err = s.Index.Add(name, f)
 	if err != nil {
