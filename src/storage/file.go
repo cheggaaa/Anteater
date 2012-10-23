@@ -97,7 +97,7 @@ func (f *File) ContentType() (ctype string) {
 	if ctype == "" {
 		ctype = mime.TypeByExtension(filepath.Ext(f.name))
 		if ctype == "" {
-			var buf [1024]byte
+			var buf [512]byte
 			n, _ := io.ReadFull(f.GetReader(), buf[:])
 			b := buf[:n]
 			ctype = http.DetectContentType(b)
