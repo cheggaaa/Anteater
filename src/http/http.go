@@ -231,7 +231,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	if f.Size > s.conf.ContentRange {
 		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
-		io.Copy(w, reader)
+		reader.WriteTo(w)
 	}
 		
 	s.accessLog(200, r)
