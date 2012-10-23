@@ -253,6 +253,10 @@ func (s *Storage) Dump() (err error) {
 		return
 	}
 	tot := time.Since(st)
+	s.Stats.Storage.DumpSize = int64(n)
+	s.Stats.Storage.DumpTime = st
+	s.Stats.Storage.DumpSaveTime = tot
+	s.Stats.Storage.DumpLockTime = prep
 	aelog.Debugf("Dump: %s bytes writed to %s for %v prep(%v)", utils.HumanBytes(int64(n)), fname, tot, prep)
 	return
 }

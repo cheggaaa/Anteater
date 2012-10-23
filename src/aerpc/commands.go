@@ -87,9 +87,11 @@ func (c *RpcCommandStatus) Print() {
 	fmt.Println("Enviroment")
 	fmt.Printf("  Go version: %s\n  Server time:  %v\n  Num goroutines: %d\n  Memory allocated: %s\n\n", c.Env.GoVersion, c.Env.Time, c.Env.NumGoroutine, utils.HumanBytes(int64(c.Env.MemAlloc)))
 	fmt.Println("Storage")
-	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Holes: %s (%d)\n  Index version: %d\n\n", 
+	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Holes: %s (%d)\n  Index version: %d\n", 
 		c.Storage.ContainersCount, c.Storage.FilesCount, utils.HumanBytes(c.Storage.FilesSize), 
 		utils.HumanBytes(c.Storage.HoleSize), c.Storage.HoleCount, c.Storage.IndexVersion)
+	fmt.Printf("  Dump file size: %s\n  Dump save time: %v\n  Dump save lock: %v\n  Last dump created: %v\n\n", 
+		utils.HumanBytes(c.Storage.DumpSize), c.Storage.DumpSaveTime, c.Storage.DumpLockTime, c.Storage.DumpTime)
 	fmt.Println("Counters")
 	fmt.Printf("  Get: %d\n  Add: %d\n  Delete: %d\n  Not found: %d\n  Not modified: %d\n\n", 
 		c.Counters["get"], c.Counters["add"], c.Counters["delete"], c.Counters["notFound"], c.Counters["notModified"])
