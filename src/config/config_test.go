@@ -96,19 +96,13 @@ var TestConfig *Config = &Config{
 	
 	DownloaderEnable : true,
 	DownloaderParamName : "url",
-	
-	AmazonCFEnable : true,
-	AmazonCFDistributionId : "123",
-	AmazonCFAuthentication : "abc",
-	AmazonInvalidationDuration : (25 * time.Minute),
 }
 
 func configToString(c *Config) string {
 	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
 	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
 	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir,
-	c.AmazonCFAuthentication, c.AmazonCFDistributionId, c.AmazonCFEnable, c.AmazonInvalidationDuration, c.HttpReadTimeout, c.HttpWriteTimeout,
-	c.DumpTime)
+	c.HttpReadTimeout, c.HttpWriteTimeout, c.DumpTime)
 }
 
 
@@ -187,19 +181,5 @@ ctrl_url   : http://localhost/upload/
 
 # GET parameter name for uploader
 token_name : _token
-
-# amazon cloud front callbacks
-[amazon]
-# is enable
-enable : on
-
-# Amazon distribution ID
-distribution_id : 123
-
-# AWS authentication string
-authentication  : abc
-
-# Time duration for send invalidation request, by default 10 minutes
-duration : 25m
 
 `

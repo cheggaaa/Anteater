@@ -28,7 +28,6 @@ import (
 	"fmt"
 	"stats"
 	"aelog"
-	"amazon"
 	"utils"
 )
 
@@ -51,7 +50,6 @@ type Storage struct {
 	Conf *config.Config
 	Stats *stats.Stats
 	wm   *sync.Mutex
-	cf   *amazon.CloudFront
 }
 
 
@@ -88,9 +86,6 @@ func (s *Storage) Init() {
 				}()
 			}
 		}()
-	if s.Conf.AmazonCFEnable {
-		s.cf = amazon.NewCloudFront(s.Conf)
-	}
 	return
 }
 
@@ -222,9 +217,6 @@ func (s *Storage) Delete(name string) (ok bool) {
 	f, ok := s.Index.Delete(name)
 	if ok {
 		f.Delete()
-		if s.cf != nil {
-			s.cf.OnChange(name)
-		}
 	}
 	return
 }
