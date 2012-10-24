@@ -21,6 +21,8 @@ import (
 	"net/rpc"
 	"stats"
 	"utils"
+	"errors"
+	"strings"
 )
 
 // Interface
@@ -28,8 +30,8 @@ type RpcCommand interface {
 	ShortName() string
 	RpcName() string
 	Help() string
-	SetArgs(args []string)
-	Execute(client *rpc.Client) error
+	SetArgs(args []string) (err error)
+	Execute(client *rpc.Client) (err error)
 	Print()
 	Data() interface{}
 }
@@ -43,6 +45,7 @@ func RegisterCommands() {
 	cmds = append(cmds, new(RpcCommandPing))
 	cmds = append(cmds, new(RpcCommandStatus))
 	cmds = append(cmds, new(RpcCommandCheckMD5))
+	cmds = append(cmds, new(RpcCommandBackup))
 	
 	for _, cmd := range cmds {
 		Commands[cmd.ShortName()] = cmd
@@ -54,7 +57,7 @@ type RpcCommandVersion string
 func (c *RpcCommandVersion) ShortName() string { return "VERSION" }
 func (c *RpcCommandVersion) RpcName() string { return "Storage.Version" }
 func (c *RpcCommandVersion) Help() string { return "Print Anteater server version" }
-func (c *RpcCommandVersion) SetArgs(args []string) { return }
+func (c *RpcCommandVersion) SetArgs(args []string) (err error) { return }
 func (c *RpcCommandVersion) Print() { fmt.Println(*c) }
 func (c *RpcCommandVersion) Data() interface{} { return c }
 func (c *RpcCommandVersion) Execute(client *rpc.Client) (err error) {
@@ -67,7 +70,7 @@ type RpcCommandPing string
 func (c *RpcCommandPing) ShortName() string { return "PING" }
 func (c *RpcCommandPing) RpcName() string { return "Storage.Ping" }
 func (c *RpcCommandPing) Help() string { return "Return PONG if server running" }
-func (c *RpcCommandPing) SetArgs(args []string) { return }
+func (c *RpcCommandPing) SetArgs(args []string) (err error) { return }
 func (c *RpcCommandPing) Print() { fmt.Println(*c) }
 func (c *RpcCommandPing) Data() interface{} { return c }
 func (c *RpcCommandPing) Execute(client *rpc.Client) (err error) {
@@ -80,7 +83,7 @@ type RpcCommandStatus stats.StatsInfo
 func (c *RpcCommandStatus) ShortName() string { return "STATUS" }
 func (c *RpcCommandStatus) RpcName() string { return "Storage.Status" }
 func (c *RpcCommandStatus) Help() string { return "Return server status info" }
-func (c *RpcCommandStatus) SetArgs(args []string) { return }
+func (c *RpcCommandStatus) SetArgs(args []string) (err error) { return }
 func (c *RpcCommandStatus) Print() { 
 	fmt.Println("Anteater")
 	fmt.Printf("  Start time: %v\n  Version: %s\n\n", c.Anteater.StartTime, c.Anteater.Version)
@@ -110,8 +113,8 @@ func (c *RpcCommandStatus) Execute(client *rpc.Client) (err error) {
 type RpcCommandCheckMD5 map[string]bool
 func (c *RpcCommandCheckMD5) ShortName() string { return "CHECKMD5" }
 func (c *RpcCommandCheckMD5) RpcName() string { return "Storage.CheckMD5" }
-func (c *RpcCommandCheckMD5) Help() string { return "Return PONG if server running" }
-func (c *RpcCommandCheckMD5) SetArgs(args []string) { return }
+func (c *RpcCommandCheckMD5) Help() string { return "Return list invalid files" }
+func (c *RpcCommandCheckMD5) SetArgs(args []string) (err error) { return }
 func (c *RpcCommandCheckMD5) Print() {
 	var ok, e int
 	for n, r := range *c {
@@ -127,5 +130,33 @@ func (c *RpcCommandCheckMD5) Print() {
 func (c *RpcCommandCheckMD5) Data() interface{} { return c }
 func (c *RpcCommandCheckMD5) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
+	return
+}
+
+
+type RpcCommandBackup struct {
+	path string
+	result bool
+}
+func (c *RpcCommandBackup) ShortName() string { return "BACKUP" }
+func (c *RpcCommandBackup) RpcName() string { return "Storage.Backup" }
+func (c *RpcCommandBackup) Help() string { return "Return true or false" }
+func (c *RpcCommandBackup) SetArgs(args []string) (err error) {
+	if len(args) < 1 {
+		err = errors.New("Missing path argument")
+		return
+	}
+	c.path = strings.Trim(args[0], " ")
+	return 
+}
+func (c *RpcCommandBackup) Print() {
+	fmt.Printf("Result: %v\n", c.result)
+}
+func (c *RpcCommandBackup) Data() interface{} { return c }
+func (c *RpcCommandBackup) Execute(client *rpc.Client) (err error) {
+	if c.path == "" {
+		return errors.New("Missing path argument")
+	}
+	err = client.Call(c.RpcName(), c.path, &c.result)
 	return
 }

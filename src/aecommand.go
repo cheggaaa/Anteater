@@ -68,7 +68,11 @@ func main() {
 	defer client.Close()
 	
 	if args != nil && len(args) > 0 {
-		cmd.SetArgs(args)
+		err = cmd.SetArgs(args)
+		if err != nil {
+			fmt.Printf("Invalid args format: %v\n", err)
+			return
+		}
 	}
 	err = cmd.Execute(client)
 	if err != nil {

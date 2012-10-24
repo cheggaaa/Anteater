@@ -27,6 +27,7 @@ import (
 	"path/filepath"
 	"net/http"
 	"crypto/md5"
+	"encoding/hex"
 )
 
 type File struct {
@@ -144,6 +145,10 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 	}
 	f.Md5 = h.Sum(nil)
 	return
+}
+
+func (f *File) Md5S() string {
+	return hex.EncodeToString(f.Md5)
 }
 
 func (f *File) Delete() {

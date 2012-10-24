@@ -24,6 +24,7 @@ import (
 	"storage"
 	"stats"
 	"cnst"
+	"backup"
 )
 
 type Storage struct {
@@ -63,4 +64,9 @@ func (r *Storage) Ping(args *bool, reply *string) error {
 func (r *Storage) CheckMD5 (args *bool, reply *map[string]bool) error {
 	*reply = r.s.CheckMD5()
 	return nil
+}
+
+func (r *Storage) Backup (args *string, reply *bool) error {
+	*reply = true
+	return backup.CreateBackup(r.s, *args)
 }

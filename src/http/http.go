@@ -30,7 +30,6 @@ import (
 	"strings"
 	"temp"
 	"uploader"
-	"encoding/hex"
 )
 
 const (
@@ -210,7 +209,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		w.Header().Set("E-Tag", f.ETag())
 	}
 	if s.conf.Md5Header {
-		w.Header().Set("X-Ae-Md5", hex.EncodeToString(f.Md5));
+		w.Header().Set("X-Ae-Md5", f.Md5S());
 	}
 	
 	
@@ -289,7 +288,7 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 		return
 	}
 	f := s.stor.Add(name, reader, size)
-	w.Header().Set("X-Ae-Md5", hex.EncodeToString(f.Md5));	
+	w.Header().Set("X-Ae-Md5", f.Md5S());	
 	w.Header().Set("Etag", f.ETag());
 	w.Header().Set("Location", name);
 	w.WriteHeader(http.StatusCreated)
