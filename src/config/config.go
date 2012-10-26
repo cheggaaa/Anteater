@@ -37,6 +37,8 @@ type Config struct {
 	// Http
 	HttpWriteAddr string
 	HttpReadAddr  string
+	HttpWriteTimeout time.Duration
+	HttpReadTimeout time.Duration
 	ETagSupport   bool
 	Md5Header     bool
 	ContentRange  int64
@@ -97,7 +99,7 @@ func (conf *Config) ReadFile(filename string) {
 	conf.MinEmptySpace, err = utils.BytesFromString(s)
 	
 	
-	// Min empty space
+	// Dump time duration
 	s, err = c.String("data", "dump_duration")
 	if err != nil {
 		conf.DumpTime = time.Minute
@@ -127,6 +129,34 @@ func (conf *Config) ReadFile(filename string) {
 	conf.HttpReadAddr, err = c.String("http", "read_addr")
 	if err != nil || len(conf.HttpReadAddr) == 0 {
 		conf.HttpReadAddr = conf.HttpWriteAddr
+	} else {
+		err = nil
+	}
+	
+	// Http write timeout
+	s, err = c.String("http", "write_timeout")
+	if err == nil && s != "0" && s != "" {
+		conf.HttpWriteTimeout, err = time.ParseDuration(s)
+		if err != nil {
+			panic("Incorrect http.write_timeout time duration")
+		}
+		if conf.HttpWriteTimeout <= 0 {
+			panic("Incorrect http.write_timeout time duration")
+		} 
+	} else {
+		err = nil
+	}
+	
+	// Http read timeout
+	s, err = c.String("http", "read_timeout")
+	if err == nil  && s != "0" && s != "" {
+		conf.HttpReadTimeout, err = time.ParseDuration(s)
+		if err != nil {
+			panic("Incorrect http.read_timeout time duration")
+		}
+		if conf.HttpReadTimeout <= 0 {
+			panic("Incorrect http.read_timeout time duration")
+		} 
 	}
 	
 	// ETag flag

@@ -62,6 +62,8 @@ func (s *Server) Run() {
 		serv := &http.Server{
 			Addr:         addr,
 			Handler:      handler,
+			ReadTimeout:  s.conf.HttpReadTimeout,
+			WriteTimeout: s.conf.HttpWriteTimeout,
 		}
 		log.Fatal(serv.ListenAndServe())
 	}
@@ -206,6 +208,9 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	if s.conf.ETagSupport {
 		w.Header().Set("E-Tag", f.ETag())
 	}
+	if s.conf.Md5Header {
+		w.Header().Set("X-Ae-Md5", f.Md5S());
+	}
 	
 	
 	// Add headers from config
@@ -226,9 +231,9 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	if f.Size > s.conf.ContentRange {
 		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
-		io.Copy(w, reader)
+		reader.WriteTo(w)
 	}
-	
+		
 	s.accessLog(200, r)
 }
 
@@ -283,7 +288,7 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 		return
 	}
 	f := s.stor.Add(name, reader, size)
-	w.Header().Set("X-Ae-Md5", fmt.Sprintf("%x", f.Md5));	
+	w.Header().Set("X-Ae-Md5", f.Md5S());	
 	w.Header().Set("Etag", f.ETag());
 	w.Header().Set("Location", name);
 	w.WriteHeader(http.StatusCreated)

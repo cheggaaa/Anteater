@@ -21,7 +21,6 @@ import (
 	"config"
 	"sync"
 	"errors"
-	"crypto/md5"
 	"os"
 	"time"
 	"cnst"
@@ -29,6 +28,7 @@ import (
 	"fmt"
 	"stats"
 	"aelog"
+	"utils"
 )
 
 const (
@@ -58,17 +58,16 @@ func GetStorage(c *config.Config) (s *Storage) {
 		Conf : c,
 		wm   : &sync.Mutex{},
 	}
-	fmt.Printf("Try restore from %s... ", s.DumpFilename())
+	aelog.Infof("Try restore from %s... ", s.DumpFilename())
 	err, exists := s.Restore()
 	if err != nil {
 		if  ! exists {
-			fmt.Printf("index does not exists, create new storage.. ")
+			aelog.Infof("index does not exists, create new storage.. ")
 			s.Create()
 		} else {
 			panic(err)
 		}
 	}
-	fmt.Print("done\n")
 	s.Init()
 	return
 }
@@ -152,37 +151,15 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 		panic(err)
 	}
 	
-	var written int64
-	h := md5.New()
-	for {
-		buf := make([]byte, 100*1024)
-		nr, er := io.ReadFull(r, buf)
-		if nr > 0 {
-			nw, ew := f.WriteAt(buf[0:nr], written)
-			if nw > 0 {
-				written += int64(nw)
-				h.Write(buf[0:nw])
-				s.Stats.Traffic.Input.AddN(nw)
-			}
-			if ew != nil {
-				err = ew
-				break
-			}
-		}
-		if er != nil {
-			err = er
-			break
-		}
-		if err != nil {
-			panic(err)
-		}
+	written, err := f.ReadFrom(r)
+	
+	if err != nil {
+		panic(err)
 	}
 	
 	if written != size {
 		panic(fmt.Sprintf("Error while adding file. Requested size %d, but written only %d", size, written))
 	}
-	
-	f.Md5 = h.Sum(nil)	
 	
 	err = s.Index.Add(name, f)
 	if err != nil {
@@ -200,7 +177,7 @@ func (s *Storage) allocateFile(f *File) (err error) {
 	var ok bool
 	for _, target := range targets {
 		for _, c := range s.Containers.Containers {
-			if c.MaxSpace() >= f.Size {
+			if c.MaxSpace(target) >= f.Size {
 				ok = c.Add(f, target)
 				if ok {
 					switch target {
@@ -268,7 +245,11 @@ func (s *Storage) Dump() (err error) {
 		return
 	}
 	tot := time.Since(st)
-	fmt.Printf("Dump: %d bytes writed to %s for %v prep(%v)\n", n, fname, tot, prep)
+	s.Stats.Storage.DumpSize = int64(n)
+	s.Stats.Storage.DumpTime = st
+	s.Stats.Storage.DumpSaveTime = tot
+	s.Stats.Storage.DumpLockTime = prep
+	aelog.Debugf("Dump: %s bytes writed to %s for %v prep(%v)", utils.HumanBytes(int64(n)), fname, tot, prep)
 	return
 }
 
@@ -282,6 +263,7 @@ func (s *Storage) Drop() (err error) {
 		}
 	}
 	os.Remove(s.DumpFilename())
+	os.Remove(s.DumpFilename() + ".td")
 	return
 }
 
@@ -328,6 +310,9 @@ func (s *Storage) CheckMD5() (result map[string]bool) {
 		if ok {
 			aelog.Debugf("Checking md5 for %s\n", n)
 			result[n] = f.CheckMd5()
+			if ! result[n] {
+				aelog.Infof("File %s has mismatched md5\n", n)
+			}
 		}
 	}
 	return

@@ -50,13 +50,17 @@ type Traffic struct {
 
 type Storage struct {
 	ContainersCount int
-	FilesCount int
-	FilesSize int64
-	TotalSize int64
-	FreeSpace int64
-	HoleCount int
-	HoleSize int64
+	FilesCount   int
+	FilesSize    int64
+	TotalSize    int64
+	FreeSpace    int64
+	HoleCount    int
+	HoleSize     int64
 	IndexVersion uint64
+	DumpSize     int64
+	DumpSaveTime time.Duration
+	DumpLockTime time.Duration
+	DumpTime     time.Time
 }
 
 func New() *Stats {

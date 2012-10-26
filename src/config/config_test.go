@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"aelog"
 	"mime"
+	"time"
 )
 
 
@@ -68,10 +69,13 @@ var TestConfig *Config = &Config{
 	DataPath      : "/opt/DB/anteater/",
 	ContainerSize : 200 * 1024,
 	MinEmptySpace : 50 * 1024,
+	DumpTime      : time.Minute,
 	TmpDir        : "/tmp/dir",
 	
 	HttpWriteAddr : ":8081",
 	HttpReadAddr  : ":8080",
+	HttpWriteTimeout : 31 * time.Second,
+	HttpReadTimeout : 2 * time.Minute,
 	ETagSupport   : true,
 	ContentRange  : 5 * 1024,
 	StatusJson    : "status.json",
@@ -84,7 +88,7 @@ var TestConfig *Config = &Config{
 		".jpg"   : "image/jpeg",
 		".test"  : "application/test",
 	},
-	LogLevel     : aelog.LOG_INFO,
+	LogLevel     : aelog.LOG_WARN,
 	LogFile		 : "/var/log/anteater.log",
 	UploaderEnable : true,
 	UploaderCtrlUrl : "http://localhost/upload/",
@@ -97,7 +101,8 @@ var TestConfig *Config = &Config{
 func configToString(c *Config) string {
 	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
 	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
-	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir)
+	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir,
+	c.HttpReadTimeout, c.HttpWriteTimeout, c.DumpTime)
 }
 
 
@@ -114,6 +119,8 @@ container_size : 200K
 # Min empty space. After this value will be created new container
 min_empty_space : 50K
 
+dump_duration : 1m
+
 tmp_dir : /tmp/dir/
 
 [http]
@@ -123,6 +130,9 @@ read_addr : :8080
 
 # Addr for listen read and write requests
 write_addr : :8081
+
+read_timeout : 2m
+write_timeout : 31s
 
 # ETag support
 etag : on
@@ -152,7 +162,7 @@ test : application/test
 
 [log]
 # Log level. Should be debug, info or warn
-level : info
+level : warn
 
 # File to write log, by default it's stdOut
 file  : /var/log/anteater.log
@@ -171,5 +181,5 @@ ctrl_url   : http://localhost/upload/
 
 # GET parameter name for uploader
 token_name : _token
-	
+
 `
