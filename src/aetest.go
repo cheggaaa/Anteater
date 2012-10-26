@@ -29,11 +29,13 @@ func init() {
 
 func main() {
 
-	clients := make([]*Client, 2)
+	clients := make([]*Client, 3)
 	clients[0] = NewClient("s", 100001, 200000, 20,     70)
-	clients[1] = NewClient("f", 0,      100000, 300000, 500000)
+	clients[1] = NewClient("f", 0,      100000, 30, 500)
+	clients[2] = NewClient("l", 200001, 300000, 100, 10000000)
 	go clients[0].Run()
 	go clients[1].Run()
+	go clients[2].Run()
 	
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
@@ -43,6 +45,8 @@ func main() {
 	fmt.Printf("%#v\n", clients[0].Result)
 	clients[1].Stop()
 	fmt.Printf("%#v\n", clients[1].Result)
+	clients[2].Stop()
+	fmt.Printf("%#v\n", clients[2].Result)
 }
 
 type Client struct {
