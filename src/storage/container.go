@@ -142,7 +142,10 @@ func (c *Container) Delete(f *File) {
 /**
  * Maximum space available for new file
  */
-func (c *Container) MaxSpace() int64 {
+func (c *Container) MaxSpace(target int) int64 {
+	if target < TARGET_NEW {
+		return c.MaxSpaceSize
+	}
 	var spaceSize int64 = c.Size - c.Offset
 	if c.MaxSpaceSize > spaceSize {
 		return c.MaxSpaceSize

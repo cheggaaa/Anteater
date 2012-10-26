@@ -177,7 +177,7 @@ func (s *Storage) allocateFile(f *File) (err error) {
 	var ok bool
 	for _, target := range targets {
 		for _, c := range s.Containers.Containers {
-			if c.MaxSpace() >= f.Size {
+			if c.MaxSpace(target) >= f.Size {
 				ok = c.Add(f, target)
 				if ok {
 					switch target {
