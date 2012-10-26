@@ -24,6 +24,7 @@ import (
 	"time"
 	"aelog"
 	"mime"
+	"runtime"
 )
 
 type Config struct {
@@ -33,6 +34,7 @@ type Config struct {
 	MinEmptySpace  int64
 	DumpTime time.Duration
 	TmpDir        string
+	CpuNum        int
 	
 	// Http
 	HttpWriteAddr string
@@ -118,6 +120,13 @@ func (conf *Config) ReadFile(filename string) {
 	if err == nil {
 		conf.TmpDir = strings.TrimRight(conf.TmpDir, "/")
 	}
+	
+	// Num cpu
+	conf.CpuNum, err = c.Int("data", "cpu_num")
+	if conf.CpuNum > runtime.NumCPU() || conf.CpuNum > runtime.NumCPU(){
+		conf.CpuNum = runtime.NumCPU()
+	}
+	runtime.GOMAXPROCS(conf.CpuNum)
 	
 	// Http write addr
 	conf.HttpWriteAddr, err = c.String("http", "write_addr")
