@@ -110,6 +110,8 @@ func main() {
 	// Run rpc server
 	rpcserver.StartRpcServer(stor)
 	
+	aelog.Infof("Run working (use %d cpus)", c.CpuNum)
+	
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
 	sig := <-interrupt
