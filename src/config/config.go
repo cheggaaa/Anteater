@@ -123,7 +123,7 @@ func (conf *Config) ReadFile(filename string) {
 	
 	// Num cpu
 	conf.CpuNum, err = c.Int("data", "cpu_num")
-	if conf.CpuNum > runtime.NumCPU() || conf.CpuNum > runtime.NumCPU(){
+	if conf.CpuNum < 1 || conf.CpuNum > runtime.NumCPU(){
 		conf.CpuNum = runtime.NumCPU()
 	}
 	runtime.GOMAXPROCS(conf.CpuNum)
