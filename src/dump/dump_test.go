@@ -19,6 +19,7 @@ package dump
 import (
 	"testing"
 	"os"
+	"aelog"
 	"fmt"
 )
 
@@ -45,11 +46,13 @@ var TestData *TD
 var TestCount int = 1000
 
 func TestDump(t *testing.T) {
+	aelog.DefaultLogger, _ = aelog.New("", 0)
 	for i := 0; i < 5; i++ {
 		TestCount -= i * 10
 		makeTestData()
 		file := "test.dump"
 		defer os.Remove(file)
+		defer os.Remove(file + ".td")
 		n, err := DumpTo(file, TestData)
 		if err != nil {
 			t.Errorf("Dump has error: %v", err)
@@ -72,6 +75,36 @@ func TestDump(t *testing.T) {
 		}
 	}
 }
+
+
+func Benchmark_DumpSave(b *testing.B) {
+	makeTestData()
+	file := "test.dump"
+	defer os.Remove(file)
+	defer os.Remove(file + ".td")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		n, _ := DumpTo(file, TestData)
+		b.SetBytes(int64(n))
+	}
+	b.StopTimer()
+}
+
+func Benchmark_DumpRestore(b *testing.B) {
+	makeTestData()
+	file := "test.dump"
+	defer os.Remove(file)
+	defer os.Remove(file + ".td")
+	n, _ := DumpTo(file, TestData)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		data := new(TD)
+		LoadData(file, data)
+		b.SetBytes(int64(n))
+	}
+	b.StopTimer()
+}
+
 
 func makeTestData() {
 	td1 := make([]*TD2, TestCount)

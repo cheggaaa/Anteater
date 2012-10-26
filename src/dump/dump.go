@@ -21,6 +21,9 @@ import (
 	"os"
 	"bytes"
 	"compress/gzip"
+	"io"
+	"errors"
+	"fmt"
 )
 
 
@@ -32,12 +35,13 @@ func DumpTo(filename string, d interface{}) (n int, err error) {
 	if err != nil {
 		return
 	}
-	fh, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)		
+	dumpfile := filename + ".td"
+	fh, err := os.OpenFile(dumpfile, os.O_CREATE|os.O_RDWR, 0666)		
 	if err != nil {
 		return
 	}
 	defer fh.Close()
-	
+
 	err = fh.Truncate(0)
 	if err != nil {
 		return
@@ -57,6 +61,26 @@ func DumpTo(filename string, d interface{}) (n int, err error) {
 		return
 	}
 	n, err = fh.Write(zb.Bytes())
+	if err != nil {
+		return
+	}
+	
+	// Copy to destination file
+	f, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)	
+	if err != nil {
+		return
+	}
+	defer f.Close()
+	f.Truncate(0)
+	fh.Seek(0, 0)
+	cp, err := io.Copy(f, fh)
+	if err != nil {
+		return
+	}
+	if cp != int64(n) {
+		err = errors.New(fmt.Sprintf("Writed %d bytes, but copied only %d", n, cp))
+		return 
+	}
 	return
 }
 
