@@ -268,8 +268,10 @@ func (s *Storage) Drop() (err error) {
 }
 
 func (s *Storage) Close() {
-	for _, c := range s.Containers.Containers {
-		c.Close()
+	if s.Containers.Containers != nil {
+		for _, c := range s.Containers.Containers {
+			c.Close()
+		}
 	}
 }
 
