@@ -75,17 +75,19 @@ func GetStorage(c *config.Config) (s *Storage) {
 
 func (s *Storage) Init() {
 	s.Stats = stats.New()
-	go func() { 
-			ch := time.Tick(s.Conf.DumpTime)
-			for _ = range ch {
-				func () {
-					err := s.Dump()
-					if err != nil {
-						panic(err)
-					}
-				}()
-			}
-		}()
+	if s.Conf.DumpTime > 0 {
+		go func() { 
+				ch := time.Tick(s.Conf.DumpTime)
+				for _ = range ch {
+					func () {
+						err := s.Dump()
+						if err != nil {
+							panic(err)
+						}
+					}()
+				}
+			}()
+	}
 	return
 }
 
