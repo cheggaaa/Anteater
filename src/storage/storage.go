@@ -75,6 +75,9 @@ func GetStorage(c *config.Config) (s *Storage) {
 
 func (s *Storage) Init() {
 	s.Stats = stats.New()
+	if ! s.lock() {
+		panic(errors.New("Anteater already running, or was crash(( Check process or remove lock file"))
+	}
 	if s.Conf.DumpTime > 0 {
 		go func() { 
 				ch := time.Tick(s.Conf.DumpTime)
@@ -269,12 +272,13 @@ func (s *Storage) Drop() (err error) {
 	return
 }
 
-func (s *Storage) Close() {
+func (s *Storage) Close() {	
+	s.unLock()
 	if s.Containers != nil && s.Containers.Containers != nil {
 		for _, c := range s.Containers.Containers {
 			c.Close()
 		}
-	}
+	}	
 }
 
 func (s *Storage) DumpFilename() string {
@@ -303,6 +307,27 @@ func (s *Storage) GetStats() *stats.Stats {
 	}
 		
 	return s.Stats
+}
+
+
+func (s *Storage) lock() bool {
+	f, err := os.Open(s.Conf.DataPath + "lock")
+	if err == nil {
+		f.Close()
+		return false
+	}
+	f, err = os.Create(s.Conf.DataPath + "lock")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	f.WriteString(cnst.VERSION)
+	f.Close()
+	return err == nil
+}
+
+func (s *Storage) unLock() {
+	os.Remove(s.Conf.DataPath + "lock")
 }
 
 
