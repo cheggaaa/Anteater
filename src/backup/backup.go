@@ -18,8 +18,10 @@ func CreateBackup(s *storage.Storage, toPath string) (err error) {
         	aelog.Warnf("Panic while backup: %v\n", r)
         	err = r.(error)
         }
-        backup.Close()
-        backup = nil
+        if backup != nil {
+	        backup.Close()
+	        backup = nil
+        }
 	}()
 	
 	// create config for backup storage
