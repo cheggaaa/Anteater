@@ -76,7 +76,7 @@ func GetStorage(c *config.Config) (s *Storage) {
 func (s *Storage) Init() {
 	s.Stats = stats.New()
 	if ! s.lock() {
-		panic(errors.New("Anteater already running, or was crash(( Check process or remove lock file"))
+		panic(errors.New("Anteater already running, or was crashed(( Check process or remove lock file"))
 	}
 	if s.Conf.DumpTime > 0 {
 		go func() { 
@@ -145,6 +145,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	var ok bool
 	defer func() {
 		if ! ok {
+			// if not added - remove file
 			if f.CId != 0 {
 				f.Delete()
 			}
@@ -259,6 +260,7 @@ func (s *Storage) Dump() (err error) {
 }
 
 func (s *Storage) Drop() (err error) {
+	s.Close()
 	if s.Containers != nil {
 		for _, c := range s.Containers.Containers {
 			err = os.Remove(c.Filename())
