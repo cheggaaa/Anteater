@@ -322,8 +322,11 @@ func (s *Storage) GetStats() *stats.Stats {
 		s.Stats.Storage.HoleSize += hs
 	}
 	
-	for _, f := range s.Index.Files {
-		s.Stats.Storage.FilesSize += f.Size
+	for n, _ := range s.Index.Files {
+		f, ok := s.Index.Get(n)
+		if ok {
+			s.Stats.Storage.FilesSize += f.Size
+		}
 	}
 		
 	return s.Stats
