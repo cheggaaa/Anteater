@@ -8,6 +8,8 @@ echo "Install go pkgs.."
 go get testing
 go get github.com/kless/goconfig/config
 
+rm -rf $GOPATH/pkg/*
+
 do_run_test() {
 	echo "Run tests.."
 	cd $GOPATH/src
