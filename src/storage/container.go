@@ -23,6 +23,7 @@ import (
 	"syscall"
 	"fmt"
 	"time"
+	"aelog"
 )
 
 type Container struct {
@@ -186,8 +187,11 @@ func (c *Container) DumpData() (dump ContainerDump) {
 }
 
 func (c *Container) Clean() {
+	st := time.Now()
+	aelog.Debugf("%d c. Start celan", c.Id)
 	c.Spaces.Sort()
-	c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(c.Offset)	
+	c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(c.Offset)
+	aelog.Debugf("%d c. Clean end for a %v", c.Id, time.Now().Sub(st))
 }
 
 func (cd *ContainerDump) Restore(s *Storage) (*Container, error) {

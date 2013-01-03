@@ -30,9 +30,9 @@ func init() {
 func main() {
 
 	clients := make([]*Client, 3)
-	clients[0] = NewClient("s", 100001, 200000, 20,     70)
-	clients[1] = NewClient("f", 0,      100000, 30, 500)
-	clients[2] = NewClient("l", 200001, 300000, 100, 10000000)
+	clients[0] = NewClient("s", 1, 1000000, 20,     1000)
+	clients[1] = NewClient("s", 1, 1000000, 20,     1000)
+	clients[2] = NewClient("s", 1, 1000000, 20,     10000)
 	go clients[0].Run()
 	go clients[1].Run()
 	go clients[2].Run()
@@ -109,6 +109,7 @@ func (c *Client) run() {
 }
 
 func (c *Client) Stop() {
+	return
 	c.stop = true
 	for {
 		time.Sleep(time.Millisecond * 10)
