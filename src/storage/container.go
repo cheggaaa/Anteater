@@ -19,9 +19,10 @@ package storage
 import (
 	"os"
 	"sync"
-	"sync/atomic"
+	//"sync/atomic"
 	"syscall"
 	"fmt"
+	"time"
 )
 
 type Container struct {
@@ -49,6 +50,16 @@ type ContainerDump struct {
 func (c *Container) Init() (err error) {
 	c.m = &sync.Mutex{}
 	err = c.Open()
+	go func() {
+		for {
+			c.m.Lock()
+			if len(c.Spaces) >= 200 {
+				c.Clean()
+			}
+			c.m.Unlock()
+			time.Sleep(time.Second * 5)
+		}
+	}()
 	return
 }
 
@@ -81,6 +92,7 @@ func (c *Container) Filename() string {
 func (c *Container) Add(f *File, target int) (ok bool) {
 	c.m.Lock()
 	defer c.m.Unlock()
+		
 	size := f.Size
 	if size > c.Size {
 		return
@@ -90,19 +102,19 @@ func (c *Container) Add(f *File, target int) (ok bool) {
 		f.Start = start
 		f.CId = c.Id
 		f.c = c
-		atomic.AddInt64(&c.Count, 1)
+		c.Count++
 		c.ch = true
 	}
 	return
 }
 
 func (c *Container) getSpace(size int64, target int) (start int64, ok bool) {
-	defer func(){
+	/*defer func(){
 		if ok {
 			c.Spaces.Sort()
 			c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(c.Offset)
 		}
-	}()
+	}()*/
 
 	switch (target) {
 		case TARGET_SPACE_EQ, TARGET_SPACE_FREE:
@@ -114,8 +126,8 @@ func (c *Container) getSpace(size int64, target int) (start int64, ok bool) {
 			}
 		case TARGET_NEW:
 			if c.Offset + size <= c.Size {
-				o := atomic.AddInt64(&c.Offset, size)
-				start = o - size
+				c.Offset += size
+				start = c.Offset - size
 				ok = true
 			}
 	}
@@ -123,18 +135,19 @@ func (c *Container) getSpace(size int64, target int) (start int64, ok bool) {
 }
 
 func (c *Container) Delete(f *File) {
-	atomic.AddInt64(&c.Count, -1)
 	c.m.Lock()
 	defer c.m.Unlock()
-	o := c.Offset
+	c.Count--
+	// is last file in container
 	if f.Start + f.Size == c.Offset {
-		o = atomic.AddInt64(&c.Offset, -f.Size)
+		c.Offset -= f.Size
 	} else {
 		s := &Space{f.Start, f.Size} 
 		c.Spaces = append(c.Spaces, s)
 	}
-	c.Spaces.Sort()
-	c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(o)
+	if len(c.Spaces) < 200 {
+		c.Clean()
+	}
 	c.ch = true	
 }
 
@@ -170,6 +183,11 @@ func (c *Container) DumpData() (dump ContainerDump) {
 	dump.Offset = c.Offset
 	dump.Spaces = c.Spaces
 	return
+}
+
+func (c *Container) Clean() {
+	c.Spaces.Sort()
+	c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(c.Offset)	
 }
 
 func (cd *ContainerDump) Restore(s *Storage) (*Container, error) {

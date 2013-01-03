@@ -50,6 +50,7 @@ type Storage struct {
 	Conf *config.Config
 	Stats *stats.Stats
 	wm   *sync.Mutex
+	sFuncLinks map[int]func()
 }
 
 
@@ -75,17 +76,35 @@ func GetStorage(c *config.Config) (s *Storage) {
 
 func (s *Storage) Init() {
 	s.Stats = stats.New()
-	go func() { 
-			ch := time.Tick(s.Conf.DumpTime)
-			for _ = range ch {
-				func () {
-					err := s.Dump()
-					if err != nil {
-						panic(err)
-					}
-				}()
-			}
-		}()
+	if ! s.lock() {
+		panic(errors.New("Anteater already running, or was crashed(( Check process or remove lock file"))
+	}
+	if s.Conf.DumpTime > 0 {
+		go func() { 
+				ch := time.Tick(s.Conf.DumpTime)
+				for _ = range ch {
+					func () {
+						err := s.Dump()
+						if err != nil {
+							panic(err)
+						}
+					}()
+				}
+			}()
+	}
+	s.sFuncLinks = map[int]func(){
+		TARGET_SPACE_EQ   : func() { s.Stats.Allocate.Replace.Add() },
+		TARGET_SPACE_FREE : func() { s.Stats.Allocate.In.Add() },
+		TARGET_NEW        : func() { s.Stats.Allocate.Append.Add() },
+	}
+	
+	go func() {
+		for {
+			time.Sleep(time.Minute)
+			s.Check()
+		}
+	}()
+	
 	return
 }
 
@@ -140,6 +159,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 	var ok bool
 	defer func() {
 		if ! ok {
+			// if not added - remove file
 			if f.CId != 0 {
 				f.Delete()
 			}
@@ -171,8 +191,6 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
 }
 
 func (s *Storage) allocateFile(f *File) (err error) {
-	s.wm.Lock()
-	defer s.wm.Unlock()
 	var targets = []int{TARGET_SPACE_EQ, TARGET_SPACE_FREE, TARGET_NEW}
 	var ok bool
 	for _, target := range targets {
@@ -180,17 +198,7 @@ func (s *Storage) allocateFile(f *File) (err error) {
 			if c.MaxSpace(target) >= f.Size {
 				ok = c.Add(f, target)
 				if ok {
-					switch target {
-					case TARGET_SPACE_EQ:
-						s.Stats.Allocate.Replace.Add()
-						break
-					case TARGET_SPACE_FREE:
-						s.Stats.Allocate.In.Add()
-						break
-					case TARGET_NEW:
-						s.Stats.Allocate.Append.Add()
-						break
-					}
+					s.sFuncLinks[target]()
 					return
 				}
 			}
@@ -254,6 +262,7 @@ func (s *Storage) Dump() (err error) {
 }
 
 func (s *Storage) Drop() (err error) {
+	s.Close()
 	if s.Containers != nil {
 		for _, c := range s.Containers.Containers {
 			err = os.Remove(c.Filename())
@@ -267,14 +276,33 @@ func (s *Storage) Drop() (err error) {
 	return
 }
 
-func (s *Storage) Close() {
-	for _, c := range s.Containers.Containers {
-		c.Close()
-	}
+func (s *Storage) Close() {	
+	s.unLock()
+	if s.Containers != nil && s.Containers.Containers != nil {
+		for _, c := range s.Containers.Containers {
+			c.Close()
+		}
+	}	
 }
 
 func (s *Storage) DumpFilename() string {
 	return s.Conf.DataPath + "index"
+}
+
+func (s *Storage) Check() {
+	needNew := true
+	for _, c := range s.Containers.Containers {
+		if c.MaxSpace(TARGET_NEW) > s.Conf.MinEmptySpace {
+			needNew = false
+			break
+		}
+	}
+	if needNew {
+		_, err := s.Containers.Create()
+		if err != nil {
+			aelog.Warnln("Error while create container: ", err)
+		}
+	}
 }
 
 func (s *Storage) GetStats() *stats.Stats {	
@@ -294,11 +322,35 @@ func (s *Storage) GetStats() *stats.Stats {
 		s.Stats.Storage.HoleSize += hs
 	}
 	
-	for _, f := range s.Index.Files {
-		s.Stats.Storage.FilesSize += f.Size
+	for n, _ := range s.Index.Files {
+		f, ok := s.Index.Get(n)
+		if ok {
+			s.Stats.Storage.FilesSize += f.Size
+		}
 	}
 		
 	return s.Stats
+}
+
+
+func (s *Storage) lock() bool {
+	f, err := os.Open(s.Conf.DataPath + "lock")
+	if err == nil {
+		f.Close()
+		return false
+	}
+	f, err = os.Create(s.Conf.DataPath + "lock")
+	if err != nil {
+		fmt.Println(err)
+		return false
+	}
+	f.WriteString(cnst.VERSION)
+	f.Close()
+	return err == nil
+}
+
+func (s *Storage) unLock() {
+	os.Remove(s.Conf.DataPath + "lock")
 }
 
 

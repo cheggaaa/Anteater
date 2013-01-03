@@ -14,18 +14,20 @@ func CreateBackup(s *storage.Storage, toPath string) (err error) {
 
 	var backup *storage.Storage	
 	defer func() {
+		if backup != nil {
+	        backup.Close()
+	        backup = nil
+        }
 		if r := recover(); r != nil {
         	aelog.Warnf("Panic while backup: %v\n", r)
         	err = r.(error)
-        }
-        backup.Close()
-        backup = nil
+        }   
 	}()
 	
 	// create config for backup storage
 	conf := &config.Config{}
 	conf.ContainerSize = s.Conf.ContainerSize
-	conf.DumpTime = time.Hour
+	conf.DumpTime = 0
 	conf.DataPath = toPath
 	if conf.DataPath == s.Conf.DataPath {
 		return errors.New("Can't backup data to same dir")

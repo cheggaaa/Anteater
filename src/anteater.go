@@ -28,6 +28,7 @@ import (
 	"aelog"
 	"flag"
 	"aerpc/rpcserver"
+	"runtime/pprof"
 )
 
 const HELP = cnst.SIGN + `
@@ -43,6 +44,7 @@ Usage:
 var configFile = flag.String("f", "", "Path to your config file")
 var isPrintVersion = flag.Bool("v", false, "Print version")
 var isPrintHelp = flag.Bool("h", false, "Show help")
+var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
 
 func init() {
 	flag.Parse()
@@ -56,6 +58,15 @@ func main() {
         	fmt.Println(r)
         }
     }()
+    
+    if *cpuprofile != "" {
+        f, err := os.Create(*cpuprofile)
+        if err != nil {
+            panic(err)
+        }
+        pprof.StartCPUProfile(f)
+        defer pprof.StopCPUProfile()
+    }
     
     var err error
     

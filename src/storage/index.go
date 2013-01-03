@@ -22,8 +22,6 @@ import (
 	"errors"
 )
 
-var ErrIndexAlredyExists = errors.New("Index already exists")
-
 type Index struct {
 	Files map[string]*File
 	m *sync.Mutex
@@ -40,7 +38,7 @@ func (i *Index) Add(name string, file *File) (err error) {
 	defer i.m.Unlock()
 	_, isset := i.Files[name]
 	if isset {
-		err = ErrIndexAlredyExists
+		err = errors.New("Index already exists: " + name)
 		return
 	}
 	i.Files[name] = file
