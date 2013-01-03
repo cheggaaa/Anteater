@@ -153,11 +153,12 @@ func TestDeleteRandom(t *testing.T) {
 		if ! s.Delete(n) {
 			t.Errorf("Storage.Delete(%s) return false", n)
 		}
-		if len(c.Spaces) != 1 {
-			t.Errorf("Must be 1 space, but len(Spaces) %d", len(c.Spaces))
+		c.Clean()
+		if c.Holes.Tree.Len() != 1 {
+			t.Errorf("Must be 1 space, but c.Holes.Tree.Len() %d", c.Holes.Tree.Len())
 		}
-		if c.Spaces[0].Size != sz {
-			t.Errorf("Deleted file size (%d) and space size (%s) mismatched!", sz, c.Spaces[0].Size)
+		if c.Holes.Tree.Min().(*Space).Size != sz {
+			t.Errorf("Deleted file size (%d) and space size (%s) mismatched!", sz,  c.Holes.Tree.Min().(*Space).Size)
 		} 
 		if s.Delete(n) {
 			t.Errorf("Storage.Delete(%s) return true, but file already deleted", n)
@@ -170,8 +171,11 @@ func TestDeleteRandom(t *testing.T) {
 		if ! s.Delete(n) {
 			t.Errorf("Storage.Delete(%s) return false", n)
 		}
-		t.Logf("%v", c.Spaces[0])
+		t.Logf("%v",  c.Holes.Tree.Min())
 	}
+	
+	c.Clean()
+	
 	if ! s.Delete("last") {
 		t.Errorf("Storage.Delete(%s) return false", "last")
 	}
@@ -184,12 +188,12 @@ func TestDeleteRandom(t *testing.T) {
 		t.Errorf("Mismatch container offset! Expected: %d, actual: %d", 0, c.Offset)
 	}
 	
-	if len(c.Spaces) != 0 {
-		t.Errorf("Container has spaces: %d %v", len(c.Spaces), c.Spaces[0])
+	if  c.Holes.Tree.Len() != 0 {
+		t.Errorf("Container has holes: %d", c.Holes.Tree.Len())
 	}
 }
 
-func TestSpacesAndDumpSpaces(t *testing.T) {
+func TestHolesAndDumpHoles(t *testing.T) {
 	count := 100
 	for i := 0; i < count; i++ {
 		n := fmt.Sprintf("s-%d", i)
@@ -210,14 +214,8 @@ func TestSpacesAndDumpSpaces(t *testing.T) {
 	s = GetStorage(storageConf())
 	
 	c := s.Containers.Get(1)
-	if len(c.Spaces) != count / 2 {
-		t.Errorf("len spaces must be %d, expected %d", count / 2, len(c.Spaces))
-	}
-	
-	for _, sp := range c.Spaces {
-		if sp.Size != 100 {
-			t.Errorf("Space size must be 100, expected %d", sp.Size)
-		}
+	if c.Holes.Tree.Len() != count / 2 {
+		t.Errorf("len holes must be %d, expected %d", count / 2, c.Holes.Tree.Len())
 	}
 	
 	for i := 0; i < count; i++ {

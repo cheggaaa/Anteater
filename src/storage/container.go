@@ -33,7 +33,8 @@ type Container struct {
 	Offset int64
 	Count  int64
 	Spaces Spaces
-	MaxSpaceSize int64
+	Holes *Holes
+	//MaxSpaceSize int64
 	ch    bool
 	m     *sync.Mutex
 	s	  *Storage
@@ -50,15 +51,19 @@ type ContainerDump struct {
 
 func (c *Container) Init() (err error) {
 	c.m = &sync.Mutex{}
+	
+	if c.Holes == nil {
+		c.Holes = &Holes{}
+		c.Holes.Init()
+	}
+	
 	err = c.Open()
 	go func() {
 		for {
 			c.m.Lock()
-			if len(c.Spaces) >= 200 {
-				c.Clean()
-			}
+			c.Clean()
 			c.m.Unlock()
-			time.Sleep(time.Second * 5)
+			time.Sleep(time.Minute * 5)
 		}
 	}()
 	return
@@ -119,8 +124,8 @@ func (c *Container) getSpace(size int64, target int) (start int64, ok bool) {
 
 	switch (target) {
 		case TARGET_SPACE_EQ, TARGET_SPACE_FREE:
-			if c.MaxSpaceSize >= size {
-				start, ok = c.Spaces.Get(size, target)
+			if c.Holes.MaxSize >= size {
+				start, ok = c.Holes.Allocate(size, target)
 				return
 			} else {
 				return
@@ -143,11 +148,7 @@ func (c *Container) Delete(f *File) {
 	if f.Start + f.Size == c.Offset {
 		c.Offset -= f.Size
 	} else {
-		s := &Space{f.Start, f.Size} 
-		c.Spaces = append(c.Spaces, s)
-	}
-	if len(c.Spaces) < 200 {
-		c.Clean()
+		c.Holes.Add(&Space{f.Start, f.Size})
 	}
 	c.ch = true	
 }
@@ -158,11 +159,11 @@ func (c *Container) Delete(f *File) {
  */
 func (c *Container) MaxSpace(target int) int64 {
 	if target < TARGET_NEW {
-		return c.MaxSpaceSize
+		return c.Holes.MaxSize
 	}
 	var spaceSize int64 = c.Size - c.Offset
-	if c.MaxSpaceSize > spaceSize {
-		return c.MaxSpaceSize
+	if c.Holes.MaxSize > spaceSize {
+		return c.Holes.MaxSize
 	}
 	return spaceSize
 }
@@ -182,25 +183,29 @@ func (c *Container) DumpData() (dump ContainerDump) {
 	dump.Id = c.Id
 	dump.Size = c.Size
 	dump.Offset = c.Offset
-	dump.Spaces = c.Spaces
+	dump.Spaces = c.Holes.DumpData()
 	return
 }
 
 func (c *Container) Clean() {
 	st := time.Now()
 	aelog.Debugf("%d c. Start celan", c.Id)
-	c.Spaces.Sort()
-	c.Spaces, c.MaxSpaceSize, c.Offset = c.Spaces.Join(c.Offset)
+	c.Offset = c.Holes.Clean(c.Offset)
 	aelog.Debugf("%d c. Clean end for a %v", c.Id, time.Now().Sub(st))
 }
 
 func (cd *ContainerDump) Restore(s *Storage) (*Container, error) {
+	holes := new(Holes)
+	holes.Init()
+	for _, s:= range cd.Spaces {
+		holes.Add(s)
+	}
 	c := &Container {
 		Id : cd.Id,
 		Count : cd.Count,
 		Size : cd.Size,
 		Offset : cd.Offset,
-		Spaces : cd.Spaces,
+		Holes  : holes,
 		s : s,
 	}
 	err := c.Init()
