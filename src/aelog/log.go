@@ -42,6 +42,10 @@ type AntLog struct {
 
 var DefaultLogger *AntLog
 
+func InitDefault(level int) {
+	DefaultLogger, _ = New("", level)
+}
+
 func New(filename string, level int) (*AntLog, error) {
 	out := os.Stdout
 
