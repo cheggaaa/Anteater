@@ -1,102 +1,87 @@
-/*
-  Copyright 2012 Sergey Cherepanov (https://github.com/cheggaaa)
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
-
 package storage
 
 import (
-	"time"
-	"io"
-	"fmt"
-	"errors"
-	"sync/atomic"
-	"strconv"
-	"mime"
-	"path/filepath"
-	"net/http"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
+	"io"
+	"mime"
+	"net/http"
+	"path/filepath"
+	"strconv"
+	"sync/atomic"
+	"time"
 )
 
 type File struct {
-	CId int32
-	Start int64
-	Size int64
-	Time time.Time
-	Md5 []byte
-	s *Storage
-	c *Container
-	name string
+	Hole  // inherits
+	Name  string
+	Md5   []byte
+	FSize int64
+	Time  time.Time
+
+	c         *Container
+	ctype     string
+	deleted   bool
 	openCount int32
-	isDeleted bool
-	willBeDeleted bool
-	ctype string
 }
 
-type FileDump struct {
-	CId int32
-	Start int64
-	Size int64
-	Time time.Time
-	Md5 []byte
+func (f *File) Init(c *Container) {
+	f.c = c
 }
 
-func (f *File) Init(s *Storage, name string) {
-	f.s = s
-	if f.c == nil {
-		f.c = f.s.Containers.Get(f.CId)
-	}
-	if f.c == nil {
-		panic(fmt.Sprintf("Can't init file from container %d", f.CId))
-	}
-	f.name = name
+// implement Space interafce
+func (f *File) IsFree() bool {
+	return false
 }
 
-func (f *File) Open() error {
-	if f.isDeleted {
-		return errors.New("File already deleted")
-	}
-	if f.willBeDeleted {
-		return errors.New("File will be deleted")
+// mark file as Open
+func (f *File) Open() (err error) {
+	if f.deleted {
+		return errors.New("File deleted")
 	}
 	atomic.AddInt32(&f.openCount, 1)
-	return nil
+	return
 }
 
+// need call after open
+func (f *File) Close() {
+	if f.deleted && atomic.AddInt32(&f.openCount, -1) == 0 {
+		f.Delete()
+	}
+}
+
+// mark as deleted
+func (f *File) Delete() {
+	f.deleted = true
+	if atomic.LoadInt32(&f.openCount) == 0 && f.c != nil {
+		f.c.Delete(f)
+	}
+}
+
+// return io.Reader
 func (f *File) GetReader() *Reader {
-	return NewReader(f.c.F, f.Start, f.Size, f.s)
+	return newReader(f.c.f, f.Off, f.FSize, f.c.s)
 }
-
 
 func (f *File) WriteAt(b []byte, off int64) (int, error) {
-	if off + int64(len(b)) > f.Size {
-		panic("Can't write. Overflow allocated size")		
+	if off+int64(len(b)) > f.FSize {
+		panic("Can't write. Overflow allocated size")
 	}
-	off = off + f.Start
-	return f.c.F.WriteAt(b, off)
+	off = off + f.Off
+	return f.c.f.WriteAt(b, off)
 }
 
+// return http E-Tag
 func (f *File) ETag() string {
-	return strconv.FormatInt(int64(f.CId), 36) +"."+strconv.FormatInt(f.Time.Unix(), 36)+"." +strconv.FormatInt(f.Start, 36)  +  "."+strconv.FormatInt(f.Size, 36);
+	return strconv.FormatInt(int64(f.c.Id), 36) + "." + strconv.FormatInt(f.Time.UnixNano(), 36)
 }
 
 // Return content type file or application/octed-stream if can't
 func (f *File) ContentType() (ctype string) {
 	ctype = f.ctype
 	if ctype == "" {
-		ctype = mime.TypeByExtension(filepath.Ext(f.name))
+		ctype = mime.TypeByExtension(filepath.Ext(f.Name))
 		if ctype == "" {
 			var buf [512]byte
 			n, _ := io.ReadFull(f.GetReader(), buf[:])
@@ -104,17 +89,18 @@ func (f *File) ContentType() (ctype string) {
 			ctype = http.DetectContentType(b)
 		}
 		f.ctype = ctype
-	}	
+	}
 	return
 }
 
+// copy content from io.Reader
 func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 	h := md5.New()
 	var bs int
-	if f.Size > 100 * 1024 {
+	if f.FSize > 128*1024 {
 		bs = 64 * 1024
 	} else {
-		bs = int(f.Size)
+		bs = int(f.FSize)
 	}
 	buf := make([]byte, bs)
 	for {
@@ -124,7 +110,8 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 			if nw > 0 {
 				written += int64(nw)
 				h.Write(buf[0:nw])
-				f.s.Stats.Traffic.Input.AddN(nw)
+				// TODO : write stats
+				//f.s.Stats.Traffic.Input.AddN(nw)
 			}
 			if ew != nil {
 				err = ew
@@ -147,37 +134,7 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 	return
 }
 
+// string md5
 func (f *File) Md5S() string {
 	return hex.EncodeToString(f.Md5)
-}
-
-func (f *File) Delete() {
-	if f.openCount == 0 {
-		f.isDeleted = true
-		f.c.Delete(f)
-	} else {
-		f.willBeDeleted = true
-	}
-}
-
-func (f *File) Close() {
-	v := atomic.AddInt32(&f.openCount, -1)
-	if f.willBeDeleted && v == 0 {
-		f.Delete()
-	}
-}
-
-func (f *File) DumpData() (dump FileDump) {
-	dump.CId = f.CId
-	dump.Md5 = f.Md5
-	dump.Size = f.Size
-	dump.Start = f.Start
-	dump.Time = f.Time
-	return
-}
-
-func (f *File) CheckMd5() bool {
-	h := md5.New()
-	io.Copy(h, f.GetReader())
-	return fmt.Sprintf("%x", f.Md5) == fmt.Sprintf("%x", h.Sum(nil))
 }

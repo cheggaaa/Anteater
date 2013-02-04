@@ -1,8 +1,8 @@
-package nstorage
+package storage
 
 type Hole struct {
 	// Next and Prev
-	Pr, Nt Space
+	Pr, next Space
 	// Offset
 	Off int64
 	// Index
@@ -11,7 +11,7 @@ type Hole struct {
 
 // implement Space
 func (h *Hole) Next() Space {
-	return h.Nt
+	return h.next
 }
 
 func (h *Hole) Prev() Space {
@@ -19,7 +19,7 @@ func (h *Hole) Prev() Space {
 }
 
 func (h *Hole) SetNext(s Space) {
-	h.Nt = s
+	h.next = s
 }
 
 func (h *Hole) SetPrev(s Space) {
@@ -50,6 +50,6 @@ func (h *Hole) IsFree() bool {
 	return true
 }
 
-func NewHole(offset, size int64) *Hole {
+func newHole(offset, size int64) *Hole {
 	return &Hole{Off: offset, Indx: R.Index(size)}
 }

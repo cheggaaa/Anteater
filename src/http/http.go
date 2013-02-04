@@ -203,7 +203,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		return
 	}
 	w.Header().Set("Content-Type", f.ContentType())
-	w.Header().Set("Content-Length", strconv.Itoa(int(f.Size)))
+	w.Header().Set("Content-Length", strconv.Itoa(int(f.FSize)))
 	w.Header().Set("Last-Modified", f.Time.UTC().Format(http.TimeFormat))
 	if s.conf.ETagSupport {
 		w.Header().Set("E-Tag", f.ETag())
@@ -228,7 +228,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	
 	reader := f.GetReader()
 	
-	if f.Size > s.conf.ContentRange {
+	if f.FSize > s.conf.ContentRange {
 		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
 		reader.WriteTo(w)
@@ -287,7 +287,11 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 		s.Err(413, r, w)
 		return
 	}
-	f := s.stor.Add(name, reader, size)
+	f, err := s.stor.Add(name, reader, size)
+	if err != nil {
+		s.Err(500, r, w)
+		return
+	}
 	w.Header().Set("X-Ae-Md5", f.Md5S());	
 	w.Header().Set("Etag", f.ETag());
 	w.Header().Set("Location", name);

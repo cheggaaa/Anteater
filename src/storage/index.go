@@ -17,31 +17,31 @@
 package storage
 
 import (
+	"errors"
 	"sync"
 	"sync/atomic"
-	"errors"
 )
 
 type Index struct {
 	Files map[string]*File
-	m *sync.Mutex
-	v uint64
+	m     *sync.Mutex
+	v     uint64
 }
 
-type IndexDump struct {
-	F map[string]FileDump
-	V uint64
+func (i *Index) Init() {
+	i.Files = make(map[string]*File)
+	i.m = &sync.Mutex{}
 }
 
-func (i *Index) Add(name string, file *File) (err error) {
+// Add new file to index
+func (i *Index) Add(file *File) (err error) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	_, isset := i.Files[name]
-	if isset {
-		err = errors.New("Index already exists: " + name)
+	if _, exists := i.Files[file.Name]; exists {
+		err = errors.New("Index already exists: " + file.Name)
 		return
 	}
-	i.Files[name] = file
+	i.Files[file.Name] = file
 	atomic.AddUint64(&i.v, 1)
 	return
 }
@@ -62,31 +62,6 @@ func (i *Index) Delete(name string) (f *File, ok bool) {
 	return
 }
 
-func (i *Index) DumpData() (dump IndexDump) {
-	df := make(map[string]FileDump, len(i.Files)) 
-	for n, f := range i.Files {
-		df[n] = f.DumpData()
-	}
-	dump.F = df
-	dump.V = i.v
-	return
-}
-
 func (i *Index) Version() uint64 {
 	return atomic.LoadUint64(&i.v)
-}
-
-func (id *IndexDump) Restore(s *Storage) *Index {
-	files := make(map[string]*File, len(id.F))
-	for n, f := range id.F {
-		files[n] = &File{
-			CId : f.CId,
-			Md5 : f.Md5,
-			Size : f.Size,
-			Start : f.Start,
-			Time : f.Time,			
-		}
-		files[n].Init(s, n)
-	} 
-	return &Index{files, &sync.Mutex{}, id.V}
 }

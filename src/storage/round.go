@@ -1,4 +1,4 @@
-package nstorage
+package storage
 
 import (
 	"math"

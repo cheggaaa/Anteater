@@ -1,224 +1,156 @@
-/*
-  Copyright 2012 Sergey Cherepanov (https://github.com/cheggaaa)
-
-  Licensed under the Apache License, Version 2.0 (the "License");
-  you may not use this file except in compliance with the License.
-  You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-  Unless required by applicable law or agreed to in writing, software
-  distributed under the License is distributed on an "AS IS" BASIS,
-  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-  See the License for the specific language governing permissions and
-  limitations under the License.
-*/
-
 package storage
 
 import (
-	"io"
 	"config"
-	"sync"
-	"errors"
-	"os"
-	"time"
-	"cnst"
-	"dump"
-	"fmt"
 	"stats"
+	"os"
+	"errors"
+	"path/filepath"
+	"dump"
+	"sync"
 	"aelog"
-	"utils"
+	"fmt"
+	"io"
+	"time"
+	"encoding/gob"
 )
 
-const (
-	TARGET_SPACE_EQ   = 0
-	TARGET_SPACE_FREE = 1
-	TARGET_NEW        = 2
-)
-
-type StorageDump struct {
-	Index IndexDump
-	Containers []ContainerDump
-	Version string
-	Time time.Time
+func init() {
+	gob.Register(&File{})
+	gob.Register(&Hole{})
 }
 
 type Storage struct {
-	Index *Index
-	Containers *Containers
 	Conf *config.Config
+	Index *Index
+	LastContainerId int64
 	Stats *stats.Stats
-	wm   *sync.Mutex
-	sFuncLinks map[int]func()
+	Containers map[int64]*Container
+	
+	m *sync.Mutex
 }
 
-
-func GetStorage(c *config.Config) (s *Storage) {
-	s = &Storage{
-		Conf : c,
-		wm   : &sync.Mutex{},
-	}
-	aelog.Infof("Try restore from %s... ", s.DumpFilename())
-	err, exists := s.Restore()
-	if err != nil {
-		if  ! exists {
-			aelog.Infof("index does not exists, create new storage.. ")
-			s.Create()
-		} else {
-			panic(err)
-		}
-	}
-	s.Init()
-	return
-}
-
-
-func (s *Storage) Init() {
+func (s *Storage) Init(c *config.Config) {
+	s.Conf = c
+	s.m = new(sync.Mutex)
+	s.Index = new(Index)
+	s.Index.Init()
+	s.Containers = make(map[int64]*Container)
 	s.Stats = stats.New()
-	if ! s.lock() {
-		panic(errors.New("Anteater already running, or was crashed(( Check process or remove lock file"))
-	}
-	if s.Conf.DumpTime > 0 {
-		go func() { 
-				ch := time.Tick(s.Conf.DumpTime)
-				for _ = range ch {
-					func () {
-						err := s.Dump()
-						if err != nil {
-							panic(err)
-						}
-					}()
-				}
-			}()
-	}
-	s.sFuncLinks = map[int]func(){
-		TARGET_SPACE_EQ   : func() { s.Stats.Allocate.Replace.Add() },
-		TARGET_SPACE_FREE : func() { s.Stats.Allocate.In.Add() },
-		TARGET_NEW        : func() { s.Stats.Allocate.Append.Add() },
-	}
-	
-	go func() {
-		for {
-			time.Sleep(time.Minute)
-			s.Check()
-		}
-	}()
-	
-	return
 }
 
-func (s *Storage) Create() {
-	s.Index = &Index{make(map[string]*File), &sync.Mutex{}, 0}
-	s.Containers = &Containers{
-		s : s,
-		m : &sync.Mutex{},
-		Containers : make(map[int32]*Container),
-	}
-	_, err := s.Containers.Create()
-	if err != nil {
-		panic(err)
-	}
-	return
-}
-
-func (s *Storage) Restore() (err error, exists bool) {
-	data := new(StorageDump)
-	err, exists = dump.LoadData(s.DumpFilename(), data)
+func (s *Storage) Open() (err error) {
+	aelog.Debugf("Try open %s..", s.Conf.DataPath)
+	dir, err := os.Open(s.Conf.DataPath)
 	if err != nil {
 		return
 	}
-	// restore containers
-	containers := &Containers{
-		s : s,
-		m : &sync.Mutex{},	
+	info, err := dir.Stat()
+	if err != nil {
+		return
+	}	
+	if ! info.IsDir() {
+		return errors.New("Data path must be dir")
 	}
-	containers.Containers = make(map[int32]*Container, len(data.Containers))
-	for _, ct := range data.Containers {
-		containers.Containers[ct.Id], err = ct.Restore(s)
-		if err != nil {
-			return
-		}
-		if ct.Id > containers.LastId {
-			containers.LastId = ct.Id
-		}
+	
+	wg := &sync.WaitGroup{}
+	files, err := dir.Readdir(-1)
+	for _, file := range files {
+		if filepath.Ext(file.Name()) == ".index" {
+			wg.Add(1)
+			go func(name string) {
+				name = s.Conf.DataPath + name
+				e := s.restoreContainer(name)
+				if e != nil {
+					err = e
+				}
+				wg.Done()
+			}(file.Name())
+		} 
 	}
-	s.Containers = containers
-	// restore index
-	s.Index = data.Index.Restore(s)
-	return 
+	wg.Wait()
+	
+	if err != nil {
+		return
+	}
+	
+	if len(s.Containers) == 0 {
+		aelog.Info("Create first container")
+		_, err = s.createContainer()
+	}
+	return
 }
 
-func (s *Storage) Add(name string, r io.Reader, size int64) (f *File) {
+
+func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error) {
 	f = &File{
-		Size: size,
-		s : s,
-		name : name,
+		Name : name,
+		FSize : size,
 		Time : time.Now(),
 	}
-	var ok bool
+	var target int
 	defer func() {
-		if ! ok {
-			// if not added - remove file
-			if f.CId != 0 {
-				f.Delete()
+		if err != nil {
+			f.Delete()
+		} else {
+			s.Stats.Allocate.Replace.Add()
+			switch target {
+			case ALLOC_REPLACE:
+				s.Stats.Allocate.Replace.Add()
+			case ALLOC_APPEND:
+				s.Stats.Allocate.Append.Add()
+			case ALLOC_INSERT:
+				s.Stats.Allocate.In.Add()
 			}
+			s.Stats.Counters.Add.Add()
 		}
 	}()
 	
-	err := s.allocateFile(f)
-	if err != nil {
-		panic(err)
-	}
-	
-	written, err := f.ReadFrom(r)
-	
-	if err != nil {
-		panic(err)
-	}
-	
-	if written != size {
-		panic(fmt.Sprintf("Error while adding file. Requested size %d, but written only %d", size, written))
-	}
-	
-	err = s.Index.Add(name, f)
-	if err != nil {
-		panic(err)
-	}
-	s.Stats.Counters.Add.Add()
-	ok = true
-	return
-}
-
-func (s *Storage) allocateFile(f *File) (err error) {
-	var targets = []int{TARGET_SPACE_EQ, TARGET_SPACE_FREE, TARGET_NEW}
-	var ok bool
-	for _, target := range targets {
-		for _, c := range s.Containers.Containers {
-			if c.MaxSpace(target) >= f.Size {
-				ok = c.Add(f, target)
-				if ok {
-					s.sFuncLinks[target]()
-					return
-				}
-			}
-		}
-	}
-	c, err := s.Containers.Create()
+	// allocate
+	target, err = s.allocate(f)
 	if err != nil {
 		return
 	}
-	ok = c.Add(f, TARGET_NEW)
-	if ! ok {
-		return errors.New("Can't allocate space")
+	
+	// write
+	w, err := f.ReadFrom(r)
+	if err != nil {
+		return
 	}
-	s.Stats.Allocate.Append.Add()
+	
+	// check
+	if w != size {
+		err = fmt.Errorf("Requested %d bytes, but writed only %d", size, w)
+		return
+	}
+	
+	// add to index
+	err = s.Index.Add(f)	
+	return
+}
+
+func (s *Storage) allocate(f *File) (target int, err error) {
+	for _, target = range Targets {	
+		for _, c := range s.Containers {
+			if ok := c.Allocate(f, target); ok {
+				return
+			}
+		}
+	}	
+	// create new container
+	c, err := s.createContainer()
+	if err != nil {
+		return
+	}
+	if ok := c.Allocate(f, ALLOC_APPEND); ! ok {
+		return 0, fmt.Errorf("Can't allocate space!")
+	}
+	target = ALLOC_APPEND
 	return
 }
 
 func (s *Storage) Get(name string) (f *File, ok bool) {
-	f, ok = s.Index.Get(name)
-	return
+	return s.Index.Get(name)
 }
 
 func (s *Storage) Delete(name string) (ok bool) {
@@ -229,143 +161,74 @@ func (s *Storage) Delete(name string) (ok bool) {
 	return
 }
 
-func (s *Storage) Dump() (err error) {
-	s.wm.Lock()
-	s.Index.m.Lock()
-	st := time.Now()
-	containers := make([]ContainerDump, 0)
-	
-	for _, c := range s.Containers.Containers {
-		containers = append(containers, c.DumpData())
-	}
-	dumpData := &StorageDump{
-		Version : cnst.VERSION,
-		Time : time.Now(),
-		Containers : containers,
-		Index : s.Index.DumpData(),
-	}
-	s.Index.m.Unlock()
-	s.wm.Unlock()
-	prep := time.Since(st)
-	fname := s.DumpFilename()
-	n, err := dump.DumpTo(fname, dumpData)
-	if err != nil {
-		return
-	}
-	tot := time.Since(st)
-	s.Stats.Storage.DumpSize = int64(n)
-	s.Stats.Storage.DumpTime = st
-	s.Stats.Storage.DumpSaveTime = tot
-	s.Stats.Storage.DumpLockTime = prep
-	aelog.Debugf("Dump: %s bytes writed to %s for %v prep(%v)", utils.HumanBytes(int64(n)), fname, tot, prep)
-	return
-}
-
-func (s *Storage) Drop() (err error) {
-	s.Close()
-	if s.Containers != nil {
-		for _, c := range s.Containers.Containers {
-			err = os.Remove(c.Filename())
-			if err != nil {
-				return err
-			}
-		}
-	}
-	os.Remove(s.DumpFilename())
-	os.Remove(s.DumpFilename() + ".td")
-	return
-}
-
-func (s *Storage) Close() {	
-	s.unLock()
-	if s.Containers != nil && s.Containers.Containers != nil {
-		for _, c := range s.Containers.Containers {
-			c.Close()
-		}
-	}	
-}
-
-func (s *Storage) DumpFilename() string {
-	return s.Conf.DataPath + "index"
-}
-
-func (s *Storage) Check() {
-	needNew := true
-	for _, c := range s.Containers.Containers {
-		if c.MaxSpace(TARGET_NEW) > s.Conf.MinEmptySpace {
-			needNew = false
-			break
-		}
-	}
-	if needNew {
-		_, err := s.Containers.Create()
+func (s *Storage) Dump() {
+	s.m.Lock()
+	defer s.m.Unlock()
+	for _, c := range s.Containers {
+		err := c.Dump()
 		if err != nil {
-			aelog.Warnln("Error while create container: ", err)
+			aelog.Warnf("Can't dump container %d: %v", c.Id, err)
 		}
 	}
 }
 
-func (s *Storage) GetStats() *stats.Stats {	
+func (s *Storage) GetStats() *stats.Stats {
 	s.Stats.Refresh()
 	
-	s.Stats.Storage.ContainersCount = len(s.Containers.Containers)
-	s.Stats.Storage.FilesCount = len(s.Index.Files)
+	s.Stats.Storage.ContainersCount = len(s.Containers)
+	s.Stats.Storage.FilesCount = int64(len(s.Index.Files))
 	s.Stats.Storage.IndexVersion = s.Index.Version()
 	s.Stats.Storage.FilesSize = 0
 	s.Stats.Storage.TotalSize = 0
 	s.Stats.Storage.HoleCount = 0
 	s.Stats.Storage.HoleSize = 0
-	for _, c := range s.Containers.Containers {
+	for _, c := range s.Containers {
 		s.Stats.Storage.TotalSize += c.Size
-		hc, hs := c.Spaces.Stats()
+		hc, hs := c.holeIndex.Count, c.holeIndex.Size
 		s.Stats.Storage.HoleCount += hc
 		s.Stats.Storage.HoleSize += hs
-	}
-	
-	for n, _ := range s.Index.Files {
-		f, ok := s.Index.Get(n)
-		if ok {
-			s.Stats.Storage.FilesSize += f.Size
-		}
-	}
-		
+		s.Stats.Storage.FilesSize += c.FileSize
+	}	
 	return s.Stats
 }
 
-
-func (s *Storage) lock() bool {
-	f, err := os.Open(s.Conf.DataPath + "lock")
-	if err == nil {
-		f.Close()
-		return false
-	}
-	f, err = os.Create(s.Conf.DataPath + "lock")
-	if err != nil {
-		fmt.Println(err)
-		return false
-	}
-	f.WriteString(cnst.VERSION)
-	f.Close()
-	return err == nil
+func (s *Storage) CheckMD5() map[string]bool {
+	return nil
 }
 
-func (s *Storage) unLock() {
-	os.Remove(s.Conf.DataPath + "lock")
+func (s *Storage) Close() {
+
 }
 
-
-func (s *Storage) CheckMD5() (result map[string]bool) {
-	result = make(map[string]bool)
-	
-	for n, _ := range s.Index.Files {
-		f, ok := s.Get(n)
-		if ok {
-			aelog.Debugf("Checking md5 for %s\n", n)
-			result[n] = f.CheckMd5()
-			if ! result[n] {
-				aelog.Infof("File %s has mismatched md5\n", n)
-			}
+func (s *Storage) restoreContainer(path string) (err error) {
+	aelog.Debugf("Restore container from %s..", path)
+	container := &Container{}
+	if err, _ = dump.LoadData(path, container); err != nil {
+		return err
+	}
+	if container.Created {
+		if err = container.Init(s); err != nil {
+			return
 		}
+		s.m.Lock()
+		if container.Id > s.LastContainerId {
+			s.LastContainerId = container.Id
+		}
+		s.Containers[container.Id] = container
+		s.m.Unlock()
+		aelog.Debugf("Container %d restored. %d files found", container.Id, container.FileCount)
+	} else {
+		return fmt.Errorf("Can't restore container from %s", path)
 	}
 	return
+}
+
+func (s *Storage) createContainer() (c *Container, err error) {
+	s.m.Lock()
+	defer s.m.Unlock()
+	s.LastContainerId++
+	s.Containers[s.LastContainerId] = &Container{
+		Id : s.LastContainerId,
+	}
+	return s.Containers[s.LastContainerId], s.Containers[s.LastContainerId].Init(s)
 }

@@ -129,7 +129,7 @@ func (f *File) uploadFile(tf *temp.File) (tfr *temp.File, err error) {
 func (f *File) SetState(file *storage.File) {
 	f.State = &FileState{
 		Uploaded : true,
-		Size     : file.Size,
+		Size     : file.FSize,
 		Md5      : fmt.Sprintf("%x", file.Md5),
 	}
 }

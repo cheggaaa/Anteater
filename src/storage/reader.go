@@ -17,20 +17,18 @@
 package storage
 
 import (
-	"io"
 	"errors"
+	"io"
 )
 
-func NewReader(r io.ReaderAt, off int64, n int64, s *Storage) *Reader {
+func newReader(r io.ReaderAt, off int64, n int64, s *Storage) *Reader {
 	return &Reader{r, off, off, off + n, s}
 }
 
 type Reader struct {
-	r     io.ReaderAt
-	base  int64
-	off   int64
-	limit int64
-	s     *Storage
+	r                io.ReaderAt
+	base, off, limit int64
+	s                *Storage
 }
 
 func (s *Reader) Read(p []byte) (n int, err error) {
@@ -79,7 +77,7 @@ func (s *Reader) ReadAt(p []byte, off int64) (n int, err error) {
 
 func (s *Reader) WriteTo(dst io.Writer) (written int64, err error) {
 	var bs int64
-	if sz := s.Size(); sz > 100 * 1024 {
+	if sz := s.Size(); sz > 100*1024 {
 		bs = 64 * 1024
 	} else {
 		bs = sz

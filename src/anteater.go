@@ -53,10 +53,11 @@ func init() {
 
 func main() {
 	defer func() {
-        if r := recover(); r != nil {
+       /* if r := recover(); r != nil {
         	fmt.Println("Error!")
         	fmt.Println(r)
         }
+        */
     }()
     
     if *cpuprofile != "" {
@@ -98,9 +99,13 @@ func main() {
 	}
 	
 	// Init storage
-	stor := storage.GetStorage(c)
+	stor := &storage.Storage{}
+	stor.Init(c)
+	err = stor.Open()
+	if err != nil {
+		panic(err)
+	}
 	defer stor.Close()
-	
 	
 	
 	
@@ -120,7 +125,7 @@ func main() {
 	
 	// Run rpc server
 	rpcserver.StartRpcServer(stor)
-	
+
 	aelog.Infof("Run working (use %d cpus)", c.CpuNum)
 	
 	interrupt := make(chan os.Signal, 1)

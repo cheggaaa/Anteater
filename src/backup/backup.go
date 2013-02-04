@@ -2,14 +2,16 @@ package backup
 
 import (
 	"storage"
-	"config"
+	/*"config"
 	"time"
 	"errors"
 	"aelog"
 	"strings"
+	*/
 )
 
 func CreateBackup(s *storage.Storage, toPath string) (err error) {
+	/*
 	toPath = strings.TrimRight(toPath, "/") + "/"
 
 	var backup *storage.Storage	
@@ -83,6 +85,6 @@ func CreateBackup(s *storage.Storage, toPath string) (err error) {
 	aelog.Infof("BACKUP: %d files was sync", i)
 	
 	err = backup.Dump()
-	
+	*/
 	return
 }

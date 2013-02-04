@@ -50,11 +50,11 @@ type Traffic struct {
 
 type Storage struct {
 	ContainersCount int
-	FilesCount   int
+	FilesCount   int64
 	FilesSize    int64
 	TotalSize    int64
 	FreeSpace    int64
-	HoleCount    int
+	HoleCount    int64
 	HoleSize     int64
 	IndexVersion uint64
 	DumpSize     int64

@@ -51,7 +51,7 @@ func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Requ
 	
 	// add to storage and set stae
 	for name, tf := range result {
-		file := stor.Add(name, tf.File, tf.Size)
+		file, _ := stor.Add(name, tf.File, tf.Size)
 		for _, f := range *fs {
 			if f.Name == name {
 				f.SetState(file)
