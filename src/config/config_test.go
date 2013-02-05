@@ -50,7 +50,7 @@ func TestReadFile(t *testing.T) {
 	
 		for k, v := range hash {
 			if hash2[k] != v {
-				t.Errorf("Mismatch: %s (%s vs %s)", k, v, hash2[k])
+				t.Errorf("Mismatch: %s (%s vs %s) (%v, %v)", k, v, hash2[k], hash, hash2)
 			}
 		}
 	}
@@ -82,7 +82,7 @@ var TestConfig *Config = &Config{
 	StatusHtml    : "status.html",
 	RpcAddr       : ":32000",
 	Headers       : map[string]string{
-		"Cache-Control" : "public, max-age=315360000",
+		"cache-control" : "public, max-age=315360000",
 	},
 	MimeTypes    : map[string]string{
 		".jpg"   : "image/jpeg",
@@ -153,7 +153,7 @@ addr : :32000
 
 # List of additional http headers
 [http-headers]
-Cache-Control : public, max-age=315360000
+cache-control : public, max-age=315360000
 
 # List of custom mime types, by default use native unix list
 [mime-types]

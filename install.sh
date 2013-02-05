@@ -6,7 +6,7 @@ GOBIN=$GOPATH/bin
 
 echo "Install go pkgs.."
 go get testing
-go get github.com/kless/goconfig/config
+go get github.com/akrennmair/goconf
 
 rm -rf $GOPATH/pkg/*
 
