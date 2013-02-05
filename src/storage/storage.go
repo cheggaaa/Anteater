@@ -78,6 +78,7 @@ func (s *Storage) Open() (err error) {
 		aelog.Info("Create first container")
 		_, err = s.createContainer()
 	}
+	
 	return
 }
 

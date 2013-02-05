@@ -2,7 +2,7 @@ package storage
 
 type Hole struct {
 	// Next and Prev
-	Pr, next Space
+	pr, next Space
 	// Offset
 	Off int64
 	// Index
@@ -15,7 +15,7 @@ func (h *Hole) Next() Space {
 }
 
 func (h *Hole) Prev() Space {
-	return h.Pr
+	return h.pr
 }
 
 func (h *Hole) SetNext(s Space) {
@@ -23,7 +23,7 @@ func (h *Hole) SetNext(s Space) {
 }
 
 func (h *Hole) SetPrev(s Space) {
-	h.Pr = s
+	h.pr = s
 }
 
 func (h *Hole) SetOffset(o int64) {

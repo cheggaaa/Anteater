@@ -70,6 +70,7 @@ func (c *Container) Init(s *Storage) (err error) {
 			c.Created = true
 		}
 	}
+	
 	return
 }
 
@@ -308,7 +309,7 @@ func (c *Container) insertNormalizedHole(h *Hole, size int64) *Hole {
 	}
 	next := &Hole{
 		Off:  h.End(),
-		Pr:   h,
+		pr:   h,
 		next: h.Next(),
 	}
 	h.SetNext(c.insertNormalizedHole(next, size-h.Size()))
