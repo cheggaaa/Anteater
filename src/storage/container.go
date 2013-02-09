@@ -24,7 +24,9 @@ type Container struct {
 	Created             bool
 	Size                int64
 	FileCount, FileSize int64
-	Last                *File
+	FDump 				map[int64]*File
+	HDump               map[int64]*Hole
+	last                *File
 	holeIndex           *HoleIndex
 	s                   *Storage
 	f                   *os.File
@@ -42,12 +44,12 @@ func (c *Container) Init(s *Storage) (err error) {
 	}
 	c.holeIndex = new(HoleIndex)
 	c.holeIndex.Init()
-
+	c.restore()
 	// build holeIndex
-	var last, next Space
+	/*var last, next Space
 	next = nil
-	last = c.Last
-	for last != nil && c.Last != nil {
+	last = c.last
+	for last != nil && c.last != nil {
 		if last.IsFree() {
 			c.holeIndex.Add(last.(*Hole))
 			aelog.Debug("init hole")
@@ -62,6 +64,7 @@ func (c *Container) Init(s *Storage) (err error) {
 		next = last
 		last = last.Prev()
 	}
+	*/
 
 	// create
 	if !c.Created {
@@ -103,9 +106,60 @@ func (c *Container) Dump() (err error) {
 	c.m.Lock()
 	defer c.m.Unlock()
 	st := time.Now()
+	
+	var i int64
+	
+	c.FDump = make(map[int64]*File, c.FileCount)
+	c.HDump = make(map[int64]*Hole, c.holeIndex.Count)
+	
+	var last Space = c.last
+	
+	for last != nil && c.last != nil {
+		if last.IsFree() {
+			c.HDump[i] = last.(*Hole)
+		} else {
+			c.FDump[i] = last.(*File)
+		}
+		last = last.Prev()
+		i++
+	}
+	
+	pr := time.Since(st)
+	
 	n, err := dump.DumpTo(c.indexName(), c)
-	aelog.Debugf("Dump container %d, writed %s for a %v", c.Id, utils.HumanBytes(n), time.Since(st))
+	aelog.Debugf("Dump container %d, writed %s for a %v (prep: %v)", c.Id, utils.HumanBytes(n), time.Since(st), pr)
 	return
+}
+
+func (c *Container) restore() {
+	var i int64
+	if c.FDump == nil || len(c.FDump) == 0 {
+		return
+	}
+	
+	c.last = c.FDump[i]
+	var next Space = c.last
+	i++
+	
+	for {
+		if last, ok := c.FDump[i]; ok {
+			last.SetNext(next)
+			next.SetPrev(last)
+			next = last
+			last.Init(c)
+			c.s.Index.Add(last)
+		} else if last, ok := c.HDump[i]; ok {
+			last.SetNext(next)
+			next.SetPrev(last)
+			next = last
+			c.holeIndex.Add(last)
+		} else {
+			break
+		}
+		i++
+	}
+	c.FDump = nil
+	c.HDump = nil
 }
 
 // Allocator
@@ -116,7 +170,7 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 		if ok {
 			c.FileCount++
 			c.FileSize += f.FSize
-			f.c = c
+			f.Init(c)
 		}
 		c.m.Unlock()
 	}()
@@ -126,8 +180,8 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 	}
 
 	// if first
-	if c.Last == nil {
-		c.Last = f
+	if c.last == nil {
+		c.last = f
 		ok = true
 		return
 	}
@@ -147,18 +201,17 @@ func (c *Container) allocReplace(f *File) (ok bool) {
 	if h := c.holeIndex.Get(f.Index()); h != nil {
 		f.SetOffset(h.Offset())
 		c.replace(h, f)
-		c.holeIndex.Delete(h)
 		ok = true
 	}
 	return
 }
 
 func (c *Container) allocAppend(f *File) (ok bool) {
-	if c.Size-c.Last.End() >= f.Size() {
-		f.SetOffset(c.Last.End())
-		f.SetPrev(c.Last)
-		c.Last.SetNext(f)
-		c.Last = f
+	if c.Size-c.last.End() >= f.Size() {
+		f.SetOffset(c.last.End())
+		f.SetPrev(c.last)
+		c.last.SetNext(f)
+		c.last = f
 		ok = true
 	}
 	return
@@ -166,16 +219,22 @@ func (c *Container) allocAppend(f *File) (ok bool) {
 
 func (c *Container) allocInsert(f *File) (ok bool) {
 	if s := c.holeIndex.GetBiggest(f.Index()); s != nil {
+		if s.Index() == f.Index() {
+			f.SetOffset(s.Offset())
+			c.replace(s, f)
+			ok = true
+			return
+		}
 		// insert to begin of hole
 		f.SetPrev(s.Prev())
 		f.SetNext(s)
+		f.SetOffset(s.Offset())
 		s.SetPrev(f)
 		s.SetOffset(s.Offset() + f.Size())
 		p := f.Prev()
 		if p != nil {
 			p.SetNext(f)
 		}
-		c.holeIndex.Delete(s)
 		c.insertNormalizedHole(s, s.Size()-f.Size())
 		ok = true
 	}
@@ -183,12 +242,15 @@ func (c *Container) allocInsert(f *File) (ok bool) {
 }
 
 func (c *Container) Delete(f *File) {
+	c.m.Lock()
+	defer c.m.Unlock()
+	
 	c.FileCount--
 	c.FileSize -= f.FSize
 
 	// is last
-	if c.Last.Offset() == f.Offset() {
-		prev := c.Last.Prev()
+	if c.last.Offset() == f.Offset() {
+		prev := c.last.Prev()
 
 		// remove tail holes
 		for prev != nil && prev.IsFree() {
@@ -198,9 +260,9 @@ func (c *Container) Delete(f *File) {
 
 		// is nothing
 		if prev == nil {
-			c.Last = nil
+			c.last = nil
 		} else {
-			c.Last = prev.(*File)
+			c.last = prev.(*File)
 			prev.SetNext(nil)
 		}
 		return
@@ -279,20 +341,20 @@ func (c *Container) mergeHoles(start, end *Hole) (newHole *Hole) {
 	return
 }
 
-// Replace s1 to s2. Move offset, next and prev
+// Replace s1 to s2. Move next and prev
 func (c *Container) replace(s1, s2 Space) {
-	s2.SetNext(s1.Next())
-	s2.SetPrev(s1.Prev())
-	n := s2.Next()
+	n := s1.Next()
+	s2.SetNext(n)
 	if n != nil {
 		n.SetPrev(s2)
 	}
-	p := s2.Prev()
+	p := s1.Prev()
+	s2.SetPrev(p)
 	if p != nil {
 		p.SetNext(s2)
 		// check algo
 		if p.End() != s2.Offset() {
-			panic("Illegal offset!!!")
+			panic(fmt.Sprintf("Illegal offset: %d vs %d\n%+v\n%+v", p.End(), s2.Offset(), s1, s2))
 		}
 	}
 }
@@ -309,9 +371,29 @@ func (c *Container) insertNormalizedHole(h *Hole, size int64) *Hole {
 	}
 	next := &Hole{
 		Off:  h.End(),
-		pr:   h,
+		prev: h,
 		next: h.Next(),
 	}
 	h.SetNext(c.insertNormalizedHole(next, size-h.Size()))
 	return h
+}
+
+func (c *Container) Print() {
+	if c.last == nil {
+		fmt.Println("EMPTY")
+		return
+	}
+	
+	var s Space
+	s = c.last
+	i := 0
+	for s != nil {
+		i++
+		n := "F"
+		if s.IsFree() {
+			n = "H"
+		}
+		fmt.Printf("%s (%d)\t%d(%d)\t%d\t%d\n", n, i, s.Size(), s.Index(), s.Offset(), s.End())
+		s = s.Prev()
+	}
 }

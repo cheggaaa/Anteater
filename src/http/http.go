@@ -114,10 +114,12 @@ func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", cnst.SIGN)
 	defer func() {
+		/*
 		if rec := recover(); rec != nil {			
         	s.Err(500, r, w)
         	aelog.Warnf("Error on http request: %v", rec)
         }
+        */
         r.Body.Close()
 	}()
 	filename := Filename(r)

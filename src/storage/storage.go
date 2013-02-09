@@ -79,6 +79,13 @@ func (s *Storage) Open() (err error) {
 		_, err = s.createContainer()
 	}
 	
+	go func() {
+		if s.Conf.DumpTime > 0 {
+			time.Sleep(s.Conf.DumpTime)
+			s.Dump()
+		}
+	}()
+	
 	return
 }
 
@@ -198,7 +205,7 @@ func (s *Storage) CheckMD5() map[string]bool {
 }
 
 func (s *Storage) Close() {
-
+	
 }
 
 func (s *Storage) restoreContainer(path string) (err error) {
@@ -217,7 +224,9 @@ func (s *Storage) restoreContainer(path string) (err error) {
 		}
 		s.Containers[container.Id] = container
 		s.m.Unlock()
-		aelog.Debugf("Container %d restored. %d files found", container.Id, container.FileCount)
+		aelog.Debugf("Container %d restored. %d (%d) files (holes) found", container.Id, container.FileCount, container.holeIndex.Count)
+		//container.holeIndex.Print()
+		//container.Print()
 	} else {
 		return fmt.Errorf("Can't restore container from %s", path)
 	}
@@ -228,8 +237,12 @@ func (s *Storage) createContainer() (c *Container, err error) {
 	s.m.Lock()
 	defer s.m.Unlock()
 	s.LastContainerId++
-	s.Containers[s.LastContainerId] = &Container{
+	c = &Container{
 		Id : s.LastContainerId,
 	}
-	return s.Containers[s.LastContainerId], s.Containers[s.LastContainerId].Init(s)
+	err = c.Init(s)
+	if err == nil {
+		s.Containers[s.LastContainerId] = c
+	}
+	return 
 }

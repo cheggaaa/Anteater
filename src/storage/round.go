@@ -26,7 +26,7 @@ type Rounder struct{}
  **/
 func (r Rounder) Index(size int64) int {
 	if size == 0 {
-		return 0
+		panic("Try get index for 0")
 	}
 	switch {
 		case size <= i1kb:
@@ -51,7 +51,7 @@ func (r Rounder) tinyIndex(size int64) int {
 
 func (r Rounder) Size(index int) int64 {
 	if index == 0 {
-		return 0
+		panic("Try get size for 0")
 	}
 	
 	switch {

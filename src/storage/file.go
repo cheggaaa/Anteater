@@ -110,8 +110,7 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 			if nw > 0 {
 				written += int64(nw)
 				h.Write(buf[0:nw])
-				// TODO : write stats
-				//f.s.Stats.Traffic.Input.AddN(nw)
+				f.c.s.Stats.Traffic.Input.AddN(nw)
 			}
 			if ew != nil {
 				err = ew

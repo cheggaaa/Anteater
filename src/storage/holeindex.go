@@ -43,6 +43,9 @@ func (hi *HoleIndex) GetBiggest(index int) *Hole {
 
 func (hi *HoleIndex) Add(s *Hole) {
 	index := s.Index()
+	if index == 0 {
+		panic("Check logick! Try to insert 0-index hole")
+	}
 	_, ok := hi.index[index]
 	if ! ok {
 		hi.index[index] = make(map[int64]*Hole)
