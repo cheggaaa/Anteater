@@ -81,8 +81,10 @@ func (s *Storage) Open() (err error) {
 	
 	go func() {
 		if s.Conf.DumpTime > 0 {
-			time.Sleep(s.Conf.DumpTime)
-			s.Dump()
+			for {
+				time.Sleep(s.Conf.DumpTime)
+				s.Dump()
+			}
 		}
 	}()
 	
