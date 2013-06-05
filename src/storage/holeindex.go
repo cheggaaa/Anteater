@@ -1,15 +1,16 @@
 package storage
 
 import (
+	//"aelog"
 	"fmt"
 )
 
 type HoleIndex struct {
 	// map[index][offset]*Hole
-	index map[int]map[int64]*Hole
+	index        map[int]map[int64]*Hole
 	biggestIndex int
-	Count int64
-	Size int64
+	Count        int64
+	Size         int64
 }
 
 func (hi *HoleIndex) Init() {
@@ -27,11 +28,20 @@ func (hi *HoleIndex) Get(index int) *Hole {
 	return nil
 }
 
+func (hi *HoleIndex) Exists(h *Hole) bool {
+	if m, ok := hi.index[h.Index()]; ok {
+		if h, ok := m[h.Offset()]; ok {
+			return h == m[h.Offset()]
+		}
+	}
+	return false
+}
+
 func (hi *HoleIndex) GetBiggest(index int) *Hole {
 	if index > hi.biggestIndex {
 		return nil
 	}
-	for ;index <= hi.biggestIndex; index++ {
+	for ; index <= hi.biggestIndex; index++ {
 		s := hi.Get(index)
 		if s != nil {
 			return s
@@ -41,22 +51,35 @@ func (hi *HoleIndex) GetBiggest(index int) *Hole {
 	return nil
 }
 
-func (hi *HoleIndex) Add(s *Hole) {
-	index := s.Index()
-	if index == 0 {
-		panic("Check logick! Try to insert 0-index hole")
-	}
-	_, ok := hi.index[index]
-	if ! ok {
-		hi.index[index] = make(map[int64]*Hole)
-	}
-	hi.index[index][s.Offset()] = s
+func (hi *HoleIndex) Add(holes... *Hole) {
+	for _, s := range holes {
+		index := s.Index()
+		if index == 0 {
+			panic("Check logick! Try to insert 0-index hole")
+		}
+		_, ok := hi.index[index]
+		if !ok {
+			hi.index[index] = make(map[int64]*Hole)
+		}
+		hi.index[index][s.Offset()] = s
 	
-	if index > hi.biggestIndex {
-		hi.biggestIndex = index
+		if index > hi.biggestIndex {
+			hi.biggestIndex = index
+		}
+		hi.Count++
+		hi.Size += s.Size()
 	}
-	hi.Count++
-	hi.Size += s.Size()
+}
+
+func (hi *HoleIndex) Create(prev, next Space, offset int64, index int) (h *Hole) {
+	defer hi.Add(h)
+	h = &Hole{
+		prev: prev,
+		next: next,
+		Off:  offset,
+		Indx: index,
+	}
+	return
 }
 
 func (hi *HoleIndex) Delete(s *Hole) {

@@ -174,7 +174,7 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 		}
 		c.m.Unlock()
 	}()
-
+	
 	if f.Indx == 0 {
 		f.Indx = R.Index(f.FSize)
 	}
@@ -218,13 +218,18 @@ func (c *Container) allocAppend(f *File) (ok bool) {
 }
 
 func (c *Container) allocInsert(f *File) (ok bool) {
+	aelog.Debugln("try insert", f.Name)
 	if s := c.holeIndex.GetBiggest(f.Index()); s != nil {
+		aelog.Debugf("Found hole %v", s)
 		if s.Index() == f.Index() {
+			aelog.Debugln("Equal index hole %v, replace...", s.Index())
 			f.SetOffset(s.Offset())
 			c.replace(s, f)
 			ok = true
 			return
 		}
+		aelog.Debugf("Not equal index hole %d vs %d, normalize...", s.Index(), f.Index())
+		
 		// insert to begin of hole
 		f.SetPrev(s.Prev())
 		f.SetNext(s)
@@ -235,13 +240,22 @@ func (c *Container) allocInsert(f *File) (ok bool) {
 		if p != nil {
 			p.SetNext(f)
 		}
-		c.insertNormalizedHole(s, s.Size()-f.Size())
+		h := c.insertNormalizedHole(s, s.Size()-f.Size())
 		ok = true
+		aelog.Debugln("Before normalize")
+		c.Print()
+		c.holeIndex.Print()		
+		c.normalizeHole(h)
+		aelog.Debugln("After normalize")
+		fmt.Println(c.Check())
+		c.Print()
+		c.holeIndex.Print()
 	}
 	return
 }
 
 func (c *Container) Delete(f *File) {
+	aelog.Debugln("c delete", f.Name)
 	c.m.Lock()
 	defer c.m.Unlock()
 	
@@ -283,6 +297,7 @@ func (c *Container) Delete(f *File) {
 
 func (c *Container) normalizeHole(h Space) {
 	// find start hole
+	aelog.Debugln("Start normalize, find first from", h.Offset())
 	i := 0
 	for h.Prev() != nil && h.Prev().IsFree() {
 		h = h.Prev().(*Hole)
@@ -293,21 +308,27 @@ func (c *Container) normalizeHole(h Space) {
 	}
 
 	start := h.(*Hole)
+	aelog.Debugln("First found", i, h.Offset())
 	s := h.Size()
 	h = h.Next()
 	// check to right
 	i = 0
-	for h != nil && h.IsFree() {
+	for {
+		if ! h.IsFree() {
+			break
+		}
 		s += h.Size()
+		aelog.Debugf("Normalize: %d vs %d", R.Round(s), s)
 		if R.Round(s) == s {
 			start = c.mergeHoles(start, h.(*Hole))
 			h = start
 		}
-		h = h.Next()
+		
 		i++
-		if i > 400 {
+		if h.Next() == nil || i > 400 {
 			break
 		}
+		h = h.Next()
 	}
 }
 
@@ -360,12 +381,15 @@ func (c *Container) replace(s1, s2 Space) {
 }
 
 func (c *Container) insertNormalizedHole(h *Hole, size int64) *Hole {
+	aelog.Debugln("inh:", h.Indx, size)
 	if R.Round(size) == size {
 		h.Indx = R.Index(size)
+		aelog.Debugln("inh:", "add!", h.Indx)
 		c.holeIndex.Add(h)
 		return h
-	}
+	}	
 	h.Indx = R.Index(size) - 1
+	aelog.Debugln("inh:", "reduce", h.Indx, "next")
 	if size == 1 {
 		panic("Check algo!")
 	}
@@ -374,7 +398,12 @@ func (c *Container) insertNormalizedHole(h *Hole, size int64) *Hole {
 		prev: h,
 		next: h.Next(),
 	}
-	h.SetNext(c.insertNormalizedHole(next, size-h.Size()))
+	if next.next != nil {
+		next.next.SetPrev(next)
+	}
+	h.SetNext(next)
+	c.holeIndex.Add(h)
+	c.insertNormalizedHole(next, size-h.Size())
 	return h
 }
 
@@ -384,6 +413,9 @@ func (c *Container) Print() {
 		return
 	}
 	
+	fmt.Printf("C%d. Size: %s(%s); BI: %d\n", c.Id, utils.HumanBytes(c.Size), utils.HumanBytes(c.FileSize), c.holeIndex.biggestIndex)
+	
+	res := ""
 	var s Space
 	s = c.last
 	i := 0
@@ -392,8 +424,34 @@ func (c *Container) Print() {
 		n := "F"
 		if s.IsFree() {
 			n = "H"
+			if ! c.holeIndex.Exists(s.(*Hole)) {
+				n = "E"
+			}
 		}
-		fmt.Printf("%s (%d)\t%d(%d)\t%d\t%d\n", n, i, s.Size(), s.Index(), s.Offset(), s.End())
+		res = fmt.Sprintf("-%s%d-", n, s.Index()) + res
 		s = s.Prev()
 	}
+	fmt.Printf("%s\n", res)
+}
+
+func (c *Container) Check() (err error) {
+	var s,p Space
+	s = c.last
+	i := 0
+	for s != nil {
+		i++
+		if s.IsFree() {
+			if ! c.holeIndex.Exists(s.(*Hole)) {
+				return fmt.Errorf("Hole not indexed: %v", s.(*Hole))
+			}
+		}
+		
+		if p != nil && s.End() != p.Offset() {
+			return fmt.Errorf("Range error: %d vs %d", s.End(), p.Offset())
+		}
+		
+		p = s
+		s = s.Prev()
+	}
+	return
 }

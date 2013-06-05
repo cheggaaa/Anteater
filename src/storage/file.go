@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
+	//"aelog"
 )
 
 type File struct {
@@ -46,7 +47,7 @@ func (f *File) Open() (err error) {
 
 // need call after open
 func (f *File) Close() {
-	if f.deleted && atomic.AddInt32(&f.openCount, -1) == 0 {
+	if atomic.AddInt32(&f.openCount, -1) == 0 && f.deleted {
 		f.Delete()
 	}
 }

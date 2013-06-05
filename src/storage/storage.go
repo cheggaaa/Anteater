@@ -207,7 +207,18 @@ func (s *Storage) CheckMD5() map[string]bool {
 }
 
 func (s *Storage) Close() {
-	
+	s.Dump()
+	for _,c := range s.Containers {
+		c.Close()
+	}
+}
+
+func (s *Storage) Drop() {
+	s.Close()
+	for _,c := range s.Containers {
+		os.Remove(c.fileName())
+		os.Remove(c.indexName())
+	}
 }
 
 func (s *Storage) restoreContainer(path string) (err error) {
