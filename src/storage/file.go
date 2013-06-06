@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 	//"aelog"
+	"fmt"
 )
 
 type File struct {
@@ -137,4 +138,18 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 // string md5
 func (f *File) Md5S() string {
 	return hex.EncodeToString(f.Md5)
+}
+
+func (f *File) CheckMd5() (err error) {
+	if err = f.Open(); err != nil {
+		return
+	}
+	defer f.Close()
+	r := f.GetReader()
+	h := md5.New()
+	io.Copy(h, r)
+	if hex.EncodeToString(h.Sum(nil)) != f.Md5S() {
+		err = fmt.Errorf("File %s. MD5 mismatched: %s vs %s", f.Name, hex.EncodeToString(h.Sum(nil)), f.Md5S())
+	}
+	return
 }

@@ -62,6 +62,12 @@ func (i *Index) Delete(name string) (f *File, ok bool) {
 	return
 }
 
+func (i *Index) Count() int {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return len(i.Files)
+}
+
 func (i *Index) Version() uint64 {
 	return atomic.LoadUint64(&i.v)
 }

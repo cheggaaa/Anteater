@@ -136,8 +136,12 @@ func (c *Container) restore() {
 	if c.FDump == nil || len(c.FDump) == 0 {
 		return
 	}
-	
+		
 	c.last = c.FDump[i]
+	if c.last != nil {
+		c.last.Init(c)
+		c.s.Index.Add(c.last)	
+	}
 	var next Space = c.last
 	i++
 	
@@ -218,17 +222,13 @@ func (c *Container) allocAppend(f *File) (ok bool) {
 }
 
 func (c *Container) allocInsert(f *File) (ok bool) {
-	aelog.Debugln("try insert", f.Name)
 	if s := c.holeIndex.GetBiggest(f.Index()); s != nil {
-		aelog.Debugf("Found hole %v", s)
 		if s.Index() == f.Index() {
-			aelog.Debugln("Equal index hole %v, replace...", s.Index())
 			f.SetOffset(s.Offset())
 			c.replace(s, f)
 			ok = true
 			return
 		}
-		aelog.Debugf("Not equal index hole %d vs %d, normalize...", s.Index(), f.Index())
 		
 		// insert to begin of hole
 		f.SetPrev(s.Prev())
@@ -242,14 +242,7 @@ func (c *Container) allocInsert(f *File) (ok bool) {
 		}
 		h := c.insertNormalizedHole(s, s.Size()-f.Size())
 		ok = true
-		aelog.Debugln("Before normalize")
-		c.Print()
-		c.holeIndex.Print()		
 		c.normalizeHole(h)
-		aelog.Debugln("After normalize")
-		fmt.Println(c.Check())
-		c.Print()
-		c.holeIndex.Print()
 	}
 	return
 }
@@ -435,6 +428,9 @@ func (c *Container) Print() {
 }
 
 func (c *Container) Check() (err error) {
+	if c.last == nil {
+		return
+	}
 	var s,p Space
 	s = c.last
 	i := 0
@@ -443,6 +439,10 @@ func (c *Container) Check() (err error) {
 		if s.IsFree() {
 			if ! c.holeIndex.Exists(s.(*Hole)) {
 				return fmt.Errorf("Hole not indexed: %v", s.(*Hole))
+			}
+		} else {
+			if e := s.(*File).CheckMd5(); e != nil {
+				return e
 			}
 		}
 		

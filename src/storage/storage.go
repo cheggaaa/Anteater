@@ -76,9 +76,11 @@ func (s *Storage) Open() (err error) {
 	
 	if len(s.Containers) == 0 {
 		aelog.Info("Create first container")
-		_, err = s.createContainer()
+		if _, err = s.createContainer(); err != nil {
+			return
+		}
 	}
-	
+
 	go func() {
 		if s.Conf.DumpTime > 0 {
 			for {
@@ -202,8 +204,13 @@ func (s *Storage) GetStats() *stats.Stats {
 	return s.Stats
 }
 
-func (s *Storage) CheckMD5() map[string]bool {
-	return nil
+func (s *Storage) Check() (err error) {
+	for _,c := range s.Containers {
+		if err = c.Check(); err != nil {
+			return
+		}
+	}
+	return
 }
 
 func (s *Storage) Close() {
