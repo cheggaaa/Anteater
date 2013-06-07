@@ -17,57 +17,84 @@
 package storage
 
 import (
-	"errors"
+	"aelog"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
 
 type Index struct {
-	Files map[string]*File
-	m     *sync.Mutex
-	v     uint64
+	Root *Node
+	m    *sync.Mutex
+	v, c  int64
 }
 
 func (i *Index) Init() {
-	i.Files = make(map[string]*File)
 	i.m = &sync.Mutex{}
+	i.Root = &Node{}
 }
 
 // Add new file to index
 func (i *Index) Add(file *File) (err error) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	if _, exists := i.Files[file.Name]; exists {
-		err = errors.New("Index already exists: " + file.Name)
+	parts := i.expolode(file.Name)
+	if err = i.Root.Add(parts, file, 0); err != nil {
 		return
 	}
-	i.Files[file.Name] = file
-	atomic.AddUint64(&i.v, 1)
+	atomic.AddInt64(&i.v, 1)
+	atomic.AddInt64(&i.c, 1)
 	return
 }
 
 func (i *Index) Get(name string) (f *File, ok bool) {
-	f, ok = i.Files[name]
+	i.m.Lock()
+	defer i.m.Unlock()
+	parts := i.expolode(name)
+	var err error
+	if f, err = i.Root.Get(parts, 0); err == nil {
+		ok = true
+		return
+	}
+	if err != ErrFileNotFound {
+		aelog.Warnf("Error while get from index. %s: %v", name, err)
+	}
 	return
 }
 
 func (i *Index) Delete(name string) (f *File, ok bool) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	f, ok = i.Files[name]
-	if ok {
-		delete(i.Files, name)
-		atomic.AddUint64(&i.v, 1)
+	parts := i.expolode(name)
+	var err error
+	if f, err = i.Root.Delete(parts, 0); err == nil {
+		ok = true
+		atomic.AddInt64(&i.v, 1)
+		atomic.AddInt64(&i.c, -1)
+		return
+	}
+	if err != ErrFileNotFound {
+		aelog.Warnf("Error while delete from index. %s: %v", name, err)
 	}
 	return
 }
 
-func (i *Index) Count() int {
-	i.m.Lock()
-	defer i.m.Unlock()
-	return len(i.Files)
+func (i *Index) List(prefix string) (names []string, err error) {
+	parts := make([]string, 0)
+	if prefix != "" {
+		parts = i.expolode(prefix)
+	}
+	return i.Root.List(parts, 0)
+} 
+
+func (i *Index) Count() int64 {
+	return atomic.LoadInt64(&i.c)
 }
 
-func (i *Index) Version() uint64 {
-	return atomic.LoadUint64(&i.v)
+func (i *Index) Version() int64 {
+	return atomic.LoadInt64(&i.v)
+}
+
+func (i *Index) expolode(name string) (parts []string) {
+	return strings.Split(name, "/")
 }

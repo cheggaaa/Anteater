@@ -56,7 +56,7 @@ type Storage struct {
 	FreeSpace    int64
 	HoleCount    int64
 	HoleSize     int64
-	IndexVersion uint64
+	IndexVersion int64
 	DumpSize     int64
 	DumpSaveTime time.Duration
 	DumpLockTime time.Duration

@@ -302,7 +302,20 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 }
 
 func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
-	ok := s.stor.Delete(name)
+	var ok bool
+	var mode string
+	if r != nil {
+		mode = strings.ToLower(r.Header.Get("X-Ae-Delete"))
+	}
+	switch mode {
+		case "childs":
+			ok = s.stor.DeleteChilds(name)
+		case "all":
+			ok = s.stor.Delete(name) || s.stor.DeleteChilds(name)
+		default:
+			ok = s.stor.Delete(name)
+	}
+	
 	if ok {
 		if w != nil {
 			w.WriteHeader(http.StatusNoContent)

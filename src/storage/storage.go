@@ -173,6 +173,20 @@ func (s *Storage) Delete(name string) (ok bool) {
 	return
 }
 
+func (s *Storage) DeleteChilds(name string) (ok bool) {
+	names, err := s.Index.List(name)
+	if err != nil {
+		aelog.Warnln("Can't get file list:", err)
+		return
+	}
+	for _, name := range names {
+		if s.Delete(name) && ! ok {
+			ok = true
+		}
+	}
+	return
+}
+
 func (s *Storage) Dump() {
 	s.m.Lock()
 	defer s.m.Unlock()
@@ -188,7 +202,7 @@ func (s *Storage) GetStats() *stats.Stats {
 	s.Stats.Refresh()
 	
 	s.Stats.Storage.ContainersCount = len(s.Containers)
-	s.Stats.Storage.FilesCount = int64(len(s.Index.Files))
+	s.Stats.Storage.FilesCount = s.Index.Count()
 	s.Stats.Storage.IndexVersion = s.Index.Version()
 	s.Stats.Storage.FilesSize = 0
 	s.Stats.Storage.TotalSize = 0

@@ -2,10 +2,13 @@ package storage
 
 import (
 	"errors"
+	"fmt"
 )
 
 var ErrFileExists = errors.New("File exists")
 var ErrFileNotFound = errors.New("File not found")
+
+const WILDCARD = "*"
 
 type Node struct {
 	File *File
@@ -14,6 +17,26 @@ type Node struct {
 
 func (n *Node) IsFile() bool {
 	return n.File != nil
+}
+
+func (n *Node) Get(parts []string, depth int) (f *File, err error) {
+	// is it target
+	if len(parts) == depth {
+		if ! n.IsFile() {
+			err = ErrFileNotFound
+			return
+		}
+		f = n.File
+		return
+	}
+	// find in childs
+	if n.Childs != nil {
+		if child, ok := n.Childs[parts[depth]]; ok {
+			return child.Get(parts, depth + 1)
+		} 
+	}
+	err = ErrFileNotFound
+	return
 }
 
 func (n *Node) Add(parts []string, f *File, depth int) (err error) {
@@ -42,12 +65,20 @@ func (n *Node) Add(parts []string, f *File, depth int) (err error) {
 }
 
 func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
+	if n.Childs == nil {
+		err = ErrFileNotFound
+		return 
+	}
+	
 	// is last - delete
 	if len(parts) - 1 == depth {
 		if child, ok := n.Childs[parts[depth]]; ok {
 			if child.IsFile() {
 				f = child.File
-				delete(n.Childs, parts[depth])
+				child.File = nil
+				if child.Childs == nil || len(child.Childs) == 0 {
+					delete(n.Childs, parts[depth])
+				}
 				return
 			}
 		} else {
@@ -58,7 +89,13 @@ func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 	
 	// to child
 	if child, ok := n.Childs[parts[depth]]; ok {
-		return child.Delete(parts, depth + 1)
+		if f, err = child.Delete(parts, depth + 1); err == nil {
+			if ! child.IsFile() && (child.Childs == nil || len(child.Childs) == 0) {
+				delete(n.Childs, parts[depth])
+			}
+		} else {
+			return
+		}
 	} else {
 		err = ErrFileNotFound
 	}
@@ -66,7 +103,7 @@ func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 }
 
 func (n *Node) List(parts []string, depth int) (files []string, err error) {
-	files = make([]string, 0)
+	files = make([]string, 0)	
 	// make list from childs
 	if len(parts) <= depth {
 		if n.Childs != nil {
@@ -85,7 +122,13 @@ func (n *Node) List(parts []string, depth int) (files []string, err error) {
 	// or find and call child
 	if n.Childs != nil {
 		if node, ok := n.Childs[parts[depth]]; ok {
-			return node.List(parts, depth + 1)
+			if files, err = node.List(parts, depth + 1); err == nil {
+				for i, name := range files {
+					files[i] = parts[depth] + "/" + name
+				}
+			} else {
+				return
+			}
 		} else {
 			err = ErrFileNotFound
 		}
@@ -94,3 +137,17 @@ func (n *Node) List(parts []string, depth int) (files []string, err error) {
 	}
 	return
 } 
+
+
+func (n *Node) Print(prefix string) {
+	p := "E"
+	if n.IsFile() {
+		p = "F"
+	}
+	fmt.Printf("(%s) %s\n", p, prefix)
+	if n.Childs != nil {
+		for name, child := range n.Childs {
+			child.Print(prefix + "/" + name)
+		}
+	}
+}

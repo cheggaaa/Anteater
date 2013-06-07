@@ -61,8 +61,8 @@ func (r *Storage) Ping(args *bool, reply *string) error {
 	return nil
 }
 
-func (r *Storage) CheckMD5 (args *bool, reply *map[string]bool) error {
-	*reply = r.s.CheckMD5()
+func (r *Storage) Check(args *bool, reply *error) error {
+	*reply = r.s.Check()
 	return nil
 }
 
