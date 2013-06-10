@@ -98,7 +98,7 @@ func (f *File) Upload(tmpf *TmpFiles) (err error) {
 }
 
 func (f *File) uploadImage(tf *temp.File) (tfr *temp.File, err error) {
-	image, err := utils.ImageIdenty(tf.Filename)
+	image, err := utils.Identify(tf.Filename)
 	if err != nil {
 		return
 	}
