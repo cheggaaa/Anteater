@@ -44,8 +44,9 @@ func RegisterCommands() {
 	cmds = append(cmds, new(RpcCommandVersion))
 	cmds = append(cmds, new(RpcCommandPing))
 	cmds = append(cmds, new(RpcCommandStatus))
-	cmds = append(cmds, new(RpcCommandCheckMD5))
+	cmds = append(cmds, new(RpcCommandCheck))
 	cmds = append(cmds, new(RpcCommandBackup))
+	cmds = append(cmds, new(RpcCommandFileList))
 	
 	for _, cmd := range cmds {
 		Commands[cmd.ShortName()] = cmd
@@ -109,31 +110,30 @@ func (c *RpcCommandStatus) Execute(client *rpc.Client) (err error) {
 	return
 }
 
-// CHECK MD5
-type RpcCommandCheckMD5 map[string]bool
-func (c *RpcCommandCheckMD5) ShortName() string { return "CHECKMD5" }
-func (c *RpcCommandCheckMD5) RpcName() string { return "Storage.CheckMD5" }
-func (c *RpcCommandCheckMD5) Help() string { return "Return list invalid files" }
-func (c *RpcCommandCheckMD5) SetArgs(args []string) (err error) { return }
-func (c *RpcCommandCheckMD5) Print() {
-	var ok, e int
-	for n, r := range *c {
-		if ! r {
-			fmt.Printf("File: %s has md5 error\n", n)
-			e++
-		} else {
-			ok++
-		}
+// CHECK
+type RpcCommandCheck string
+func (c *RpcCommandCheck) ShortName() string { return "CHECK" }
+func (c *RpcCommandCheck) RpcName() string { return "Storage.CheckMD5" }
+func (c *RpcCommandCheck) Help() string { return "Check internal structure & md5 files" }
+func (c *RpcCommandCheck) SetArgs(args []string) (err error) { return }
+func (c *RpcCommandCheck) Print() {
+	if *c == "" {
+		fmt.Println("OK")
+	} else {
+		fmt.Println(*c)
 	}
-	fmt.Printf("Total scaned: %d. Errors: %d\n", len(*c), e)
 }
-func (c *RpcCommandCheckMD5) Data() interface{} { return c }
-func (c *RpcCommandCheckMD5) Execute(client *rpc.Client) (err error) {
-	err = client.Call(c.RpcName(), true, c)
+func (c *RpcCommandCheck) Data() interface{} { return c }
+func (c *RpcCommandCheck) Execute(client *rpc.Client) (err error) {
+	var e error
+	err = client.Call(c.RpcName(), true, &e)
+	if e != nil {
+		*c = RpcCommandCheck(e.Error())
+	}
 	return
 }
 
-
+// BACKUP
 type RpcCommandBackup struct {
 	path string
 	result bool
@@ -159,4 +159,21 @@ func (c *RpcCommandBackup) Execute(client *rpc.Client) (err error) {
 	}
 	err = client.Call(c.RpcName(), c.path, &c.result)
 	return
+}
+
+// FILELIST
+type RpcCommandFileList struct {
+	result []string
+}
+
+func (c *RpcCommandFileList) ShortName() string { return "FILELIST" }
+func (c *RpcCommandFileList) RpcName() string { return "Storage.FileList" }
+func (c *RpcCommandFileList) Help() string { return "Return list of files" }
+func (c *RpcCommandFileList) SetArgs(args []string) (err error) {return}
+func (c *RpcCommandFileList) Print() {
+	fmt.Printf("Result: %v\n", c.result)
+}
+func (c *RpcCommandFileList) Data() interface{} { return c.result }
+func (c *RpcCommandFileList) Execute(client *rpc.Client) (err error) {
+	return client.Call(c.RpcName(), true, &c.result)
 }

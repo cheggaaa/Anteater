@@ -70,3 +70,12 @@ func (r *Storage) Backup (args *string, reply *bool) error {
 	*reply = true
 	return backup.CreateBackup(r.s, *args)
 }
+
+func (r *Storage) FileList(args *bool, reply *[]string) (err error) {
+	l := make([]string, 0)
+	for f, _ := range r.s.Index.Files {
+		l = append(l, f)
+	}
+	*reply = l
+	return
+}
