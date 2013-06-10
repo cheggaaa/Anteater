@@ -22,7 +22,6 @@ import (
 	"errors"
 	"strconv"
 	"fmt"
-	"aelog"
 )
 
 type Image struct {
@@ -32,21 +31,29 @@ type Image struct {
 	Height   int
 }
 
-func ImageIdenty(filename string) (*Image, error) {
+func Identify(filename string) (*Image, error) {
 	var err error
 	cmd := exec.Command("identify", filename)
-	res, err := cmd.Output()
+	res, err := cmd.CombinedOutput()
 	if err != nil {
+		e := parseError(string(res))
+		if e != "" {
+			err = fmt.Errorf("%s", e)
+		} else {
+			err = fmt.Errorf("%s: %v", filename, err)
+		}
 		return nil, err
-	}
+	}	
 	
 	image := &Image{
 		Filename: filename,
 	}
 	
-	params := strings.Split(string(res), " ")
+	ress := string(res)
+	ress = strings.Replace(ress, filename, "filename", 1)
+	params := strings.Split(ress, " ")
 	if len(params) < 3 {
-		return nil, errors.New("Indetify return ivalid data: " + string(res))
+		return nil, errors.New("Indetify return ivalid data: " + ress)
 	}
 	
 	image.Type = strings.ToLower(params[1])
@@ -80,20 +87,14 @@ func (i *Image) Resize(dst, format string, w, h, q int) error {
 	if format == "" {
 		format = i.Type
 	}
-	
-	aelog.Debugln("Image: convert from:", i.Filename, "to:", dst, "w:", w, "h:", h, "q:", q)
+
 	var cmd *exec.Cmd
 	if q > 0 {
 		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, "-quality",  fmt.Sprintf("%d", q), dst)
 	} else {
 		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, dst)
 	}
-	_, err := cmd.Output()
-	if err != nil {
-		return err
-	}
-	
-	if err != nil {
+	if err := cmd.Run(); err != nil {
 		return err
 	}
 	i.Width = w
@@ -132,3 +133,12 @@ func (i *Image) Crop(dst, format string, w, h, q int) error {
 	i.Height = s
 	return nil
 } 
+
+func parseError(probe string) (err string) {
+	parts := strings.Split(probe, "\n")
+	l := len(parts)
+	if l < 2 {
+		return
+	}
+	return strings.TrimSpace(parts[l - 2])
+}
