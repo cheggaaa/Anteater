@@ -46,6 +46,7 @@ func RegisterCommands() {
 	cmds = append(cmds, new(RpcCommandStatus))
 	cmds = append(cmds, new(RpcCommandCheck))
 	cmds = append(cmds, new(RpcCommandBackup))
+	cmds = append(cmds, new(RpcCommandFileList))
 	
 	for _, cmd := range cmds {
 		Commands[cmd.ShortName()] = cmd
@@ -109,7 +110,7 @@ func (c *RpcCommandStatus) Execute(client *rpc.Client) (err error) {
 	return
 }
 
-// CHECK MD5
+// CHECK
 type RpcCommandCheck string
 func (c *RpcCommandCheck) ShortName() string { return "CHECK" }
 func (c *RpcCommandCheck) RpcName() string { return "Storage.Check" }
@@ -132,7 +133,7 @@ func (c *RpcCommandCheck) Execute(client *rpc.Client) (err error) {
 	return
 }
 
-
+// BACKUP
 type RpcCommandBackup struct {
 	path string
 	result bool
@@ -158,4 +159,21 @@ func (c *RpcCommandBackup) Execute(client *rpc.Client) (err error) {
 	}
 	err = client.Call(c.RpcName(), c.path, &c.result)
 	return
+}
+
+// FILELIST
+type RpcCommandFileList struct {
+	result []string
+}
+
+func (c *RpcCommandFileList) ShortName() string { return "FILELIST" }
+func (c *RpcCommandFileList) RpcName() string { return "Storage.FileList" }
+func (c *RpcCommandFileList) Help() string { return "Return list of files" }
+func (c *RpcCommandFileList) SetArgs(args []string) (err error) {return}
+func (c *RpcCommandFileList) Print() {
+	fmt.Printf("Result: %v\n", c.result)
+}
+func (c *RpcCommandFileList) Data() interface{} { return c.result }
+func (c *RpcCommandFileList) Execute(client *rpc.Client) (err error) {
+	return client.Call(c.RpcName(), true, &c.result)
 }
