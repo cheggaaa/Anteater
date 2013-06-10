@@ -27,6 +27,8 @@ do_run_build() {
 	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aeimport.go
 	echo "Building aestats.."
 	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aestats.go
+	echo "Building aemove.."
+        GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aemove.go
 }
 
 case $1 in

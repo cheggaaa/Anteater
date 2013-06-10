@@ -103,12 +103,14 @@ func StartClient(c chan string, bar *pb.ProgressBar) {
 			panic(err)
 		}
 		getMd5 := resp.Header.Get("X-Ae-Md5")
-		
+		length := resp.ContentLength
+
 		// put
 		req, err := http.NewRequest("PUT", write, resp.Body)
 		if err != nil {
 			panic(err)
-		}	
+		}
+		req.ContentLength = length
 		wres, err := writeClient.Do(req)
 		if err != nil {
 			panic(err)
