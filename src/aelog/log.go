@@ -22,7 +22,7 @@ import (
 )
 
 const (
-	LOG_PRINT = 0
+	LOG_PRINT = 4
 	LOG_DEBUG = 1
 	LOG_INFO  = 2
 	LOG_WARN  = 3

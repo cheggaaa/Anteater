@@ -396,7 +396,7 @@ func (s *Server) checkCache(r *http.Request, f *storage.File) (cont bool, status
 func (s *Server) accessLog(status int, r *http.Request) {
 	if s.aL != nil {
 		st := http.StatusText(status)
-		s.aL.Printf(aelog.LOG_PRINT, "%s %s (%s): %s", r.Method, r.URL.Path, r.RemoteAddr, st)
+		s.aL.Printf(aelog.LOG_PRINT, "%s %s (%s): %d %s", r.Method, r.URL.Path, r.RemoteAddr, status, st)
 	}
 }
 
