@@ -59,8 +59,8 @@ func (u *Uploader) TryRequest(r *http.Request, w http.ResponseWriter) (status bo
 			return
 		}
 		w.Header().Set("Content-Type", "application/x-javascript")
-		io.Copy(w, resp.Body)
 		w.WriteHeader(resp.StatusCode)
+		io.Copy(w, resp.Body)	
 		err = nil
 	}
 	
