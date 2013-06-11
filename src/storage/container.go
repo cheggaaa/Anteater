@@ -40,13 +40,14 @@ type Container struct {
 	Created             bool
 	Size                int64
 	FileCount, FileSize int64
-	FDump 				map[int64]*File
+	FDump               map[int64]*File
 	HDump               map[int64]*Hole
 	last                *File
 	holeIndex           *HoleIndex
 	s                   *Storage
 	f                   *os.File
 	m                   *sync.Mutex
+	ch                  bool
 }
 
 func (c *Container) Init(s *Storage) (err error) {
@@ -61,6 +62,7 @@ func (c *Container) Init(s *Storage) (err error) {
 	c.holeIndex = new(HoleIndex)
 	c.holeIndex.Init()
 	c.restore()
+	c.ch = true
 	// build holeIndex
 	/*var last, next Space
 	next = nil
@@ -89,7 +91,7 @@ func (c *Container) Init(s *Storage) (err error) {
 			c.Created = true
 		}
 	}
-	
+
 	return
 }
 
@@ -121,15 +123,19 @@ func (c *Container) Close() (err error) {
 func (c *Container) Dump() (err error) {
 	c.m.Lock()
 	defer c.m.Unlock()
+	
+	if ! c.ch {
+		return
+	}
+	
 	st := time.Now()
-	
 	var i int64
-	
+
 	c.FDump = make(map[int64]*File, c.FileCount)
 	c.HDump = make(map[int64]*Hole, c.holeIndex.Count)
-	
+
 	var last Space = c.last
-	
+
 	for last != nil && c.last != nil {
 		if last.IsFree() {
 			c.HDump[i] = last.(*Hole)
@@ -139,9 +145,9 @@ func (c *Container) Dump() (err error) {
 		last = last.Prev()
 		i++
 	}
-	
+
 	pr := time.Since(st)
-	
+
 	n, err := dump.DumpTo(c.indexName(), c)
 	aelog.Debugf("Dump container %d, writed %s for a %v (prep: %v)", c.Id, utils.HumanBytes(n), time.Since(st), pr)
 	return
@@ -152,15 +158,15 @@ func (c *Container) restore() {
 	if c.FDump == nil || len(c.FDump) == 0 {
 		return
 	}
-		
+
 	c.last = c.FDump[i]
 	if c.last != nil {
 		c.last.Init(c)
-		c.s.Index.Add(c.last)	
+		c.s.Index.Add(c.last)
 	}
 	var next Space = c.last
 	i++
-	
+
 	for {
 		if last, ok := c.FDump[i]; ok {
 			last.SetNext(next)
@@ -191,10 +197,11 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 			c.FileCount++
 			c.FileSize += f.FSize
 			f.Init(c)
+			c.ch = true
 		}
 		c.m.Unlock()
 	}()
-	
+
 	if f.Indx == 0 {
 		f.Indx = R.Index(f.FSize)
 	}
@@ -245,7 +252,7 @@ func (c *Container) allocInsert(f *File) (ok bool) {
 			ok = true
 			return
 		}
-		
+
 		// insert to begin of hole
 		f.SetPrev(s.Prev())
 		f.SetNext(s)
@@ -266,7 +273,7 @@ func (c *Container) allocInsert(f *File) (ok bool) {
 func (c *Container) Delete(f *File) {
 	c.m.Lock()
 	defer c.m.Unlock()
-	
+	c.ch = true
 	c.FileCount--
 	c.FileSize -= f.FSize
 
@@ -320,7 +327,7 @@ func (c *Container) normalizeHole(h Space) {
 	// check to right
 	i = 0
 	for {
-		if ! h.IsFree() {
+		if !h.IsFree() {
 			break
 		}
 		s += h.Size()
@@ -328,7 +335,7 @@ func (c *Container) normalizeHole(h Space) {
 			start = c.mergeHoles(start, h.(*Hole))
 			h = start
 		}
-		
+
 		i++
 		if h.Next() == nil || i > 400 {
 			break
@@ -390,7 +397,7 @@ func (c *Container) insertNormalizedHole(h *Hole, size int64) *Hole {
 		h.Indx = R.Index(size)
 		c.holeIndex.Add(h)
 		return h
-	}	
+	}
 	h.Indx = R.Index(size) - 1
 	if size == 1 {
 		panic("Check algo!")
@@ -414,9 +421,9 @@ func (c *Container) Print() {
 		fmt.Println("EMPTY")
 		return
 	}
-	
+
 	fmt.Printf("C%d. Size: %s(%s); BI: %d\n", c.Id, utils.HumanBytes(c.Size), utils.HumanBytes(c.FileSize), c.holeIndex.biggestIndex)
-	
+
 	res := ""
 	var s Space
 	s = c.last
@@ -426,7 +433,7 @@ func (c *Container) Print() {
 		n := "F"
 		if s.IsFree() {
 			n = "H"
-			if ! c.holeIndex.Exists(s.(*Hole)) {
+			if !c.holeIndex.Exists(s.(*Hole)) {
 				n = "E"
 			}
 		}
@@ -440,13 +447,13 @@ func (c *Container) Check() (err error) {
 	if c.last == nil {
 		return
 	}
-	var s,p Space
+	var s, p Space
 	s = c.last
 	i := 0
 	for s != nil {
 		i++
 		if s.IsFree() {
-			if ! c.holeIndex.Exists(s.(*Hole)) {
+			if !c.holeIndex.Exists(s.(*Hole)) {
 				return fmt.Errorf("Hole not indexed: %v", s.(*Hole))
 			}
 		} else {
@@ -454,10 +461,10 @@ func (c *Container) Check() (err error) {
 				return e
 			}
 		}
-		
+
 		if p != nil && s.End() != p.Offset() {
 			return fmt.Errorf("Range error: %d vs %d", s.End(), p.Offset())
-		}		
+		}
 		p = s
 		s = s.Prev()
 	}
