@@ -150,6 +150,7 @@ func (c *Container) Dump() (err error) {
 
 	n, err := dump.DumpTo(c.indexName(), c)
 	aelog.Debugf("Dump container %d, writed %s for a %v (prep: %v)", c.Id, utils.HumanBytes(n), time.Since(st), pr)
+	c.ch = false
 	return
 }
 
