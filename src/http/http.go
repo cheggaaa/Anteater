@@ -30,6 +30,7 @@ import (
 	"strings"
 	"temp"
 	"uploader"
+	"module"
 )
 
 const (
@@ -52,6 +53,7 @@ func RunServer(s *storage.Storage, accessLog *aelog.AntLog) (server *Server) {
 		aL   : accessLog,
 		up   : uploader.NewUploader(s.Conf, s),
 	}
+	module.RegisterModules()
 	server.Run()
 	return
 }
@@ -297,6 +299,10 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 	w.Header().Set("X-Ae-Md5", f.Md5S());	
 	w.Header().Set("Etag", f.ETag());
 	w.Header().Set("Location", name);
+	if err = module.OnSave(f, w, r, s.stor); err != nil {
+		s.Err(500, r, w)
+		return
+	}
 	w.WriteHeader(http.StatusCreated)
 	s.accessLog(http.StatusCreated, r)
 }
@@ -311,7 +317,8 @@ func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
 		case "childs":
 			ok = s.stor.DeleteChilds(name)
 		case "all":
-			ok = s.stor.Delete(name) || s.stor.DeleteChilds(name)
+			cok := s.stor.DeleteChilds(name)
+			ok = s.stor.Delete(name) || cok
 		default:
 			ok = s.stor.Delete(name)
 	}
