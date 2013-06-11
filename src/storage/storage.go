@@ -121,7 +121,6 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error)
 		if err != nil {
 			f.Delete()
 		} else {
-			s.Stats.Allocate.Replace.Add()
 			switch target {
 			case ALLOC_REPLACE:
 				s.Stats.Allocate.Replace.Add()
