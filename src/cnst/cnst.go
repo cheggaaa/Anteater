@@ -17,7 +17,7 @@
 package cnst
 
 const (
-	VERSION = "0.3.0 beta"
+	VERSION = "0.3.1"
 	SIGN    = "Anteater " + VERSION
 )
 
