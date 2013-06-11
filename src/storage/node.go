@@ -97,12 +97,11 @@ func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 				}
 				return
 			}
-		} else {
-			err = ErrFileNotFound
-			return 
-		}
+		} 
+		err = ErrFileNotFound
+		return
 	}
-	
+
 	// to child
 	if child, ok := n.Childs[parts[depth]]; ok {
 		if f, err = child.Delete(parts, depth + 1); err == nil {
