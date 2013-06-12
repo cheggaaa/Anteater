@@ -87,15 +87,13 @@ func (c *RpcCommandStatus) Help() string { return "Return server status info" }
 func (c *RpcCommandStatus) SetArgs(args []string) (err error) { return }
 func (c *RpcCommandStatus) Print() { 
 	fmt.Println("Anteater")
-	fmt.Printf("  Start time: %v\n  Version: %s\n\n", c.Anteater.StartTime, c.Anteater.Version)
+	fmt.Printf("  Start time: %v (uptime: %v)\n  Version: %s\n\n", c.Anteater.StartTime, c.Env.Time.Sub(c.Anteater.StartTime), c.Anteater.Version)
 	fmt.Println("Enviroment")
 	fmt.Printf("  Go version: %s\n  Server time:  %v\n  Num goroutines: %d\n  Memory allocated: %s\n\n", c.Env.GoVersion, c.Env.Time, c.Env.NumGoroutine, utils.HumanBytes(int64(c.Env.MemAlloc)))
 	fmt.Println("Storage")
-	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Holes: %s (%d)\n  Index version: %d\n", 
-		c.Storage.ContainersCount, c.Storage.FilesCount, utils.HumanBytes(c.Storage.FilesSize), 
-		utils.HumanBytes(c.Storage.HoleSize), c.Storage.HoleCount, c.Storage.IndexVersion)
-	fmt.Printf("  Dump file size: %s\n  Dump save time: %v\n  Dump save lock: %v\n  Last dump created: %v\n\n", 
-		utils.HumanBytes(c.Storage.DumpSize), c.Storage.DumpSaveTime, c.Storage.DumpLockTime, c.Storage.DumpTime)
+	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Allocated size: %s (profit: %.2f%%)\n  Holes: %s (%d)\n  Index version: %d\n", 
+		c.Storage.ContainersCount, c.Storage.FilesCount, utils.HumanBytes(c.Storage.FilesSize), utils.HumanBytes(c.Storage.FilesRealSize), 
+		(float64(c.Storage.FilesSize) / float64(c.Storage.FilesRealSize)) * 100, utils.HumanBytes(c.Storage.HoleSize), c.Storage.HoleCount, c.Storage.IndexVersion)
 	fmt.Println("Counters")
 	fmt.Printf("  Get: %d\n  Add: %d\n  Delete: %d\n  Not found: %d\n  Not modified: %d\n\n", 
 		c.Counters["get"], c.Counters["add"], c.Counters["delete"], c.Counters["notFound"], c.Counters["notModified"])

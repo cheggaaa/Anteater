@@ -40,6 +40,7 @@ type Container struct {
 	Created             bool
 	Size                int64
 	FileCount, FileSize int64
+	FileRealSize        int64
 	FDump               map[int64]*File
 	HDump               map[int64]*Hole
 	last                *File
@@ -159,11 +160,13 @@ func (c *Container) restore() {
 	if c.FDump == nil || len(c.FDump) == 0 {
 		return
 	}
-
+	
+	c.FileRealSize = 0
 	c.last = c.FDump[i]
 	if c.last != nil {
 		c.last.Init(c)
 		c.s.Index.Add(c.last)
+		c.FileRealSize += c.last.Size()
 	}
 	var next Space = c.last
 	i++
@@ -175,6 +178,7 @@ func (c *Container) restore() {
 			next = last
 			last.Init(c)
 			c.s.Index.Add(last)
+			c.FileRealSize += last.Size()
 		} else if last, ok := c.HDump[i]; ok {
 			last.SetNext(next)
 			next.SetPrev(last)
@@ -197,6 +201,7 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 		if ok {
 			c.FileCount++
 			c.FileSize += f.FSize
+			c.FileRealSize += f.Size()
 			f.Init(c)
 			c.ch = true
 		}
@@ -277,7 +282,7 @@ func (c *Container) Delete(f *File) {
 	c.ch = true
 	c.FileCount--
 	c.FileSize -= f.FSize
-
+	c.FileRealSize -= f.Size()
 	// is last
 	if c.last.Offset() == f.Offset() {
 		prev := c.last.Prev()

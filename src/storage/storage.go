@@ -223,12 +223,16 @@ func (s *Storage) GetStats() *stats.Stats {
 	s.Stats.Storage.TotalSize = 0
 	s.Stats.Storage.HoleCount = 0
 	s.Stats.Storage.HoleSize = 0
+	s.Stats.Storage.FilesRealSize = 0
 	for _, c := range s.Containers {
+		c.m.Lock()
 		s.Stats.Storage.TotalSize += c.Size
 		hc, hs := c.holeIndex.Count, c.holeIndex.Size
 		s.Stats.Storage.HoleCount += hc
 		s.Stats.Storage.HoleSize += hs
 		s.Stats.Storage.FilesSize += c.FileSize
+		s.Stats.Storage.FilesRealSize += c.FileRealSize
+		c.m.Unlock()
 	}	
 	return s.Stats
 }

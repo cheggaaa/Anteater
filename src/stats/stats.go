@@ -17,26 +17,25 @@
 package stats
 
 import (
-	"time"
 	"cnst"
+	"time"
 )
 
 type Stats struct {
 	Anteater *Anteater
-	Storage *Storage
+	Storage  *Storage
 	Allocate *Allocate
 	Counters *StorageCounters
-	Traffic *Traffic
-	Env *Env
+	Traffic  *Traffic
+	Env      *Env
 }
-
 
 type Allocate struct {
 	Append, Replace, In *Counter
 }
 
 type Anteater struct {
-	Version string
+	Version   string
 	StartTime time.Time
 }
 
@@ -50,38 +49,38 @@ type Traffic struct {
 
 type Storage struct {
 	ContainersCount int
-	FilesCount   int64
-	FilesSize    int64
-	TotalSize    int64
-	FreeSpace    int64
-	HoleCount    int64
-	HoleSize     int64
-	IndexVersion int64
-	DumpSize     int64
-	DumpSaveTime time.Duration
-	DumpLockTime time.Duration
-	DumpTime     time.Time
+	FilesCount      int64
+	FilesSize       int64
+	FilesRealSize   int64
+	TotalSize       int64
+	FreeSpace       int64
+	HoleCount       int64
+	HoleSize        int64
+	IndexVersion    int64
+	DumpSize        int64
+	DumpSaveTime    time.Duration
+	DumpLockTime    time.Duration
+	DumpTime        time.Time
 }
 
 func New() *Stats {
 	st := &Stats{}
-	
+
 	st.Anteater = &Anteater{
-		Version : cnst.VERSION,
-		StartTime : time.Now(),
+		Version:   cnst.VERSION,
+		StartTime: time.Now(),
 	}
-	
+
 	st.Storage = &Storage{}
-	
+
 	st.Allocate = &Allocate{&Counter{}, &Counter{}, &Counter{}}
 	st.Counters = &StorageCounters{&Counter{}, &Counter{}, &Counter{}, &Counter{}, &Counter{}}
 	st.Traffic = &Traffic{&Counter{}, &Counter{}}
 	st.Env = &Env{}
 	st.Env.Refresh()
-	
+
 	return st
 }
-
 
 func (s *Stats) Refresh() {
 	s.Env.Refresh()
