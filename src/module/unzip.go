@@ -57,6 +57,16 @@ func (u unZip) OnSave(file *storage.File, w http.ResponseWriter, r *http.Request
 	return
 }
 
+func (u unZip) OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (e error) {
+	if command != "unzip" {
+		return
+	}
+	if file, ok := s.Get(filename); ok {
+		return u.OnSave(file, w, r, s)
+	}	
+	return
+}
+
 func (u unZip) unZipTo(to string, f *storage.File, s *storage.Storage) (filesCount, filesSize int64, err error) {
 	
 	if err = f.Open(); err != nil {

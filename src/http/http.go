@@ -183,6 +183,9 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 		}
 		s.Download(filename, w, r)
 		return
+	case "COMMAND":
+		s.Command(filename, w, r)
+		return
 	default:
 		s.Err(501, r, w)
 	}
@@ -225,6 +228,9 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	s.stor.Stats.Counters.Get.Add()
 	
 	if ! writeBody {
+		if status == http.StatusOK {
+			status = http.StatusNoContent
+		}
 		w.WriteHeader(status)
 		s.accessLog(status, r)
 		return
@@ -281,6 +287,11 @@ func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
 	s.save(name, tf.Size, tf.File, r, w)
 }
 
+func (s *Server) Command(name string, w http.ResponseWriter, r *http.Request) {
+	command := strings.ToLower(r.Header.Get("X-Ae-Command"))
+	module.OnCommand(command, name, w, r, s.stor)
+	s.Get(name, w, r, false)
+}
 
 func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request, w http.ResponseWriter) {
 	if size <= 0 {
