@@ -91,7 +91,7 @@ func (c *RpcCommandStatus) Print() {
 	fmt.Println("Enviroment")
 	fmt.Printf("  Go version: %s\n  Server time:  %v\n  Num goroutines: %d\n  Memory allocated: %s\n\n", c.Env.GoVersion, c.Env.Time, c.Env.NumGoroutine, utils.HumanBytes(int64(c.Env.MemAlloc)))
 	fmt.Println("Storage")
-	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Allocated size: %s (profit: %.2f%%)\n  Holes: %s (%d)\n  Index version: %d\n", 
+	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Allocated size: %s (profit: %.2f%%)\n  Holes: %s (%d)\n  Index version: %d\n\n", 
 		c.Storage.ContainersCount, c.Storage.FilesCount, utils.HumanBytes(c.Storage.FilesSize), utils.HumanBytes(c.Storage.FilesRealSize), 
 		(float64(c.Storage.FilesSize) / float64(c.Storage.FilesRealSize)) * 100, utils.HumanBytes(c.Storage.HoleSize), c.Storage.HoleCount, c.Storage.IndexVersion)
 	fmt.Println("Counters")
