@@ -70,7 +70,6 @@ func Identify(filename string) (*Image, error) {
 	if err != nil {
 		return nil, err
 	}	
-	fmt.Printf("Identify: %+v\n", image)
 	return image, nil
 }
 
@@ -97,7 +96,7 @@ func (i *Image) Resize(dst, format string, w, h, q int) error {
 	if err := cmd.Run(); err != nil {
 		return err
 	}
-	fmt.Println("Resize:", cmd.Args)
+
 	i.Width = w
 	i.Height = h
 	i.Type = format
@@ -111,17 +110,15 @@ func (i *Image) Crop(dst, format string, w, h, q int) error {
 	
 	if ki > kc {
 		ch = i.Height
-		cw = int(float64(i.Height) * kc)
-		fmt.Printf("ki > k: %dx%d (%f, %f)\n", cw, ch, float64(cw)/float64(ch), kc)
+		cw = int(float64(i.Height) * kc)		
 	} else {
 		cw = i.Width
 		ch = int(float64(i.Width) / kc)
-		fmt.Printf("ki < k: %dx%d\n", cw, ch)
 	}
 		
 	crop := fmt.Sprintf("%dx%d+0+0", cw, ch)
 	cmd := exec.Command("convert", i.Filename, "-gravity", "Center", "-crop", crop, dst)
-	fmt.Println("Crop:", cmd.Args)
+
 	res, err := cmd.CombinedOutput()
 	if err != nil {
 		e := parseError(string(res))
