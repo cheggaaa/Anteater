@@ -133,6 +133,11 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error)
 		}
 	}()
 	
+	if size <= 0 {
+		err = fmt.Errorf("Can't allocate 0-size for %s", name)
+		return
+	}
+	
 	// allocate
 	target, err = s.allocate(f)
 	if err != nil {
