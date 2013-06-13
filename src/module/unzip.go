@@ -95,6 +95,9 @@ func (u unZip) unZipTo(to string, f *storage.File, s *storage.Storage) (filesCou
 }
 
 func (u unZip) saveFile(to string, zf *zip.File, s *storage.Storage) (fs int64, err error) {
+	if zf.FileInfo().Size() == 0 {
+		return
+	}
 	fname := strings.Trim(to, "/") + "/" + strings.Trim(zf.Name, "/")
 	reader, err := zf.Open()
 	if err != nil {
