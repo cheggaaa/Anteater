@@ -21,6 +21,7 @@ import (
 	"strings"
 	"errors"
 	"strconv"
+	"math"
 	"fmt"
 )
 
@@ -110,10 +111,10 @@ func (i *Image) Crop(dst, format string, w, h, q int) error {
 	
 	if ki > kc {
 		ch = i.Height
-		cw = int(float64(i.Height) * kc)		
+		cw = int(math.Ceil(float64(i.Height) * kc))	
 	} else {
 		cw = i.Width
-		ch = int(float64(i.Width) / kc)
+		ch = int(math.Ceil(float64(i.Width) / kc))
 	}
 		
 	crop := fmt.Sprintf("%dx%d+0+0", cw, ch)
