@@ -247,7 +247,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	}
 	
 	if ! writeBody {
-		if status == http.StatusOK {
+		if status == http.StatusOK || status == http.StatusPartialContent {
 			status = http.StatusNoContent
 		}
 		w.WriteHeader(status)
@@ -260,10 +260,11 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	if goServe {
 		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
+		w.WriteHeader(status)
 		reader.WriteTo(w)
 	}
 		
-	s.accessLog(200, r)
+	s.accessLog(status, r)
 }
 
 func (s *Server) Save(name string, w http.ResponseWriter, r *http.Request) {
