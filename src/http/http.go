@@ -209,6 +209,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		s.accessLog(status, r)
 		return
 	}
+	w.Header().Set("Accept-Ranges", "bytes")
 	w.Header().Set("Content-Type", f.ContentType())
 	w.Header().Set("Content-Length", strconv.Itoa(int(f.FSize)))
 	w.Header().Set("Last-Modified", f.Time.UTC().Format(http.TimeFormat))
@@ -227,6 +228,24 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	
 	s.stor.Stats.Counters.Get.Add()
 	
+	// check range request
+	goServe := false
+	partial := false
+	ranges := r.Header.Get("Range")
+	if ranges != "" {
+		if strings.TrimSpace(strings.ToLower(ranges)) == "bytes 0-" {
+			partial = true
+		} else {
+			goServe = true
+		}
+	}
+	
+	// fix http go lib bug for a "0-" requests
+	if partial {
+		status = http.StatusPartialContent
+		w.Header().Add("Content-Range", fmt.Sprintf("bytes 0-%d/%d", f.FSize - 1, f.FSize))
+	}
+	
 	if ! writeBody {
 		if status == http.StatusOK {
 			status = http.StatusNoContent
@@ -238,7 +257,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	
 	reader := f.GetReader()
 	
-	if f.FSize > s.conf.ContentRange {
+	if goServe {
 		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
 		reader.WriteTo(w)
