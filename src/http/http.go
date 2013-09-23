@@ -233,7 +233,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	partial := false
 	ranges := r.Header.Get("Range")
 	if ranges != "" {
-		if strings.TrimSpace(strings.ToLower(ranges)) == "bytes 0-" {
+		if strings.TrimSpace(strings.ToLower(ranges)) == "bytes=0-" {
 			partial = true
 		} else {
 			goServe = true
