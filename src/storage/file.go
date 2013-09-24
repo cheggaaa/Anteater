@@ -39,7 +39,7 @@ type File struct {
 	Time  time.Time
 
 	c         *Container
-	ctype     string
+	ctype     *CType
 	deleted   bool
 	openCount int32
 }
@@ -97,8 +97,7 @@ func (f *File) ETag() string {
 
 // Return content type file or application/octed-stream if can't
 func (f *File) ContentType() (ctype string) {
-	ctype = f.ctype
-	if ctype == "" {
+	if f.ctype == nil {
 		ctype = mime.TypeByExtension(filepath.Ext(f.Name))
 		if ctype == "" {
 			var buf [512]byte
@@ -106,9 +105,9 @@ func (f *File) ContentType() (ctype string) {
 			b := buf[:n]
 			ctype = http.DetectContentType(b)
 		}
-		f.ctype = ctype
+		f.ctype = getCtype(ctype)
 	}
-	return
+	return f.ctype.String()
 }
 
 // copy content from io.Reader
