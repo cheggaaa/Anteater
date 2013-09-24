@@ -116,12 +116,10 @@ func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", cnst.SIGN)
 	defer func() {
-		/*
 		if rec := recover(); rec != nil {			
         	s.Err(500, r, w)
         	aelog.Warnf("Error on http request: %v", rec)
         }
-        */
         r.Body.Close()
 	}()
 	filename := Filename(r)
@@ -185,6 +183,9 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 		return
 	case "COMMAND":
 		s.Command(filename, w, r)
+		return
+	case "RENAME":
+		s.Rename(filename, w, r)
 		return
 	default:
 		s.Err(501, r, w)
@@ -311,6 +312,35 @@ func (s *Server) Command(name string, w http.ResponseWriter, r *http.Request) {
 	command := strings.ToLower(r.Header.Get("X-Ae-Command"))
 	module.OnCommand(command, name, w, r, s.stor)
 	s.Get(name, w, r, false)
+}
+
+func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
+	_, ok := s.stor.Index.Get(name)
+	if ! ok {
+		s.Err(http.StatusNotFound, r, w)
+		return
+	}
+	newName := strings.Trim(r.Header.Get("X-Ae-Name"), "/")
+	if newName == "" {
+		s.Err(http.StatusBadRequest, r, w)
+		return
+	}
+	if _, ok = s.stor.Get(newName); ok {
+		s.Err(http.StatusConflict, r, w)
+		return
+	}
+	if f, ok := s.stor.Index.Delete(name); ok {
+		f.Name = newName
+		if err := s.stor.Index.Add(f); err != nil {
+			f.Name = name
+			s.stor.Index.Add(f)
+			aelog.Warnf("Can't rename %s to %s: %v", name, newName, err)
+			s.Err(http.StatusInternalServerError, r, w)
+			return
+		}
+		s.Get(newName, w, r, false)
+	}
+	return
 }
 
 func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request, w http.ResponseWriter) {
