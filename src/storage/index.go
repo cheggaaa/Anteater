@@ -38,7 +38,7 @@ func (i *Index) Init() {
 func (i *Index) Add(file *File) (err error) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	parts := i.expolode(file.Name)
+	parts := i.explode(file.Name)
 	if err = i.Root.Add(parts, file, 0); err != nil {
 		return
 	}
@@ -50,7 +50,7 @@ func (i *Index) Add(file *File) (err error) {
 func (i *Index) Get(name string) (f *File, ok bool) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	parts := i.expolode(name)
+	parts := i.explode(name)
 	var err error
 	if f, err = i.Root.Get(parts, 0); err == nil {
 		ok = true
@@ -65,7 +65,7 @@ func (i *Index) Get(name string) (f *File, ok bool) {
 func (i *Index) Delete(name string) (f *File, ok bool) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	parts := i.expolode(name)
+	parts := i.explode(name)
 	var err error
 	if f, err = i.Root.Delete(parts, 0); err == nil {
 		ok = true
@@ -82,7 +82,7 @@ func (i *Index) Delete(name string) (f *File, ok bool) {
 func (i *Index) List(prefix string) (names []string, err error) {
 	parts := make([]string, 0)
 	if prefix != "" {
-		parts = i.expolode(prefix)
+		parts = i.explode(prefix)
 	}
 	return i.Root.List(parts, 0)
 } 
@@ -95,6 +95,6 @@ func (i *Index) Version() int64 {
 	return atomic.LoadInt64(&i.v)
 }
 
-func (i *Index) expolode(name string) (parts []string) {
+func (i *Index) explode(name string) (parts []string) {
 	return strings.Split(name, "/")
 }
