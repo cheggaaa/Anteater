@@ -162,16 +162,24 @@ func (c *RpcCommandBackup) Execute(client *rpc.Client) (err error) {
 // FILELIST
 type RpcCommandFileList struct {
 	result []string
+	path string
 }
 
 func (c *RpcCommandFileList) ShortName() string { return "FILELIST" }
 func (c *RpcCommandFileList) RpcName() string { return "Storage.FileList" }
 func (c *RpcCommandFileList) Help() string { return "Return list of files" }
-func (c *RpcCommandFileList) SetArgs(args []string) (err error) {return}
+func (c *RpcCommandFileList) SetArgs(args []string) (err error) {
+	if len(args) < 1 {
+		err = errors.New("Missing path argument")
+		return
+	}
+	c.path = strings.Trim(args[0], " ")
+	return
+}
 func (c *RpcCommandFileList) Print() {
 	fmt.Printf("Result: %v\n", c.result)
 }
 func (c *RpcCommandFileList) Data() interface{} { return c.result }
 func (c *RpcCommandFileList) Execute(client *rpc.Client) (err error) {
-	return client.Call(c.RpcName(), true, &c.result)
+	return client.Call(c.RpcName(), c.path, &c.result)
 }

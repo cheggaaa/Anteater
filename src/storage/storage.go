@@ -194,7 +194,7 @@ func (s *Storage) Delete(name string) (ok bool) {
 }
 
 func (s *Storage) DeleteChilds(name string) (ok bool) {
-	names, err := s.Index.List(name)
+	names, err := s.Index.List(name, 0)
 	if err != nil {
 		aelog.Warnln("Can't get file list:", err)
 		return

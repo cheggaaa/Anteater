@@ -71,7 +71,7 @@ func (r *Storage) Backup (args *string, reply *bool) error {
 	return backup.CreateBackup(r.s, *args)
 }
 
-func (r *Storage) FileList(args *bool, reply *[]string) (err error) {
-	*reply, err = r.s.Index.List("")
+func (r *Storage) FileList(prefix *string, reply *[]string) (err error) {
+	*reply, err = r.s.Index.List(*prefix, 0)
 	return
 }

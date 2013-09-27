@@ -79,12 +79,12 @@ func (i *Index) Delete(name string) (f *File, ok bool) {
 	return
 }
 
-func (i *Index) List(prefix string) (names []string, err error) {
+func (i *Index) List(prefix string, nesting int) (names []string, err error) {
 	parts := make([]string, 0)
 	if prefix != "" {
 		parts = i.explode(prefix)
 	}
-	return i.Root.List(parts, 0)
+	return i.Root.List(parts, 0, nesting)
 } 
 
 func (i *Index) Count() int64 {

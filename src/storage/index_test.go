@@ -58,7 +58,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	files, err := I.List("")
+	files, err := I.List("", 0)
 	if err != nil {
 		t.Errorf("Can't get list: %v", err)
 	}
@@ -66,7 +66,7 @@ func TestList(t *testing.T) {
 		t.Errorf("Count list mismatched: %d vs %d", len(files), len(names))
 	}
 	
-	files, err = I.List("foo")
+	files, err = I.List("foo", 0)
 	if err != nil {
 		t.Errorf("Can't get list: %v", err)
 	}
@@ -74,7 +74,7 @@ func TestList(t *testing.T) {
 		t.Errorf("Count list mismatched: %d vs %d\n%v", len(files), 5, files)
 	}
 	
-	files, err = I.List("foo/bar")
+	files, err = I.List("foo/bar", 0)
 	if err != nil {
 		t.Errorf("Can't get list: %v", err)
 	}
@@ -82,7 +82,7 @@ func TestList(t *testing.T) {
 		t.Errorf("Count list mismatched: %d vs %d\n%v", len(files), 3, files)
 	}
 	
-	files, err = I.List("a")
+	files, err = I.List("a", 0)
 	if err != nil {
 		t.Errorf("Can't get list: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestList(t *testing.T) {
 		t.Errorf("Count list mismatched: %d vs %d\n%v", len(files), 1, files)
 	}
 	
-	files, err = I.List("z")
+	files, err = I.List("z", 0)
 	if err != ErrFileNotFound {
 		t.Errorf("Can't get list: %v", err)
 	}

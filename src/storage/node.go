@@ -117,7 +117,7 @@ func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 	return
 }
 
-func (n *Node) List(parts []string, depth int) (files []string, err error) {
+func (n *Node) List(parts []string, depth, nesting int) (files []string, err error) {
 	files = make([]string, 0)	
 	// make list from childs
 	if len(parts) <= depth {
@@ -126,7 +126,7 @@ func (n *Node) List(parts []string, depth int) (files []string, err error) {
 				if node.IsFile() {
 					files = append(files, name)
 				}
-				childFiles, _ := node.List(parts, depth)
+				childFiles, _ := node.List(parts, depth, nesting)
 				for _, childName := range childFiles {
 					files = append(files, name + "/" + childName)
 				}
@@ -137,7 +137,7 @@ func (n *Node) List(parts []string, depth int) (files []string, err error) {
 	// or find and call child
 	if n.Childs != nil {
 		if node, ok := n.Childs[parts[depth]]; ok {
-			if files, err = node.List(parts, depth + 1); err == nil {
+			if files, err = node.List(parts, depth + 1, nesting); err == nil {
 				for i, name := range files {
 					files[i] = parts[depth] + "/" + name
 				}
