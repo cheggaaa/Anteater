@@ -24,12 +24,15 @@ import (
 	"path/filepath"
 	"dump"
 	"sync"
+	"sync/atomic"
 	"aelog"
 	"fmt"
 	"io"
 	"time"
 	"encoding/gob"
 )
+
+var ErrClosed = errors.New("Storage is closed")
 
 func init() {
 	gob.Register(&File{})
@@ -43,6 +46,7 @@ type Storage struct {
 	Stats *stats.Stats
 	Containers map[int64]*Container
 	
+	closed int32
 	m *sync.Mutex
 }
 
@@ -131,6 +135,7 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error)
 			}
 			s.Stats.Counters.Add.Add()
 		}
+		f.DUnlock()
 	}()
 	
 	if size <= 0 {
@@ -251,7 +256,12 @@ func (s *Storage) Check() (err error) {
 	return
 }
 
+func (s *Storage) IsClosed() bool {
+	return atomic.LoadInt32(&s.closed) != 0
+}
+
 func (s *Storage) Close() {
+	atomic.StoreInt32(&s.closed, 1)
 	s.Dump()
 	for _,c := range s.Containers {
 		c.Close()

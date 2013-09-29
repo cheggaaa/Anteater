@@ -37,6 +37,7 @@ var Targets = []int{ALLOC_REPLACE, ALLOC_APPEND, ALLOC_INSERT}
 
 type Container struct {
 	Id                  int64
+	JId                 int64
 	Created             bool
 	Size                int64
 	FileCount, FileSize int64
@@ -48,12 +49,14 @@ type Container struct {
 	s                   *Storage
 	f                   *os.File
 	m                   *sync.Mutex
+	dm                  *sync.Mutex
 	ch                  bool
 }
 
 func (c *Container) Init(s *Storage) (err error) {
 	aelog.Debugln("Init container", c.Id)
 	c.m = new(sync.Mutex)
+	c.dm = new(sync.Mutex)
 	c.s = s
 	// open file
 	c.f, err = os.OpenFile(c.fileName(), os.O_RDWR|os.O_CREATE, 0666)
@@ -64,26 +67,6 @@ func (c *Container) Init(s *Storage) (err error) {
 	c.holeIndex.Init()
 	c.restore()
 	c.ch = true
-	// build holeIndex
-	/*var last, next Space
-	next = nil
-	last = c.last
-	for last != nil && c.last != nil {
-		if last.IsFree() {
-			c.holeIndex.Add(last.(*Hole))
-			aelog.Debug("init hole")
-		} else {
-			f := last.(*File)
-			f.Init(c)
-			c.s.Index.Add(f)
-		}
-		if next != nil {
-			last.SetNext(next)
-		}
-		next = last
-		last = last.Prev()
-	}
-	*/
 
 	// create
 	if !c.Created {
@@ -122,13 +105,15 @@ func (c *Container) Close() (err error) {
 }
 
 func (c *Container) Dump() (err error) {
+	c.dm.Lock()
+	defer c.dm.Unlock()
 	c.m.Lock()
 	defer c.m.Unlock()
-	
-	if ! c.ch {
+
+	if !c.ch {
 		return
 	}
-	
+
 	st := time.Now()
 	var i int64
 
@@ -160,7 +145,7 @@ func (c *Container) restore() {
 	if c.FDump == nil || len(c.FDump) == 0 {
 		return
 	}
-	
+
 	c.FileRealSize = 0
 	c.last = c.FDump[i]
 	if c.last != nil {
@@ -203,6 +188,7 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 			c.FileSize += f.FSize
 			c.FileRealSize += f.Size()
 			f.Init(c)
+			f.DLock()
 			c.ch = true
 		}
 		c.m.Unlock()

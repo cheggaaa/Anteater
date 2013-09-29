@@ -32,7 +32,8 @@ import (
 )
 
 type File struct {
-	Hole  // inherits
+	Hole
+	JId   int64
 	Name  string
 	Md5   []byte
 	FSize int64
@@ -121,6 +122,10 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 	}
 	buf := make([]byte, bs)
 	for {
+		if f.c.s.IsClosed() {
+			err = ErrClosed
+			break
+		}
 		nr, er := r.Read(buf)
 		if nr > 0 {
 			nw, ew := f.WriteAt(buf[0:nr], written)
@@ -148,6 +153,18 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 	}
 	f.Md5 = h.Sum(nil)
 	return
+}
+
+func (f *File) DLock() {
+	if f.c != nil {
+		f.c.dm.Lock()
+	}
+}
+
+func (f *File) DUnlock() {
+	if f.c != nil {
+		f.c.dm.Unlock()
+	}
 }
 
 // string md5
