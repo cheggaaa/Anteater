@@ -33,6 +33,7 @@ import (
 )
 
 var ErrClosed = errors.New("Storage is closed")
+var ErrNotFound = errors.New("File not found")
 
 func init() {
 	gob.Register(&File{})
@@ -164,6 +165,22 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error)
 	// add to index
 	err = s.Index.Add(f)	
 	return
+}
+
+func (s *Storage) Rename(oldName, newName string) (err error) {
+	if f, ok := s.Index.Delete(oldName); ok {
+		f.DLock()
+		defer f.DUnlock()
+		f.Name = newName
+		if err := s.Index.Add(f); err != nil {
+			// if catch error - return old name
+			f.Name = oldName
+			s.Index.Add(f)
+			return fmt.Errorf("Can't rename %s to %s: %v", oldName, newName, err)
+		}
+		return
+	}
+	return ErrNotFound
 }
 
 func (s *Storage) allocate(f *File) (target int, err error) {

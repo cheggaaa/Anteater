@@ -83,6 +83,10 @@ func (s *Server) Run() {
 // Http handler for read-only server
 func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", cnst.SIGN)
+	if s.stor.IsClosed() {
+		s.Err(503, r, w)
+		return
+	}
 	defer func() {
 		if rec := recover(); rec != nil {
 			s.Err(500, r, w)
@@ -115,6 +119,10 @@ func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 // Http handler for read-write server
 func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", cnst.SIGN)
+	if s.stor.IsClosed() {
+		s.Err(503, r, w)
+		return
+	}
 	defer func() {
 		if rec := recover(); rec != nil {			
         	s.Err(500, r, w)
@@ -329,17 +337,19 @@ func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
 		s.Err(http.StatusConflict, r, w)
 		return
 	}
-	if f, ok := s.stor.Index.Delete(name); ok {
-		f.Name = newName
-		if err := s.stor.Index.Add(f); err != nil {
-			f.Name = name
-			s.stor.Index.Add(f)
-			aelog.Warnf("Can't rename %s to %s: %v", name, newName, err)
-			s.Err(http.StatusInternalServerError, r, w)
-			return
+	
+	err := s.stor.Rename(name, newName)	
+	if err != nil {
+		switch err {
+			case storage.ErrNotFound:
+				s.Err(http.StatusNotFound, r, w)
+				return
+			default:
+				s.Err(http.StatusInternalServerError, r, w)
+				return 
 		}
-		s.Get(newName, w, r, false)
 	}
+	s.Get(newName, w, r, false)
 	return
 }
 
