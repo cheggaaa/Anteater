@@ -46,7 +46,6 @@ stop() {
 			echo -n "."
 			sleep 1
 		done
-		start-stop-daemon --stop --quiet --pidfile "$PID_FILE"
 		ret=$?
 		rm -f "$PID_FILE"
 	else
