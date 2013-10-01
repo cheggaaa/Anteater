@@ -32,6 +32,7 @@ var (
 	readAddr  = flag.String("r", "localhost:8083", "Read server addr")
 	writeAddr = flag.String("w", "localhost:8081", "Write server addr")
 	clients   = flag.Int("c", 1, "Clients count")
+	method    = flag.String("m", "POST", "http write method")
 	
 	readUrl, writeUrl string
 )
@@ -45,6 +46,17 @@ func main() {
 	if !ok {
 		fmt.Printf("Call to undefined command: %s\n", "FILELIST")
 		return
+	}
+	
+	*method = strings.ToUpper(*method)
+	
+	switch *method {
+	case "PUT":
+	case "POST":
+	case "DELETE":
+		break
+	default:
+		fmt.Println("Unexpected http method:", *method)
 	}
 	
 	if ! strings.HasPrefix(*readAddr, "http") {
@@ -106,7 +118,7 @@ func StartClient(c chan string, bar *pb.ProgressBar) {
 		length := resp.ContentLength
 
 		// put
-		req, err := http.NewRequest("PUT", write, resp.Body)
+		req, err := http.NewRequest(*method, write, resp.Body)
 		if err != nil {
 			panic(err)
 		}
