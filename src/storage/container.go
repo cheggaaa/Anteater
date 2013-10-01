@@ -90,7 +90,8 @@ func (c *Container) Init(s *Storage) (err error) {
 		aelog.Debugln("Create conatiner", c.Id)
 		if err = c.create(); err == nil {
 			c.Created = true
-		}
+		} 
+		err = c.Dump()
 	}
 
 	return
@@ -98,10 +99,7 @@ func (c *Container) Init(s *Storage) (err error) {
 
 func (c *Container) create() (err error) {
 	c.Size = c.s.Conf.ContainerSize
-	if err = c.falloc(); err != nil {
-		return
-	}
-	err = c.Dump()
+	err = c.falloc()
 	return
 }
 
