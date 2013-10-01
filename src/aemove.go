@@ -39,9 +39,6 @@ var (
 )
 
 func main() {
-	fn := "5239ae0eQ5eoIk_w.zip/sounds/bg/MV.s01e07.7.bg 40%.ogg"
-	fmt.Println(fn, escapeFile(fn))
-	return
 	flag.Parse()
 
 	aerpc.RegisterCommands()
