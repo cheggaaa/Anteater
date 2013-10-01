@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"sync"
 	"strings"
+	"net/url"
 )
 
 var (
@@ -38,6 +39,9 @@ var (
 )
 
 func main() {
+	fn := "5239ae0eQ5eoIk_w.zip/sounds/bg/MV.s01e07.7.bg 40%.ogg"
+	fmt.Println(fn, escapeFile(fn))
+	return
 	flag.Parse()
 
 	aerpc.RegisterCommands()
@@ -107,6 +111,7 @@ func main() {
 func StartClient(c chan string, bar *pb.ProgressBar) {
 	readClient, writeClient := http.Client{}, http.Client{}
 	for file := range c {
+		file = escapeFile(file)
 		read := readUrl + file
 		write := writeUrl + file
 		// get
@@ -127,13 +132,20 @@ func StartClient(c chan string, bar *pb.ProgressBar) {
 		if err != nil {
 			panic(err)
 		}
-		
-		putMd5 := wres.Header.Get("X-Ae-Md5")
-		if putMd5 != getMd5 {
-			fmt.Printf("ERROR! MD5 not equals: %s vs %s (%s)\n", getMd5, putMd5, file)
+		if wres.StatusCode != http.StatusConflict {
+			putMd5 := wres.Header.Get("X-Ae-Md5")
+			if putMd5 != getMd5 {
+				fmt.Printf("ERROR! MD5 not equals: %s vs %s (%s)\n", getMd5, putMd5, file)
+			}
 		}
 		wres.Body.Close()
 		resp.Body.Close()
 		bar.Increment()
 	}
+}
+
+func escapeFile(name string) (result string) {
+	u := &url.URL{}
+	u.Path = name
+	return u.RequestURI()
 }
