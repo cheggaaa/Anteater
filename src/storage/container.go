@@ -99,12 +99,25 @@ func (c *Container) Init(s *Storage) (err error) {
 
 func (c *Container) create() (err error) {
 	c.Size = c.s.Conf.ContainerSize
-	err = c.falloc()
+	if err = c.falloc(); err != nil {
+		aelog.Infoln("Fallocate doesn't work:", err, "\nTry to truncate...")
+		if err = c.fallocTrucate(); err != nil {
+			return
+		}
+	}
 	return
 }
 
 func (c *Container) falloc() (err error) {
 	return syscall.Fallocate(int(c.f.Fd()), 0, 0, c.Size)
+}
+
+func (c *Container) fallocTrucate() (err error) {
+	if err = c.f.Truncate(c.Size); err != nil {
+		return
+	}
+	_, err = c.f.WriteAt([]byte{1}, c.Size - 1)
+	return
 }
 
 func (c *Container) fileName() string {
