@@ -1,18 +1,19 @@
 #!/bin/bash
 
 BINNAME="anteater"
-GOPATH=$( cd "$( dirname "$0" )" && pwd )
-GOBIN=$GOPATH/bin
+GOAPP=$( cd "$( dirname "$0" )" && pwd )
+GOPATH=$GOPATH:$GOAPP
+GOBIN=$GOAPP/bin
 
 echo "Install go pkgs.."
 go get testing
 go get github.com/akrennmair/goconf
 
-rm -rf $GOPATH/pkg/*
+rm -rf $GOAPP/pkg/*
 
 do_run_test() {
 	echo "Run tests.."
-	cd $GOPATH/src
+	cd $GOAPP/src
 	GOPATH=$GOPATH go test utils config dump storage $@
 	cd ../
 }
