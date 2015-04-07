@@ -30,7 +30,7 @@ do_run_build() {
 	echo "Building aestats.."
 	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aestats.go
 	echo "Building aemove.."
-        GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aemove.go
+	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aemove.go
 }
 
 case $1 in
