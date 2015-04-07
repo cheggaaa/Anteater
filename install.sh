@@ -8,6 +8,7 @@ GOBIN=$GOAPP/bin
 echo "Install go pkgs.."
 go get testing
 go get github.com/akrennmair/goconf
+go get github.com/cheggaaa/pb
 
 rm -rf $GOAPP/pkg/*
 
