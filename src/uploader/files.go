@@ -18,7 +18,6 @@ package uploader
 
 import (
 	"config"
-	"errors"
 	"net/http"
 	"storage"
 	"temp"
@@ -64,22 +63,18 @@ func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Requ
 func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 	f = t.fields[field]
 	if f == nil {
-		url := t.r.PostFormValue(field + "_url")
-		mf, _, e := t.r.FormFile(field)
-		if e != nil {
-			err = e
-			return
-		}
-		if mf == nil {
-			err = errors.New("File " + field + " not found")
-			return
-		}
+		url := t.r.PostFormValue(field + "_url")		
 		f = temp.NewFile(t.tmpDir)
 		if url != "" {
 			if err = f.LoadFromUrl(url); err != nil {
 				return
 			}
 		} else {
+			mf, _, e := t.r.FormFile(field)
+			if e != nil {
+				err = e
+				return
+			}
 			if err = f.LoadFromForm(mf); err != nil {
 				return
 			}
