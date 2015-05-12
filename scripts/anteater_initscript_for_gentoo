@@ -27,8 +27,8 @@ start() {
 		--user $USER \
 		--group $GROUP \
 		--background \
-		--stdout $LOGS_DIR/info.log \
-		--stderr $LOGS_DIR/error.log \
+		--stdout $LOGS_DIR/${SVCNAME}.log \
+		--stderr $LOGS_DIR/${SVCNAME}.log \
 		--pidfile $PID_FILE \
 		--make-pidfile \
 		--exec $EXEC \
