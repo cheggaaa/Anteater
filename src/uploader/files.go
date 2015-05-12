@@ -17,28 +17,27 @@
 package uploader
 
 import (
-	"net/http"
-	"temp"
-	"errors"
 	"config"
+	"errors"
+	"net/http"
 	"storage"
+	"temp"
 )
 
 type Files []*File
 
 type TmpFiles struct {
-	r *http.Request
+	r      *http.Request
 	fields map[string]*temp.File
 	result map[string]*temp.File
 	tmpDir string
 }
 
-
 func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Request, w http.ResponseWriter) (err error) {
 	// make temp files object
-	tmpfs := &TmpFiles{r : r, fields : make(map[string]*temp.File), result : make(map[string]*temp.File), tmpDir : conf.TmpDir}
+	tmpfs := &TmpFiles{r: r, fields: make(map[string]*temp.File), result: make(map[string]*temp.File), tmpDir: conf.TmpDir}
 	defer tmpfs.Close()
-	
+
 	// upload
 	for _, f := range *fs {
 		err = f.Upload(tmpfs)
@@ -46,9 +45,9 @@ func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Requ
 			return
 		}
 	}
-	
+
 	result := tmpfs.Result()
-	
+
 	// add to storage and set stae
 	for name, tf := range result {
 		file, _ := stor.Add(name, tf.File, tf.Size)
@@ -58,14 +57,14 @@ func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Requ
 			}
 		}
 	}
-	
+
 	return
 }
-
 
 func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 	f = t.fields[field]
 	if f == nil {
+		url := t.r.PostFormValue(field + "_url")
 		mf, _, e := t.r.FormFile(field)
 		if e != nil {
 			err = e
@@ -76,9 +75,14 @@ func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 			return
 		}
 		f = temp.NewFile(t.tmpDir)
-		err = f.LoadFromForm(mf)
-		if err != nil {
-			return
+		if url != "" {
+			if err = f.LoadFromUrl(url); err != nil {
+				return
+			}
+		} else {
+			if err = f.LoadFromForm(mf); err != nil {
+				return
+			}
 		}
 		t.fields[field] = f
 	}
