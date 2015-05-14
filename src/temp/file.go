@@ -17,31 +17,31 @@
 package temp
 
 import (
-	"os"
+	"cnst"
+	"errors"
 	"io"
 	"io/ioutil"
-	"cnst"
 	"mime/multipart"
-	"errors"
+	"net/http"
+	"os"
 )
 
 var TmpPrefix = "ae-" + cnst.VERSION + "-"
 
 type File struct {
-	File *os.File
+	File     *os.File
 	Filename string
-	Size int64
-	tmpdir string
+	MimeType string
+	Size     int64
+	tmpdir   string
 }
-
 
 func NewFile(tmpdir string) *File {
 	if tmpdir == "" {
 		tmpdir = os.TempDir()
 	}
-	return &File{tmpdir:tmpdir}
+	return &File{tmpdir: tmpdir}
 }
-
 
 func (f *File) LoadFromForm(ff multipart.File) (err error) {
 	err = f.Create()
@@ -55,14 +55,13 @@ func (f *File) LoadFromForm(ff multipart.File) (err error) {
 	return
 }
 
-
 func (f *File) Create() (err error) {
 	f.File, err = ioutil.TempFile(f.tmpdir, TmpPrefix)
 	return
 }
 
 func (f *File) Reopen() (err error) {
-	if f.Filename == "" { 
+	if f.Filename == "" {
 		err = errors.New("Can't reopen empty file")
 		return
 	}
@@ -86,7 +85,7 @@ func (f *File) Connect() (err error) {
 }
 
 func (f *File) Close() (err error) {
-	if f.Filename != "" { 
+	if f.Filename != "" {
 		if f.File != nil {
 			err = f.File.Close()
 		}
@@ -100,7 +99,7 @@ func (f *File) Close() (err error) {
 
 func (f *File) Clone(suffix string) (fl *File, err error) {
 	fl = &File{
-		Filename : f.Filename + suffix,
+		Filename: f.Filename + suffix,
 	}
 	err = fl.setState()
 	return
@@ -115,6 +114,11 @@ func (f *File) setState() (err error) {
 		}
 		f.Filename = f.File.Name()
 		f.Size = i.Size()
+		f.File.Seek(0, 0)
+		var buf [512]byte
+		n, _ := io.ReadFull(f.File, buf[:])
+		b := buf[:n]
+		f.MimeType = http.DetectContentType(b)
 		f.File.Seek(0, 0)
 	}
 	return

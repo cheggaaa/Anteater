@@ -19,6 +19,7 @@ package uploader
 import (
 	"temp"
 	"errors"
+	"fmt"
 )
 
 var ValidErrTooLarge = errors.New("File too large")
@@ -34,5 +35,18 @@ func (v *Valid) HasError(tf *temp.File) (err error) {
 			err = ValidErrTooLarge
 		}
 	}
+	if len(v.MimeTypes) > 0 {
+		found := false
+		for _, mt := range v.MimeTypes {
+			if mt == tf.MimeType {
+				found = true
+				break
+			}
+		}
+		if ! found {
+			err = fmt.Errorf("Invalid file type: %s", tf.MimeType)
+		}
+	}
+	
 	return
 }

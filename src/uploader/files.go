@@ -17,10 +17,12 @@
 package uploader
 
 import (
+	"aelog"
 	"config"
 	"net/http"
 	"storage"
 	"temp"
+	"utils"
 )
 
 type Files []*File
@@ -49,6 +51,7 @@ func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Requ
 
 	// add to storage and set stae
 	for name, tf := range result {
+		aelog.Debugf("Uploader add file: %s (%s, %s)", name, utils.HumanBytes(tf.Size), tf.MimeType)
 		file, _ := stor.Add(name, tf.File, tf.Size)
 		for _, f := range *fs {
 			if f.Name == name {
@@ -63,9 +66,11 @@ func (fs *Files) Upload(conf *config.Config, stor *storage.Storage, r *http.Requ
 func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 	f = t.fields[field]
 	if f == nil {
-		url := t.r.PostFormValue(field + "_url")		
+		aelog.Debugf("Find file by field: %s", field)
+		url := t.r.FormValue(field + "_url")
 		f = temp.NewFile(t.tmpDir)
 		if url != "" {
+			aelog.Debugf("Url found[%s]: %s", field, url)
 			if err = f.LoadFromUrl(url); err != nil {
 				return
 			}

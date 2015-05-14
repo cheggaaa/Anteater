@@ -71,7 +71,8 @@ func (f *File) Upload(tmpf *TmpFiles) (err error) {
 	}
 	
 	if f.Valid != nil {
-		if f.checkErr(f.Valid.HasError(tf)) {
+		err = f.Valid.HasError(tf)
+		if f.checkErr(err) {
 			return
 		}
 	}
