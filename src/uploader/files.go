@@ -20,6 +20,7 @@ import (
 	"aelog"
 	"config"
 	"net/http"
+	"path/filepath"
 	"storage"
 	"temp"
 	"utils"
@@ -71,11 +72,12 @@ func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 		f = temp.NewFile(t.tmpDir)
 		if url != "" {
 			aelog.Debugf("Url found[%s]: %s", field, url)
+			f.OrigName = filepath.Base(url)
 			if err = f.LoadFromUrl(url); err != nil {
 				return
 			}
 		} else {
-			mf, _, e := t.r.FormFile(field)
+			mf, mh, e := t.r.FormFile(field)
 			if e != nil {
 				err = e
 				return
@@ -83,6 +85,7 @@ func (t *TmpFiles) GetByField(field string) (f *temp.File, err error) {
 			if err = f.LoadFromForm(mf); err != nil {
 				return
 			}
+			f.OrigName = mh.Filename
 		}
 		t.fields[field] = f
 	}

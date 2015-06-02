@@ -17,51 +17,50 @@
 package uploader
 
 import (
-	"storage"
-	"temp"
 	"errors"
 	"fmt"
-	"utils"
+	"storage"
+	"strings"
+	"temp"
 	"time"
+	"utils"
 )
 
 type File struct {
 	// name for save to anteater
-	Name	string `json:"name,omitempty"`
+	Name string `json:"name,omitempty"`
 	// type - image or file
-	Type    string `json:"type,omitempty"`
+	Type string `json:"type,omitempty"`
 	// field name in form
-	Field   string `json:"field,omitempty"`
+	Field string `json:"field,omitempty"`
 	// validate
-	Valid   *Valid `json:"valid,omitempty"`
+	Valid *Valid `json:"valid,omitempty"`
 	// file state
-	State   *FileState `json:"state,omitempty"`
-		
+	State *FileState `json:"state,omitempty"`
+
 	// Only for images
 	// GIF, JPG, PNG
-	Format  string `json:"format,omitempty"`
+	Format string `json:"format,omitempty"`
 	// image width
-	Width   int `json:"width,omitempty"`
+	Width int `json:"width,omitempty"`
 	// image height
-	Height  int `json:"height,omitempty"`
+	Height int `json:"height,omitempty"`
 	// image quality (for jpg)
 	Quality int `json:"quality,omitempty"`
 	// need crop
-	Crop    bool `json:"crop,omitempty"`
+	Crop bool `json:"crop,omitempty"`
 }
 
-
 type FileState struct {
-	Uploaded bool  `json:"uploaded,omitempty"`
-	Size     int64 `json:"size,omitempty"`
+	Uploaded bool   `json:"uploaded,omitempty"`
+	Size     int64  `json:"size,omitempty"`
 	Md5      string `json:"md5,omitempty"`
 }
 
 type Error struct {
-	Code int `json:"code,omitempty"`
-	Msg string `json:"message,omitempty"`
+	Code int    `json:"code,omitempty"`
+	Msg  string `json:"message,omitempty"`
 }
-
 
 func (f *File) Upload(tmpf *TmpFiles) (err error) {
 	f.State = &FileState{}
@@ -69,32 +68,32 @@ func (f *File) Upload(tmpf *TmpFiles) (err error) {
 	if f.checkErr(err) {
 		return
 	}
-	
+
 	if f.Valid != nil {
 		err = f.Valid.HasError(tf)
 		if f.checkErr(err) {
 			return
 		}
 	}
-	
+
 	var tfr *temp.File
-	
+
 	switch f.Type {
-		case "file":
-			tfr, err = f.uploadFile(tf)
-			break;
-		case "image":
-			tfr, err = f.uploadImage(tf)
-			break;
-		default:
-			err = errors.New("Undefined file type: " + f.Type)		
+	case "file":
+		tfr, err = f.uploadFile(tf)
+		break
+	case "image":
+		tfr, err = f.uploadImage(tf)
+		break
+	default:
+		err = errors.New("Undefined file type: " + f.Type)
 	}
-	
+
 	if f.checkErr(err) {
 		return
 	}
-	
-	tmpf.SetResult(f.Name, tfr)	
+	f.Name = strings.Replace(f.Name, "%origname%", tfr.OrigName, -1)
+	tmpf.SetResult(f.Name, tfr)
 	return
 }
 
@@ -103,7 +102,7 @@ func (f *File) uploadImage(tf *temp.File) (tfr *temp.File, err error) {
 	if err != nil {
 		return
 	}
-	
+
 	tfr, err = tf.Clone("." + fmt.Sprintf("%d%d", time.Now().Unix(), time.Now().UnixNano()))
 	if err != nil {
 		return
@@ -129,9 +128,9 @@ func (f *File) uploadFile(tf *temp.File) (tfr *temp.File, err error) {
 
 func (f *File) SetState(file *storage.File) {
 	f.State = &FileState{
-		Uploaded : true,
-		Size     : file.FSize,
-		Md5      : fmt.Sprintf("%x", file.Md5),
+		Uploaded: true,
+		Size:     file.FSize,
+		Md5:      fmt.Sprintf("%x", file.Md5),
 	}
 }
 

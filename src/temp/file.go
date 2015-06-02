@@ -30,6 +30,7 @@ var TmpPrefix = "ae-" + cnst.VERSION + "-"
 
 type File struct {
 	File     *os.File
+	OrigName string
 	Filename string
 	MimeType string
 	Size     int64
