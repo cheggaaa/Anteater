@@ -17,18 +17,21 @@
 package main
 
 import (
-	"fmt"
-	"config"
+	"aelog"
+	"aerpc/rpcserver"
 	"cnst"
-	"storage"
+	"config"
+	"flag"
+	"fmt"
 	"http"
+	"log"
+	ghttp "net/http"
+	_ "net/http/pprof"
 	"os"
 	"os/signal"
-	"syscall"
-	"aelog"
-	"flag"
-	"aerpc/rpcserver"
 	"runtime/pprof"
+	"storage"
+	"syscall"
 )
 
 const HELP = cnst.SIGN + `
@@ -39,65 +42,70 @@ Usage:
 	-v - print version end exit
 	
 	-h - show this page
-`;
+`
 
 var configFile = flag.String("f", "", "Path to your config file")
 var isPrintVersion = flag.Bool("v", false, "Print version")
 var isPrintHelp = flag.Bool("h", false, "Show help")
 var cpuprofile = flag.String("cpuprofile", "", "write cpu profile to file")
+var httpprofile = flag.Bool("httpprofile", false, "enable http profiling")
 
 func init() {
 	flag.Parse()
 }
 
-
 func main() {
 	defer func() {
-       /* if r := recover(); r != nil {
-        	fmt.Println("Error!")
-        	fmt.Println(r)
-        }
-        */
-    }()
-    
-    if *cpuprofile != "" {
-        f, err := os.Create(*cpuprofile)
-        if err != nil {
-            panic(err)
-        }
-        pprof.StartCPUProfile(f)
-        defer pprof.StopCPUProfile()
-    }
-    
-    var err error
-    
-    if *isPrintVersion {
-    	printVersion()
-    	return
-    }
-    
-     if *isPrintHelp {
-    	printHelp()
-    	return
-    }
-	
+		/* if r := recover(); r != nil {
+		   	fmt.Println("Error!")
+		   	fmt.Println(r)
+		   }
+		*/
+	}()
+
+	if *cpuprofile != "" {
+		f, err := os.Create(*cpuprofile)
+		if err != nil {
+			panic(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
+	if *httpprofile {
+		go func() {
+			log.Println(ghttp.ListenAndServe(":6060", nil))
+		}()
+	}
+
+	var err error
+
+	if *isPrintVersion {
+		printVersion()
+		return
+	}
+
+	if *isPrintHelp {
+		printHelp()
+		return
+	}
+
 	// If configFile not specified - show help
 	if *configFile == "" {
 		printHelp()
-    	return
+		return
 	}
-	
+
 	// Init config
 	c := &config.Config{}
 	c.ReadFile(*configFile)
-	
-	
+
 	// Init logger
 	aelog.DefaultLogger, err = aelog.New(c.LogFile, c.LogLevel)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	// Init storage
 	stor := &storage.Storage{}
 	stor.Init(c)
@@ -106,9 +114,7 @@ func main() {
 		panic(err)
 	}
 	defer stor.Close()
-	
-	
-	
+
 	// init access log is needed
 	var al *aelog.AntLog
 	if c.LogAccess != "" {
@@ -117,17 +123,15 @@ func main() {
 			panic(err)
 		}
 	}
-	
+
 	// Run server
 	http.RunServer(stor, al)
-	
-	
-	
+
 	// Run rpc server
 	rpcserver.StartRpcServer(stor)
 
 	aelog.Infof("Run working (use %d cpus)", c.CpuNum)
-	
+
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, syscall.SIGKILL, os.Interrupt, syscall.SIGTERM)
 	sig := <-interrupt
@@ -135,7 +139,6 @@ func main() {
 	stor.Dump()
 	aelog.Infoln("")
 }
-
 
 func printVersion() {
 	fmt.Println(cnst.SIGN)
