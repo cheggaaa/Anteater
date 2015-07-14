@@ -118,3 +118,31 @@ func TestDelete(t *testing.T) {
 	I.Root.Print("")
 }
 
+func TestRename(t *testing.T) {
+	for i, name := range names {
+		if i % 2 == 0 {
+			if err := I.Add(&File{Name:name}); err != nil {
+				t.Errorf("Can't add file. %s: %v", name, err)
+			}
+		} else {
+			_, err := I.Rename(names[i-1], name)
+			if err != nil {
+				t.Errorf("Can't rename file. %s: %v", name, err)
+			}
+		}
+	}
+	for i, name := range names {
+		_, ok := I.Get(name)
+		if i % 2 == 0 {
+			if ok {
+				t.Errorf("File exists")
+			}
+		} else {
+			if ! ok {
+				t.Errorf("File not exists")
+			}
+		}
+	}
+	I.Root.Print("")
+}
+

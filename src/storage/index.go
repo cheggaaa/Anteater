@@ -18,15 +18,21 @@ package storage
 
 import (
 	"aelog"
+	"errors"
+	"fmt"
 	"strings"
 	"sync"
 	"sync/atomic"
 )
 
+var (
+	ErrConflict = errors.New("Conflict")
+)
+
 type Index struct {
 	Root *Node
 	m    *sync.Mutex
-	v, c  int64
+	v, c int64
 }
 
 func (i *Index) Init() {
@@ -38,18 +44,68 @@ func (i *Index) Init() {
 func (i *Index) Add(file *File) (err error) {
 	i.m.Lock()
 	defer i.m.Unlock()
-	parts := i.explode(file.Name)
-	if err = i.Root.Add(parts, file, 0); err != nil {
-		return
-	}
-	atomic.AddInt64(&i.v, 1)
-	atomic.AddInt64(&i.c, 1)
-	return
+	return i.add(file)
 }
 
 func (i *Index) Get(name string) (f *File, ok bool) {
 	i.m.Lock()
 	defer i.m.Unlock()
+	return i.get(name)
+}
+
+func (i *Index) Delete(name string) (f *File, ok bool) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	return i.delete(name)
+}
+
+func (i *Index) Rename(name, newName string) (f *File, err error) {
+	i.m.Lock()
+	defer i.m.Unlock()
+	// check file
+	f, ok := i.get(name)
+	if !ok {
+		err = ErrFileNotFound
+		return
+	}
+	// check new name
+	_, ok = i.get(newName)
+	if ok {
+		err = ErrConflict
+		f = nil
+		return
+	}
+	// rename
+	f.Name = newName
+	i.delete(name)
+	if err = i.add(f); err != nil {
+		// rollback
+		f.Name = name
+		i.add(f)
+		err = fmt.Errorf("Can't rename %s to %s: %v", name, newName, err)
+		f = nil
+		return
+	}
+	return
+}
+
+func (i *Index) List(prefix string, nesting int) (names []string, err error) {
+	parts := make([]string, 0)
+	if prefix != "" {
+		parts = i.explode(prefix)
+	}
+	return i.Root.List(parts, 0, nesting)
+}
+
+func (i *Index) Count() int64 {
+	return atomic.LoadInt64(&i.c)
+}
+
+func (i *Index) Version() int64 {
+	return atomic.LoadInt64(&i.v)
+}
+
+func (i *Index) get(name string) (f *File, ok bool) {
 	parts := i.explode(name)
 	var err error
 	if f, err = i.Root.Get(parts, 0); err == nil {
@@ -62,9 +118,7 @@ func (i *Index) Get(name string) (f *File, ok bool) {
 	return
 }
 
-func (i *Index) Delete(name string) (f *File, ok bool) {
-	i.m.Lock()
-	defer i.m.Unlock()
+func (i *Index) delete(name string) (f *File, ok bool) {
 	parts := i.explode(name)
 	var err error
 	if f, err = i.Root.Delete(parts, 0); err == nil {
@@ -79,20 +133,14 @@ func (i *Index) Delete(name string) (f *File, ok bool) {
 	return
 }
 
-func (i *Index) List(prefix string, nesting int) (names []string, err error) {
-	parts := make([]string, 0)
-	if prefix != "" {
-		parts = i.explode(prefix)
+func (i *Index) add(file *File) (err error) {
+	parts := i.explode(file.Name)
+	if err = i.Root.Add(parts, file, 0); err != nil {
+		return
 	}
-	return i.Root.List(parts, 0, nesting)
-} 
-
-func (i *Index) Count() int64 {
-	return atomic.LoadInt64(&i.c)
-}
-
-func (i *Index) Version() int64 {
-	return atomic.LoadInt64(&i.v)
+	atomic.AddInt64(&i.v, 1)
+	atomic.AddInt64(&i.c, 1)
+	return
 }
 
 func (i *Index) explode(name string) (parts []string) {

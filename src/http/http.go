@@ -325,21 +325,38 @@ func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
 		s.Err(http.StatusBadRequest, r, w)
 		return
 	}
+	
+	forceString := strings.TrimSpace(r.Header.Get("X-Ae-Force"))
+	force := false
+	switch strings.ToLower(forceString) {
+		case "1","true":
+			force = true
+	}
 	if _, ok = s.stor.Get(newName); ok {
-		s.Err(http.StatusConflict, r, w)
-		return
-	}
-	if f, ok := s.stor.Index.Delete(name); ok {
-		f.Name = newName
-		if err := s.stor.Index.Add(f); err != nil {
-			f.Name = name
-			s.stor.Index.Add(f)
-			aelog.Warnf("Can't rename %s to %s: %v", name, newName, err)
-			s.Err(http.StatusInternalServerError, r, w)
+		if ! force {
+			s.Err(http.StatusConflict, r, w)
 			return
+		} else {
+			s.stor.Delete(newName)
 		}
-		s.Get(newName, w, r, false)
 	}
+	
+	_, err := s.stor.Index.Rename(name, newName)
+	switch err {
+		case storage.ErrFileNotFound:
+			s.Err(http.StatusNotFound, r, w)
+			return
+		case storage.ErrConflict:	
+			s.Err(http.StatusConflict, r, w)
+			return
+		default:
+			if err != nil {
+				aelog.Warnf("Can't rename file: %v", err)
+				s.Err(http.StatusInternalServerError, r, w)
+				return
+			}
+	}	
+	s.Get(newName, w, r, false)
 	return
 }
 
