@@ -17,6 +17,7 @@
 package utils
 
 import (
+	"aelog"
 	"os/exec"
 	"strings"
 	"errors"
@@ -75,7 +76,7 @@ func Identify(filename string) (*Image, error) {
 }
 
 
-func (i *Image) Resize(dst, format string, w, h, q int) error {
+func (i *Image) Resize(dst, format string, w, h, q int, optimize bool) error {
 	wh := fmt.Sprintf("%dx%d", w, h)
 	if w == 0 {
 		wh = fmt.Sprintf("x%d", h)
@@ -87,12 +88,14 @@ func (i *Image) Resize(dst, format string, w, h, q int) error {
 	if format == "" {
 		format = i.Type
 	}
+	
+	dstImagick := format + ":" + dst
 
 	var cmd *exec.Cmd
 	if q > 0 {
-		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, "-quality",  fmt.Sprintf("%d", q), dst)
+		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, "-quality",  fmt.Sprintf("%d", q), dstImagick)
 	} else {
-		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, dst)
+		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, dstImagick)
 	}
 	if err := cmd.Run(); err != nil {
 		return err
@@ -101,10 +104,15 @@ func (i *Image) Resize(dst, format string, w, h, q int) error {
 	i.Width = w
 	i.Height = h
 	i.Type = format
+	
+	if optimize {
+		i.optimize(dst)
+	}
+	
 	return nil
 } 
 
-func (i *Image) Crop(dst, format string, w, h, q int) error {
+func (i *Image) Crop(dst, format string, w, h, q int, optimize bool) error {
 	cw, ch := w, h
 	kc := float64(w) / float64(h)
 	ki := float64(i.Width) / float64(i.Height)
@@ -130,15 +138,31 @@ func (i *Image) Crop(dst, format string, w, h, q int) error {
 	}
 	i.Filename = dst
 
-	err = i.Resize(dst, format, w, h, q)
+	err = i.Resize(dst, format, w, h, q, optimize)
 	if err != nil {
 		return err
-	}
-	
+	}	
 	i.Width = w
 	i.Height = h
 	return nil
 } 
+
+func (i *Image) optimize(dst string) {
+	if i.Type != "png" {
+		return
+	}
+	command := "pngquant"
+	if _, err := exec.LookPath(command); err != nil {
+		aelog.Warnln("Optimize image: Command", command, "not found:", err)
+		return
+	}
+	
+	cmd := exec.Command(command, dst, "--force", "--output", dst)
+	if res, err := cmd.CombinedOutput(); err != nil {
+		aelog.Warnf("Optimize image: %s return error: %v (%s)", command, err, string(res))
+	}
+	aelog.Debugln("Optimize image:", dst, "success!")
+}
 
 func parseError(probe string) (err string) {
 	parts := strings.Split(probe, "\n")

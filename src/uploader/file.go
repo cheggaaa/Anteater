@@ -49,6 +49,8 @@ type File struct {
 	Quality int `json:"quality,omitempty"`
 	// need crop
 	Crop bool `json:"crop,omitempty"`
+	// apply optimize for images (png only)
+	Optimize bool `json:"optimize,omitempty"`
 }
 
 type FileState struct {
@@ -110,9 +112,9 @@ func (f *File) uploadImage(tf *temp.File) (tfr *temp.File, err error) {
 	tfr.Disconnect()
 	tf.Disconnect()
 	if f.Crop {
-		image.Crop(tfr.Filename, f.Format, f.Width, f.Height, f.Quality)
+		image.Crop(tfr.Filename, f.Format, f.Width, f.Height, f.Quality, f.Optimize)
 	} else {
-		image.Resize(tfr.Filename, f.Format, f.Width, f.Height, f.Quality)
+		image.Resize(tfr.Filename, f.Format, f.Width, f.Height, f.Quality, f.Optimize)
 	}
 	err = tf.Connect()
 	if err == nil {
