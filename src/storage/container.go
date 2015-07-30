@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-	"syscall"
 	"time"
 	"utils"
 )
@@ -101,18 +100,15 @@ func (c *Container) create() (err error) {
 	c.Size = c.s.Conf.ContainerSize
 	if err = c.falloc(); err != nil {
 		aelog.Infoln("Fallocate doesn't work:", err, "\nTry to truncate...")
-		if err = c.fallocTrucate(); err != nil {
+		if err = c.fallocTruncate(); err != nil {
 			return
 		}
 	}
 	return
 }
 
-func (c *Container) falloc() (err error) {
-	return syscall.Fallocate(int(c.f.Fd()), 0, 0, c.Size)
-}
 
-func (c *Container) fallocTrucate() (err error) {
+func (c *Container) fallocTruncate() (err error) {
 	if err = c.f.Truncate(c.Size); err != nil {
 		return
 	}
