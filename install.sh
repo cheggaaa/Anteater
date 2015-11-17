@@ -10,8 +10,6 @@ go get testing
 go get github.com/akrennmair/goconf
 go get github.com/cheggaaa/pb
 
-rm -rf $GOAPP/pkg/*
-
 do_run_test() {
 	echo "Run tests.."
 	cd $GOAPP/src
@@ -20,17 +18,7 @@ do_run_test() {
 }
 
 do_run_build() {
-	install -d $GOBIN
-	echo "Building anteater.."
-	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/anteater.go
-	echo "Building aecommand.."
-	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aecommand.go
-	echo "Building aeimport.."
-	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aeimport.go
-	echo "Building aestats.."
-	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aestats.go
-	echo "Building aemove.."
-	GOBIN=$GOBIN GOPATH=$GOPATH go install ./src/aemove.go
+	GOPATH=$GOPATH go install -v ./...
 }
 
 case $1 in
