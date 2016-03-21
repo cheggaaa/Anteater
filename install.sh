@@ -13,7 +13,7 @@ go get github.com/cheggaaa/pb
 do_run_test() {
 	echo "Run tests.."
 	cd $GOAPP/src
-	GOPATH=$GOPATH go test utils config dump storage $@
+	GOPATH=$GOPATH go test --race utils config dump storage $@
 	cd ../
 }
 
