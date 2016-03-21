@@ -2,3 +2,4 @@
 /pkg/*
 /etc/anteater.conf
 .project
+.settings
