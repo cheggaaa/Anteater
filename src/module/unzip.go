@@ -17,34 +17,33 @@
 package module
 
 import (
+	"aelog"
+	"archive/zip"
+	"fmt"
 	"net/http"
 	"storage"
 	"strings"
-	"archive/zip"
-	"aelog"
 	"utils"
-	"fmt"
 )
 
 const (
-	UNZIP_NO = 0
+	UNZIP_NO     = 0
 	UNZIP_NORMAL = 1
-	UNZIP_FORCE = 2
+	UNZIP_FORCE  = 2
 )
 
-type unZip struct {}
-
+type unZip struct{}
 
 func (u unZip) OnSave(file *storage.File, w http.ResponseWriter, r *http.Request, s *storage.Storage) (e error) {
 	mode := u.needUnZip(r)
 	if mode == UNZIP_NO {
 		return
 	}
-	aelog.Debugf("UnZip: start unzip(%d) files to: %s (%s)", mode, file.Name, utils.HumanBytes(file.FSize))	
+	aelog.Debugf("UnZip: start unzip(%d) files to: %s (%s)", mode, file.Name, utils.HumanBytes(file.FSize))
 	if mode == UNZIP_FORCE {
 		s.DeleteChilds(file.Name)
 	}
-	
+
 	filesCount, filesSize, err := u.unZipTo(file.Name, file, s)
 	if err != nil {
 		aelog.Debugf("UnZip: error: %v", err)
@@ -57,30 +56,30 @@ func (u unZip) OnSave(file *storage.File, w http.ResponseWriter, r *http.Request
 	return
 }
 
-func (u unZip) OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (e error) {
+func (u unZip) OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (cont bool, e error) {
 	if command != "unzip" {
-		return
+		return true, nil
 	}
 	if file, ok := s.Get(filename); ok {
-		return u.OnSave(file, w, r, s)
-	}	
-	return
+		return true, u.OnSave(file, w, r, s)
+	}
+	return true, nil
 }
 
 func (u unZip) unZipTo(to string, f *storage.File, s *storage.Storage) (filesCount, filesSize int64, err error) {
-	
+
 	if err = f.Open(); err != nil {
 		return
 	}
 	defer f.Close()
-	
+
 	z, err := zip.NewReader(f.GetReader(), f.FSize)
 	if err != nil {
 		return
 	}
-	
+
 	for _, zf := range z.File {
-		if ! zf.FileInfo().IsDir() {
+		if !zf.FileInfo().IsDir() {
 			fs, e := u.saveFile(to, zf, s)
 			if e != nil {
 				err = e
@@ -89,8 +88,8 @@ func (u unZip) unZipTo(to string, f *storage.File, s *storage.Storage) (filesCou
 			filesSize += fs
 			filesCount++
 		}
-	}	
-	
+	}
+
 	return
 }
 
@@ -107,15 +106,15 @@ func (u unZip) saveFile(to string, zf *zip.File, s *storage.Storage) (fs int64, 
 	if f, err := s.Add(fname, reader, zf.FileInfo().Size()); err == nil {
 		return f.FSize, nil
 	}
-	return 
+	return
 }
 
 func (u unZip) needUnZip(r *http.Request) int {
 	switch strings.ToLower(r.Header.Get("X-Ae-Unzip")) {
-		case "1", "true", "yes":
-			return UNZIP_NORMAL
-		case "force":
-			return UNZIP_FORCE
+	case "1", "true", "yes":
+		return UNZIP_NORMAL
+	case "force":
+		return UNZIP_FORCE
 	}
 	return UNZIP_NO
 }

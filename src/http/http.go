@@ -17,41 +17,40 @@
 package http
 
 import (
-	"cnst"
-	"storage"
-	"config"
-	"net/http"
-	"log"
-	"fmt"
-	"time"
-	"strconv"
-	"io"
 	"aelog"
+	"cnst"
+	"config"
+	"fmt"
+	"io"
+	"log"
+	"module"
+	"net/http"
+	"storage"
+	"strconv"
 	"strings"
 	"temp"
+	"time"
 	"uploader"
-	"module"
 )
 
 const (
 	ERROR_PAGE = "<html><head><title>%s</title></head><body><center><h1>%d %s</h1></center><hr><center>" + cnst.SIGN + "</center></body></html>\n"
 )
 
-
 type Server struct {
 	stor *storage.Storage
 	conf *config.Config
-	aL *aelog.AntLog
-	up *uploader.Uploader
+	aL   *aelog.AntLog
+	up   *uploader.Uploader
 }
 
 // Create new server and run it
 func RunServer(s *storage.Storage, accessLog *aelog.AntLog) (server *Server) {
 	server = &Server{
-		stor : s,
-		conf : s.Conf,
-		aL   : accessLog,
-		up   : uploader.NewUploader(s.Conf, s),
+		stor: s,
+		conf: s.Conf,
+		aL:   accessLog,
+		up:   uploader.NewUploader(s.Conf, s),
 	}
 	module.RegisterModules()
 	server.Run()
@@ -60,7 +59,7 @@ func RunServer(s *storage.Storage, accessLog *aelog.AntLog) (server *Server) {
 
 // Run all servers
 func (s *Server) Run() {
-	run := func(handler http.Handler, addr string) { 
+	run := func(handler http.Handler, addr string) {
 		serv := &http.Server{
 			Addr:         addr,
 			Handler:      handler,
@@ -86,16 +85,16 @@ func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		if rec := recover(); rec != nil {
 			s.Err(500, r, w)
-        	aelog.Warnf("Error on http request: %v", rec)
-        }
-        r.Body.Close()
+			aelog.Warnf("Error on http request: %v", rec)
+		}
+		r.Body.Close()
 	}()
 	filename := Filename(r)
 	if len(filename) == 0 {
 		s.Err(404, r, w)
-		return 
+		return
 	}
-	
+
 	switch r.Method {
 	case "OPTIONS":
 		w.Header().Set("Allow", "GET,HEAD")
@@ -116,44 +115,44 @@ func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", cnst.SIGN)
 	defer func() {
-		if rec := recover(); rec != nil {			
-        	s.Err(500, r, w)
-        	aelog.Warnf("Error on http request: %v", rec)
-        }
-        r.Body.Close()
+		if rec := recover(); rec != nil {
+			s.Err(500, r, w)
+			aelog.Warnf("Error on http request: %v", rec)
+		}
+		r.Body.Close()
 	}()
 	filename := Filename(r)
 	switch filename {
-		case "":
-			// check uploader
-			isU, err, errCode := s.up.TryRequest(r, w)
-			if isU {
-				if err == nil && errCode > 0 {
-					s.Err(errCode, r, w)
-				}
-				return
+	case "":
+		// check uploader
+		isU, err, errCode := s.up.TryRequest(r, w)
+		if isU {
+			if err == nil && errCode > 0 {
+				s.Err(errCode, r, w)
 			}
-			s.Err(404, r, w)
-			return;
-		case s.conf.StatusHtml:
-			s.Err(500, r, w)
 			return
-		case s.conf.StatusJson:
-			s.StatsJson(w, r)
-			return
+		}
+		s.Err(404, r, w)
+		return
+	case s.conf.StatusHtml:
+		s.Err(500, r, w)
+		return
+	case s.conf.StatusJson:
+		s.StatsJson(w, r)
+		return
 	}
-	
+
 	m := r.Header.Get("X-Http-Method-Override")
 	if m == "" {
 		m = r.Method
 	}
 	sm := m
-	
+
 	du := s.downloadUrl(r)
-	if du != "" { 
+	if du != "" {
 		sm = "DOWNLOAD"
 	}
-	
+
 	switch sm {
 	case "OPTIONS":
 		w.Header().Set("Allow", "GET,HEAD,POST,PUT,DELETE")
@@ -194,17 +193,17 @@ func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeBody bool) {
 	f, ok := s.stor.Get(name)
-	if ! ok {
+	if !ok {
 		s.Err(404, r, w)
 		s.stor.Stats.Counters.NotFound.Add()
 		return
 	}
 	f.Open()
 	defer f.Close()
-	
+
 	// Check cache
 	cont, status := s.checkCache(r, f)
-	if ! cont {
+	if !cont {
 		w.WriteHeader(status)
 		s.stor.Stats.Counters.NotModified.Add()
 		s.accessLog(status, r)
@@ -218,17 +217,16 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		w.Header().Set("E-Tag", f.ETag())
 	}
 	if s.conf.Md5Header {
-		w.Header().Set("X-Ae-Md5", f.Md5S());
+		w.Header().Set("X-Ae-Md5", f.Md5S())
 	}
-	
-	
+
 	// Add headers from config
 	for k, v := range s.conf.Headers {
 		w.Header().Add(k, v)
 	}
-	
+
 	s.stor.Stats.Counters.Get.Add()
-	
+
 	// check range request
 	goServe := false
 	partial := false
@@ -240,14 +238,14 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 			goServe = true
 		}
 	}
-	
+
 	// fix http go lib bug for a "0-" requests
 	if partial {
 		status = http.StatusPartialContent
-		w.Header().Add("Content-Range", fmt.Sprintf("bytes 0-%d/%d", f.FSize - 1, f.FSize))
+		w.Header().Add("Content-Range", fmt.Sprintf("bytes 0-%d/%d", f.FSize-1, f.FSize))
 	}
-	
-	if ! writeBody {
+
+	if !writeBody {
 		if status == http.StatusOK || status == http.StatusPartialContent {
 			status = http.StatusNoContent
 		}
@@ -255,16 +253,16 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		s.accessLog(status, r)
 		return
 	}
-	
+
 	reader := f.GetReader()
-	
+
 	if goServe {
 		http.ServeContent(w, r, name, f.Time, reader)
 	} else {
 		w.WriteHeader(status)
 		reader.WriteTo(w)
 	}
-		
+
 	s.accessLog(status, r)
 }
 
@@ -275,12 +273,11 @@ func (s *Server) Save(name string, w http.ResponseWriter, r *http.Request) {
 		s.Err(409, r, w)
 		return
 	}
-	
+
 	reader := r.Body
 	size := r.ContentLength
 	s.save(name, size, reader, r, w)
 }
-
 
 func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
 	_, ok := s.stor.Get(name)
@@ -310,13 +307,14 @@ func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) Command(name string, w http.ResponseWriter, r *http.Request) {
 	command := strings.ToLower(r.Header.Get("X-Ae-Command"))
-	module.OnCommand(command, name, w, r, s.stor)
-	s.Get(name, w, r, false)
+	if cont, _ := module.OnCommand(command, name, w, r, s.stor); cont {
+		s.Get(name, w, r, false)
+	}
 }
 
 func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
 	_, ok := s.stor.Index.Get(name)
-	if ! ok {
+	if !ok {
 		s.Err(http.StatusNotFound, r, w)
 		return
 	}
@@ -325,37 +323,37 @@ func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
 		s.Err(http.StatusBadRequest, r, w)
 		return
 	}
-	
+
 	forceString := strings.TrimSpace(r.Header.Get("X-Ae-Force"))
 	force := false
 	switch strings.ToLower(forceString) {
-		case "1","true":
-			force = true
+	case "1", "true":
+		force = true
 	}
 	if _, ok = s.stor.Get(newName); ok {
-		if ! force {
+		if !force {
 			s.Err(http.StatusConflict, r, w)
 			return
 		} else {
 			s.stor.Delete(newName)
 		}
 	}
-	
+
 	_, err := s.stor.Index.Rename(name, newName)
 	switch err {
-		case storage.ErrFileNotFound:
-			s.Err(http.StatusNotFound, r, w)
+	case storage.ErrFileNotFound:
+		s.Err(http.StatusNotFound, r, w)
+		return
+	case storage.ErrConflict:
+		s.Err(http.StatusConflict, r, w)
+		return
+	default:
+		if err != nil {
+			aelog.Warnf("Can't rename file: %v", err)
+			s.Err(http.StatusInternalServerError, r, w)
 			return
-		case storage.ErrConflict:	
-			s.Err(http.StatusConflict, r, w)
-			return
-		default:
-			if err != nil {
-				aelog.Warnf("Can't rename file: %v", err)
-				s.Err(http.StatusInternalServerError, r, w)
-				return
-			}
-	}	
+		}
+	}
 	s.Get(newName, w, r, false)
 	return
 }
@@ -364,7 +362,7 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 	if size <= 0 {
 		s.Err(411, r, w)
 		return
-	}	
+	}
 	if size > s.conf.ContainerSize {
 		s.Err(413, r, w)
 		return
@@ -374,9 +372,9 @@ func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request
 		s.Err(500, r, w)
 		return
 	}
-	w.Header().Set("X-Ae-Md5", f.Md5S());	
-	w.Header().Set("Etag", f.ETag());
-	w.Header().Set("Location", name);
+	w.Header().Set("X-Ae-Md5", f.Md5S())
+	w.Header().Set("Etag", f.ETag())
+	w.Header().Set("Location", name)
 	if err = module.OnSave(f, w, r, s.stor); err != nil {
 		s.Err(500, r, w)
 		return
@@ -392,21 +390,21 @@ func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
 		mode = strings.ToLower(r.Header.Get("X-Ae-Delete"))
 	}
 	switch mode {
-		case "childs":
-			ok = s.stor.DeleteChilds(name)
-		case "all":
-			cok := s.stor.DeleteChilds(name)
-			ok = s.stor.Delete(name) || cok
-		default:
-			ok = s.stor.Delete(name)
+	case "childs":
+		ok = s.stor.DeleteChilds(name)
+	case "all":
+		cok := s.stor.DeleteChilds(name)
+		ok = s.stor.Delete(name) || cok
+	default:
+		ok = s.stor.Delete(name)
 	}
-	
+
 	if ok {
 		if w != nil {
 			w.WriteHeader(http.StatusNoContent)
 			s.accessLog(http.StatusNoContent, r)
 			s.stor.Stats.Counters.Delete.Add()
-		}		
+		}
 		return
 	} else {
 		if w != nil {
@@ -422,7 +420,6 @@ func (s *Server) StatsJson(w http.ResponseWriter, r *http.Request) {
 	s.accessLog(http.StatusOK, r)
 }
 
-
 func (s *Server) Err(code int, r *http.Request, w http.ResponseWriter) {
 	st := http.StatusText(code)
 	body := []byte(fmt.Sprintf(ERROR_PAGE, st, code, st))
@@ -433,7 +430,6 @@ func (s *Server) Err(code int, r *http.Request, w http.ResponseWriter) {
 	s.accessLog(code, r)
 }
 
-
 /**
  * Return slash-trimmed filename
  */
@@ -442,7 +438,6 @@ func Filename(r *http.Request) (fn string) {
 	fn = strings.Trim(fn, "/")
 	return
 }
-
 
 /**
  * Detect download url and return if found
@@ -467,14 +462,14 @@ func (s *Server) checkCache(r *http.Request, f *storage.File) (cont bool, status
 				return
 			}
 		}
-	}	
+	}
 	// Check if modified
 	if tm, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since")); err == nil && f.Time.Before(tm.Add(1*time.Second)) {
 		status = http.StatusNotModified
 		return
-   	}
-   	cont = true
-   	status = http.StatusOK
+	}
+	cont = true
+	status = http.StatusOK
 	return
 }
 
@@ -484,4 +479,3 @@ func (s *Server) accessLog(status int, r *http.Request) {
 		s.aL.Printf(aelog.LOG_PRINT, "%s %s (%s): %d %s", r.Method, r.URL.Path, r.RemoteAddr, status, st)
 	}
 }
-

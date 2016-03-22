@@ -23,13 +23,13 @@ import (
 
 type Module interface {
 	OnSave(file *storage.File, w http.ResponseWriter, r *http.Request, s *storage.Storage) (err error)
-	OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (err error)
+	OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (cont bool, err error)
 }
 
 var modules = make([]Module, 0)
 
 func RegisterModules() {
-	modules = append(modules, unZip{})
+	modules = append(modules, unZip{}, fileList{})
 }
 
 func OnSave(file *storage.File, w http.ResponseWriter, r *http.Request, s *storage.Storage) (err error) {
@@ -42,10 +42,10 @@ func OnSave(file *storage.File, w http.ResponseWriter, r *http.Request, s *stora
 	return
 }
 
-func OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (err error) {
+func OnCommand(command, filename string, w http.ResponseWriter, r *http.Request, s *storage.Storage) (cont bool, err error) {
 	for _, m := range modules {
-		err = m.OnCommand(command, filename, w, r, s)
-		if err != nil {
+		cont, err = m.OnCommand(command, filename, w, r, s)
+		if !cont || err != nil {
 			break
 		}
 	}

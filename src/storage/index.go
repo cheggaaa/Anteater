@@ -89,12 +89,12 @@ func (i *Index) Rename(name, newName string) (f *File, err error) {
 	return
 }
 
-func (i *Index) List(prefix string, nesting int) (names []string, err error) {
+func (i *Index) List(prefix string, maxnesting int) (names []string, err error) {
 	parts := make([]string, 0)
 	if prefix != "" {
 		parts = i.explode(prefix)
 	}
-	return i.Root.List(parts, 0, nesting)
+	return i.Root.List(parts, 0, maxnesting)
 }
 
 func (i *Index) Count() int64 {

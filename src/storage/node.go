@@ -27,7 +27,7 @@ var ErrFileNotFound = errors.New("File not found")
 const WILDCARD = "*"
 
 type Node struct {
-	File *File
+	File   *File
 	Childs map[string]*Node
 }
 
@@ -38,7 +38,7 @@ func (n *Node) IsFile() bool {
 func (n *Node) Get(parts []string, depth int) (f *File, err error) {
 	// is it target
 	if len(parts) == depth {
-		if ! n.IsFile() {
+		if !n.IsFile() {
 			err = ErrFileNotFound
 			return
 		}
@@ -48,8 +48,8 @@ func (n *Node) Get(parts []string, depth int) (f *File, err error) {
 	// find in childs
 	if n.Childs != nil {
 		if child, ok := n.Childs[parts[depth]]; ok {
-			return child.Get(parts, depth + 1)
-		} 
+			return child.Get(parts, depth+1)
+		}
 	}
 	err = ErrFileNotFound
 	return
@@ -64,30 +64,30 @@ func (n *Node) Add(parts []string, f *File, depth int) (err error) {
 		n.File = f
 		return
 	}
-	
+
 	// add/create to child
 	if n.Childs == nil {
 		n.Childs = make(map[string]*Node)
 	}
-	
+
 	node, ok := n.Childs[parts[depth]]
-	if ! ok {
+	if !ok {
 		node = &Node{}
 		n.Childs[parts[depth]] = node
 	}
-	
-	err = node.Add(parts, f, depth + 1)	
+
+	err = node.Add(parts, f, depth+1)
 	return
 }
 
 func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 	if n.Childs == nil {
 		err = ErrFileNotFound
-		return 
+		return
 	}
-	
+
 	// is last - delete
-	if len(parts) - 1 == depth {
+	if len(parts)-1 == depth {
 		if child, ok := n.Childs[parts[depth]]; ok {
 			if child.IsFile() {
 				f = child.File
@@ -97,15 +97,15 @@ func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 				}
 				return
 			}
-		} 
+		}
 		err = ErrFileNotFound
 		return
 	}
 
 	// to child
 	if child, ok := n.Childs[parts[depth]]; ok {
-		if f, err = child.Delete(parts, depth + 1); err == nil {
-			if ! child.IsFile() && (child.Childs == nil || len(child.Childs) == 0) {
+		if f, err = child.Delete(parts, depth+1); err == nil {
+			if !child.IsFile() && (child.Childs == nil || len(child.Childs) == 0) {
 				delete(n.Childs, parts[depth])
 			}
 		} else {
@@ -118,17 +118,20 @@ func (n *Node) Delete(parts []string, depth int) (f *File, err error) {
 }
 
 func (n *Node) List(parts []string, depth, nesting int) (files []string, err error) {
-	files = make([]string, 0)	
+	files = make([]string, 0)
 	// make list from childs
 	if len(parts) <= depth {
+		if nesting > 0 && (depth-len(parts)) >= nesting {
+			return
+		}
 		if n.Childs != nil {
 			for name, node := range n.Childs {
 				if node.IsFile() {
 					files = append(files, name)
 				}
-				childFiles, _ := node.List(parts, depth, nesting)
+				childFiles, _ := node.List(parts, depth+1, nesting)
 				for _, childName := range childFiles {
-					files = append(files, name + "/" + childName)
+					files = append(files, name+"/"+childName)
 				}
 			}
 		}
@@ -137,7 +140,7 @@ func (n *Node) List(parts []string, depth, nesting int) (files []string, err err
 	// or find and call child
 	if n.Childs != nil {
 		if node, ok := n.Childs[parts[depth]]; ok {
-			if files, err = node.List(parts, depth + 1, nesting); err == nil {
+			if files, err = node.List(parts, depth+1, nesting); err == nil {
 				for i, name := range files {
 					files[i] = parts[depth] + "/" + name
 				}
@@ -151,8 +154,7 @@ func (n *Node) List(parts []string, depth, nesting int) (files []string, err err
 		err = ErrFileNotFound
 	}
 	return
-} 
-
+}
 
 func (n *Node) Print(prefix string) {
 	p := "E"
