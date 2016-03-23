@@ -43,6 +43,7 @@ func (fl fileList) OnCommand(command, filename string, w http.ResponseWriter, r 
 		fl.jsonResponse(w, response)
 		return
 	}
+	s.Stats.Counters.Get.Add()
 	response.List = make([]FileInfo, 0)
 	for _, fn := range list {
 		if f, ok := s.Get(fn); ok {
@@ -55,7 +56,7 @@ func (fl fileList) OnCommand(command, filename string, w http.ResponseWriter, r 
 			})
 		}
 	}
-	fl.jsonResponse(w, response)
+	s.Stats.Traffic.Output.AddN(fl.jsonResponse(w, response))
 	return false, nil
 }
 
@@ -68,8 +69,9 @@ func (fl fileList) parseNested(r *http.Request) int {
 	return 1
 }
 
-func (fl fileList) jsonResponse(w http.ResponseWriter, resp FileList) {
+func (fl fileList) jsonResponse(w http.ResponseWriter, resp FileList) (n int) {
 	w.Header().Set("Content-Type", "application/json")
-	enc := json.NewEncoder(w)
-	enc.Encode(resp)
+	respJson, _ := json.Marshal(resp)
+	w.Write(respJson)
+	return len(respJson)
 }
