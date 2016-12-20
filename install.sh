@@ -9,6 +9,8 @@ echo "Install go pkgs.."
 go get testing
 go get github.com/akrennmair/goconf
 go get github.com/cheggaaa/pb
+go get github.com/valyala/fasthttp
+go get github.com/valyala/fasthttp/fasthttpadaptor
 
 do_run_test() {
 	echo "Run tests.."

@@ -21,6 +21,8 @@ import (
 	"cnst"
 	"config"
 	"fmt"
+	"github.com/valyala/fasthttp"
+	"github.com/valyala/fasthttp/fasthttpadaptor"
 	"io"
 	"log"
 	"module"
@@ -59,142 +61,133 @@ func RunServer(s *storage.Storage, accessLog *aelog.AntLog) (server *Server) {
 
 // Run all servers
 func (s *Server) Run() {
-	run := func(handler http.Handler, addr string) {
-		serv := &http.Server{
-			Addr:         addr,
-			Handler:      handler,
-			ReadTimeout:  s.conf.HttpReadTimeout,
-			WriteTimeout: s.conf.HttpWriteTimeout,
-		}
-		log.Fatal(serv.ListenAndServe())
+	run := func(handler fasthttp.RequestHandler, addr string) {
+		log.Fatal(fasthttp.ListenAndServe(":80", handler))
 	}
 	if s.conf.HttpReadAddr != s.conf.HttpWriteAddr {
-		go run(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			s.ReadOnly(w, r)
-		}), s.conf.HttpReadAddr)
+		go run(s.ReadOnly, s.conf.HttpReadAddr)
 	}
-	go run(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.ReadWrite(w, r)
-	}), s.conf.HttpWriteAddr)
+	go run(s.ReadWrite, s.conf.HttpWriteAddr)
 	return
 }
 
 // Http handler for read-only server
-func (s *Server) ReadOnly(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Server", cnst.SIGN)
+func (s *Server) ReadOnly(ctx *fasthttp.RequestCtx) {
+	ctx.Response.Header.Set("Server", cnst.SIGN)
 	defer func() {
 		if rec := recover(); rec != nil {
-			s.Err(500, r, w)
+			ctx.Response.Reset()
+			s.Err(500, ctx)
 			aelog.Warnf("Error on http request: %v", rec)
 		}
-		r.Body.Close()
 	}()
-	filename := Filename(r)
+	filename := Filename(string(ctx.Path()))
 	if len(filename) == 0 {
-		s.Err(404, r, w)
+		s.Err(404, ctx)
 		return
 	}
 
-	switch r.Method {
-	case "OPTIONS":
-		w.Header().Set("Allow", "GET,HEAD")
-		w.WriteHeader(http.StatusOK)
+	switch {
+	case ctx.IsGet():
+		s.Get(filename, ctx, true)
 		return
-	case "GET":
-		s.Get(filename, w, r, true)
+	case ctx.IsHead():
+		s.Get(filename, ctx, false)
 		return
-	case "HEAD":
-		s.Get(filename, w, r, false)
+	case string(ctx.Method()) == "OPTIONS":
+		ctx.Response.Header.Set("Allow", "GET,HEAD")
+		ctx.SetStatusCode(http.StatusOK)
 		return
 	default:
-		s.Err(501, r, w)
+		s.Err(501, ctx)
 	}
 }
 
 // Http handler for read-write server
-func (s *Server) ReadWrite(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Server", cnst.SIGN)
+func (s *Server) ReadWrite(ctx *fasthttp.RequestCtx) {
+	ctx.Response.Header.Set("Server", cnst.SIGN)
 	defer func() {
 		if rec := recover(); rec != nil {
-			s.Err(500, r, w)
+			ctx.Response.Reset()
+			s.Err(500, ctx)
 			aelog.Warnf("Error on http request: %v", rec)
 		}
-		r.Body.Close()
 	}()
-	filename := Filename(r)
+	filename := Filename(string(ctx.Path()))
+
 	switch filename {
 	case "":
 		// check uploader
-		isU, err, errCode := s.up.TryRequest(r, w)
+		/*isU, err, errCode := s.up.TryRequest(r, w)
 		if isU {
 			if err == nil && errCode > 0 {
 				s.Err(errCode, r, w)
 			}
 			return
-		}
-		s.Err(404, r, w)
+		}*/
+		s.Err(404, ctx)
 		return
 	case s.conf.StatusHtml:
-		s.Err(500, r, w)
+		s.Err(500, ctx)
 		return
 	case s.conf.StatusJson:
-		s.StatsJson(w, r)
+		s.StatsJson(ctx)
 		return
 	}
 
-	m := r.Header.Get("X-Http-Method-Override")
+	m := string(ctx.Request.Header.Peek("X-Http-Method-Override"))
 	if m == "" {
-		m = r.Method
+		m = string(ctx.Method())
 	}
 	sm := m
 
-	du := s.downloadUrl(r)
+	du := s.downloadUrl(ctx)
 	if du != "" {
 		sm = "DOWNLOAD"
 	}
 
 	switch sm {
-	case "OPTIONS":
-		w.Header().Set("Allow", "GET,HEAD,POST,PUT,DELETE")
-		w.WriteHeader(http.StatusOK)
-		return
 	case "GET":
-		s.Get(filename, w, r, true)
+		s.Get(filename, ctx, true)
 		return
 	case "HEAD":
-		s.Get(filename, w, r, false)
+		s.Get(filename, ctx, false)
 		return
 	case "POST":
-		s.Save(filename, w, r)
+		s.Save(filename, ctx)
 		return
 	case "PUT":
-		s.Delete(filename, nil, nil)
-		s.Save(filename, w, r)
+		s.Delete(filename, nil)
+		s.Save(filename, ctx)
 		return
 	case "DELETE":
-		s.Delete(filename, w, r)
+		s.Delete(filename, ctx)
 		return
 	case "DOWNLOAD":
 		if m == "PUT" {
-			s.Delete(filename, nil, nil)
+			s.Delete(filename, nil)
 		}
-		s.Download(filename, w, r)
+		s.Download(filename, ctx)
 		return
 	case "COMMAND":
-		s.Command(filename, w, r)
+		s.Command(filename, ctx)
 		return
 	case "RENAME":
-		s.Rename(filename, w, r)
+		s.Rename(filename, ctx)
+		return
+	case "OPTIONS":
+		ctx.Response.Header.Set("Allow", "GET,HEAD,POST,PUT,DELETE")
+		ctx.SetStatusCode(http.StatusOK)
 		return
 	default:
-		s.Err(501, r, w)
+		s.Err(501, ctx)
 	}
 }
 
-func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeBody bool) {
+func (s *Server) Get(name string, ctx *fasthttp.RequestCtx, writeBody bool) {
 	f, ok := s.stor.Get(name)
 	if !ok {
-		s.Err(404, r, w)
+		s.Err(404, ctx)
 		s.stor.Stats.Counters.NotFound.Add()
 		return
 	}
@@ -202,27 +195,27 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	defer f.Close()
 
 	// Check cache
-	cont, status := s.checkCache(r, f)
+	cont, status := s.checkCache(ctx, f)
 	if !cont {
-		w.WriteHeader(status)
+		ctx.SetStatusCode(status)
 		s.stor.Stats.Counters.NotModified.Add()
-		s.accessLog(status, r)
+		s.accessLog(status, ctx)
 		return
 	}
-	w.Header().Set("Accept-Ranges", "bytes")
-	w.Header().Set("Content-Type", f.ContentType())
-	w.Header().Set("Content-Length", strconv.Itoa(int(f.FSize)))
-	w.Header().Set("Last-Modified", f.Time.UTC().Format(http.TimeFormat))
+	ctx.Response.Header.Set("Accept-Ranges", "bytes")
+	ctx.Response.Header.Set("Content-Type", f.ContentType())
+	ctx.Response.Header.Set("Content-Length", strconv.Itoa(int(f.FSize)))
+	ctx.Response.Header.Set("Last-Modified", f.Time.UTC().Format(http.TimeFormat))
 	if s.conf.ETagSupport {
-		w.Header().Set("E-Tag", f.ETag())
+		ctx.Response.Header.Set("E-Tag", f.ETag())
 	}
 	if s.conf.Md5Header {
-		w.Header().Set("X-Ae-Md5", f.Md5S())
+		ctx.Response.Header.Set("X-Ae-Md5", f.Md5S())
 	}
 
 	// Add headers from config
 	for k, v := range s.conf.Headers {
-		w.Header().Add(k, v)
+		ctx.Response.Header.Add(k, v)
 	}
 
 	s.stor.Stats.Counters.Get.Add()
@@ -230,7 +223,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	// check range request
 	goServe := false
 	partial := false
-	ranges := r.Header.Get("Range")
+	ranges := string(ctx.Request.Header.Peek("Range"))
 	if ranges != "" {
 		if strings.TrimSpace(strings.ToLower(ranges)) == "bytes=0-" {
 			partial = true
@@ -242,89 +235,94 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 	// fix http go lib bug for a "0-" requests
 	if partial {
 		status = http.StatusPartialContent
-		w.Header().Add("Content-Range", fmt.Sprintf("bytes 0-%d/%d", f.FSize-1, f.FSize))
+		ctx.Response.Header.Add("Content-Range", fmt.Sprintf("bytes 0-%d/%d", f.FSize-1, f.FSize))
 	}
 
 	if !writeBody {
 		if status == http.StatusOK || status == http.StatusPartialContent {
 			status = http.StatusNoContent
 		}
-		w.WriteHeader(status)
-		s.accessLog(status, r)
+		ctx.SetStatusCode(status)
+		s.accessLog(status, ctx)
 		return
 	}
 
 	reader := f.GetReader()
 
 	if goServe {
-		http.ServeContent(w, r, name, f.Time, reader)
+		fasthttpadaptor.NewFastHTTPHandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			http.ServeContent(w, r, name, f.Time, reader)
+		})(ctx)
+
 	} else {
-		w.WriteHeader(status)
-		reader.WriteTo(w)
+		ctx.SetStatusCode(status)
+		reader.WriteTo(ctx)
 	}
 
-	s.accessLog(status, r)
+	s.accessLog(status, ctx)
 }
 
-func (s *Server) Save(name string, w http.ResponseWriter, r *http.Request) {
+func (s *Server) Save(name string, ctx *fasthttp.RequestCtx) {
 	_, ok := s.stor.Get(name)
 	if ok {
 		// File exists
-		s.Err(409, r, w)
+		s.Err(409, ctx)
 		return
 	}
 
-	reader := r.Body
-	size := r.ContentLength
-	s.save(name, size, reader, r, w)
+	//size := ctx.Request.Header.ContentLength()
+	//s.save(name, size, ctx, ctx)
 }
 
-func (s *Server) Download(name string, w http.ResponseWriter, r *http.Request) {
+func (s *Server) Download(name string, ctx *fasthttp.RequestCtx) {
 	_, ok := s.stor.Get(name)
 	if ok {
 		// File exists
-		s.Err(409, r, w)
+		s.Err(409, ctx)
 		return
 	}
-	url := s.downloadUrl(r)
+	url := s.downloadUrl(ctx)
 	tf := temp.NewFile(s.conf.TmpDir)
 	aelog.Debugf("Start download from %s\n", url)
 	err := tf.LoadFromUrl(url)
 	defer tf.Close()
 	if err != nil {
 		aelog.Infof("Can't download : %s, err: %v\n", url, err)
-		s.Err(500, r, w)
+		s.Err(500, ctx)
 		return
 	}
 	// again check for exists
 	_, ok = s.stor.Get(name)
 	if ok {
-		s.Err(409, r, w)
+		s.Err(409, ctx)
 		return
 	}
-	s.save(name, tf.Size, tf.File, r, w)
+	s.save(name, tf.Size, tf.File, ctx)
 }
 
-func (s *Server) Command(name string, w http.ResponseWriter, r *http.Request) {
-	command := strings.ToLower(r.Header.Get("X-Ae-Command"))
-	if cont, _ := module.OnCommand(command, name, w, r, s.stor); cont {
-		s.Get(name, w, r, false)
-	}
+func (s *Server) Command(name string, ctx *fasthttp.RequestCtx) {
+	/*
+		command := strings.ToLower(r.Header.Get("X-Ae-Command"))
+		if cont, _ := module.OnCommand(command, name, w, r, s.stor); cont {
+			s.Get(name, w, r, false)
+		}
+	*/
+	ctx.SetStatusCode(http.StatusMethodNotAllowed)
 }
 
-func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
+func (s *Server) Rename(name string, ctx *fasthttp.RequestCtx) {
 	_, ok := s.stor.Index.Get(name)
 	if !ok {
-		s.Err(http.StatusNotFound, r, w)
+		s.Err(http.StatusNotFound, ctx)
 		return
 	}
-	newName := strings.Trim(r.Header.Get("X-Ae-Name"), "/")
+	newName := strings.Trim(string(ctx.Request.Header.Peek("X-Ae-Name")), "/")
 	if newName == "" {
-		s.Err(http.StatusBadRequest, r, w)
+		s.Err(http.StatusBadRequest, ctx)
 		return
 	}
 
-	forceString := strings.TrimSpace(r.Header.Get("X-Ae-Force"))
+	forceString := strings.TrimSpace(string(ctx.Request.Header.Peek("X-Ae-Force")))
 	force := false
 	switch strings.ToLower(forceString) {
 	case "1", "true":
@@ -332,7 +330,7 @@ func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
 	}
 	if _, ok = s.stor.Get(newName); ok {
 		if !force {
-			s.Err(http.StatusConflict, r, w)
+			s.Err(http.StatusConflict, ctx)
 			return
 		} else {
 			s.stor.Delete(newName)
@@ -342,52 +340,53 @@ func (s *Server) Rename(name string, w http.ResponseWriter, r *http.Request) {
 	_, err := s.stor.Index.Rename(name, newName)
 	switch err {
 	case storage.ErrFileNotFound:
-		s.Err(http.StatusNotFound, r, w)
+		s.Err(http.StatusNotFound, ctx)
 		return
 	case storage.ErrConflict:
-		s.Err(http.StatusConflict, r, w)
+		s.Err(http.StatusConflict, ctx)
 		return
 	default:
 		if err != nil {
 			aelog.Warnf("Can't rename file: %v", err)
-			s.Err(http.StatusInternalServerError, r, w)
+			s.Err(http.StatusInternalServerError, ctx)
 			return
 		}
 	}
-	s.Get(newName, w, r, false)
+	s.Get(newName, ctx, false)
 	return
 }
 
-func (s *Server) save(name string, size int64, reader io.Reader, r *http.Request, w http.ResponseWriter) {
+func (s *Server) save(name string, size int64, reader io.Reader, ctx *fasthttp.RequestCtx) {
 	if size <= 0 {
-		s.Err(411, r, w)
+		s.Err(411, ctx)
 		return
 	}
 	if size > s.conf.ContainerSize {
-		s.Err(413, r, w)
+		s.Err(413, ctx)
 		return
 	}
 	f, err := s.stor.Add(name, reader, size)
 	if err != nil {
-		s.Err(500, r, w)
+		s.Err(500, ctx)
 		return
 	}
-	w.Header().Set("X-Ae-Md5", f.Md5S())
-	w.Header().Set("Etag", f.ETag())
-	w.Header().Set("Location", name)
-	if err = module.OnSave(f, w, r, s.stor); err != nil {
-		s.Err(500, r, w)
-		return
-	}
-	w.WriteHeader(http.StatusCreated)
-	s.accessLog(http.StatusCreated, r)
+	ctx.Response.Header.Set("X-Ae-Md5", f.Md5S())
+	ctx.Response.Header.Set("Etag", f.ETag())
+	ctx.Response.Header.Set("Location", name)
+	/*
+		if err = module.OnSave(f, w, r, s.stor); err != nil {
+			s.Err(500, r, w)
+			return
+		}*/
+	ctx.SetStatusCode(http.StatusCreated)
+	s.accessLog(http.StatusCreated, ctx)
 }
 
-func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
+func (s *Server) Delete(name string, ctx *fasthttp.RequestCtx) {
 	var ok bool
 	var mode string
-	if r != nil {
-		mode = strings.ToLower(r.Header.Get("X-Ae-Delete"))
+	if ctx != nil {
+		mode = strings.ToLower(string(ctx.Request.Header.Peek("X-Ae-Delete")))
 	}
 	switch mode {
 	case "childs":
@@ -400,63 +399,58 @@ func (s *Server) Delete(name string, w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ok {
-		if w != nil {
-			w.WriteHeader(http.StatusNoContent)
-			s.accessLog(http.StatusNoContent, r)
+		if ctx != nil {
+			ctx.SetStatusCode(http.StatusNoContent)
+			s.accessLog(http.StatusNoContent, ctx)
 			s.stor.Stats.Counters.Delete.Add()
 		}
 		return
 	} else {
-		if w != nil {
-			s.Err(404, r, w)
+		if ctx != nil {
+			s.Err(404, ctx)
 		}
 	}
 }
 
-func (s *Server) StatsJson(w http.ResponseWriter, r *http.Request) {
+func (s *Server) StatsJson(ctx *fasthttp.RequestCtx) {
 	b := s.stor.GetStats().AsJson()
-	w.Header().Add("Content-Type", "application/json;charset=utf-8")
-	w.Write(b)
-	s.accessLog(http.StatusOK, r)
+	ctx.Response.Header.SetContentType("application/json;charset=utf-8")
+	ctx.Write(b)
+	s.accessLog(http.StatusOK, ctx)
 }
 
-func (s *Server) Err(code int, r *http.Request, w http.ResponseWriter) {
+func (s *Server) Err(code int, ctx *fasthttp.RequestCtx) {
 	st := http.StatusText(code)
 	body := []byte(fmt.Sprintf(ERROR_PAGE, st, code, st))
-	w.Header().Add("Content-Type", "text/html;charset=utf-8")
-	w.Header().Add("Content-Length", strconv.Itoa(len(body)))
-	w.WriteHeader(code)
-	w.Write(body)
-	s.accessLog(code, r)
+	ctx.SetBody(body)
+	ctx.Response.Header.SetContentType("text/html;charset=utf-8")
+	ctx.Response.Header.SetContentLength(len(body))
+	ctx.SetStatusCode(code)
+	s.accessLog(code, ctx)
 }
 
 /**
  * Return slash-trimmed filename
  */
-func Filename(r *http.Request) (fn string) {
-	fn = r.URL.Path
-	fn = strings.Trim(fn, "/")
-	return
+func Filename(path string) string {
+	return strings.Trim(path, "/")
 }
 
 /**
  * Detect download url and return if found
  */
-func (s *Server) downloadUrl(r *http.Request) (url string) {
+func (s *Server) downloadUrl(ctx *fasthttp.RequestCtx) (url string) {
 	if s.conf.DownloaderEnable {
 		p := s.conf.DownloaderParamName
-		url = r.FormValue(p)
-		if url == "" {
-			url = r.URL.Query().Get(p)
-		}
+		url = string(ctx.FormValue(p))
 	}
 	return
 }
 
-func (s *Server) checkCache(r *http.Request, f *storage.File) (cont bool, status int) {
+func (s *Server) checkCache(ctx *fasthttp.RequestCtx, f *storage.File) (cont bool, status int) {
 	// Check etag
 	if s.conf.ETagSupport {
-		if ifNoneMatch := r.Header.Get("If-None-Match"); ifNoneMatch != "" {
+		if ifNoneMatch := string(ctx.Request.Header.Peek("If-None-Match")); ifNoneMatch != "" {
 			if ifNoneMatch == f.ETag() {
 				status = http.StatusNotModified
 				return
@@ -464,7 +458,7 @@ func (s *Server) checkCache(r *http.Request, f *storage.File) (cont bool, status
 		}
 	}
 	// Check if modified
-	if tm, err := time.Parse(http.TimeFormat, r.Header.Get("If-Modified-Since")); err == nil && f.Time.Before(tm.Add(1*time.Second)) {
+	if tm, err := time.Parse(http.TimeFormat, string(ctx.Request.Header.Peek("If-Modified-Since"))); err == nil && f.Time.Before(tm.Add(1*time.Second)) {
 		status = http.StatusNotModified
 		return
 	}
@@ -473,9 +467,9 @@ func (s *Server) checkCache(r *http.Request, f *storage.File) (cont bool, status
 	return
 }
 
-func (s *Server) accessLog(status int, r *http.Request) {
+func (s *Server) accessLog(status int, ctx *fasthttp.RequestCtx) {
 	if s.aL != nil {
 		st := http.StatusText(status)
-		s.aL.Printf(aelog.LOG_PRINT, "%s %s (%s): %d %s", r.Method, r.URL.Path, r.RemoteAddr, status, st)
+		s.aL.Printf(aelog.LOG_PRINT, "%s %s (%s): %d %s", string(ctx.Method()), string(ctx.Path()), ctx.RemoteIP().String(), status, st)
 	}
 }
