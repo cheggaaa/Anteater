@@ -62,7 +62,7 @@ func RunServer(s *storage.Storage, accessLog *aelog.AntLog) (server *Server) {
 // Run all servers
 func (s *Server) Run() {
 	run := func(handler fasthttp.RequestHandler, addr string) {
-		log.Fatal(fasthttp.ListenAndServe(":80", handler))
+		log.Fatal(fasthttp.ListenAndServe(addr, handler))
 	}
 	if s.conf.HttpReadAddr != s.conf.HttpWriteAddr {
 		go run(s.ReadOnly, s.conf.HttpReadAddr)
