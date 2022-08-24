@@ -249,6 +249,7 @@ func (s *Server) Get(name string, w http.ResponseWriter, r *http.Request, writeB
 		if status == http.StatusOK || status == http.StatusPartialContent {
 			status = http.StatusNoContent
 		}
+		w.Header().Set("X-Ae-Content-Length", strconv.Itoa(int(f.FSize)))
 		w.WriteHeader(status)
 		s.accessLog(status, r)
 		return
