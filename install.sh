@@ -1,36 +1,8 @@
 #!/bin/bash
 
-BINNAME="anteater"
-GOAPP=$( cd "$( dirname "$0" )" && pwd )
-GOPATH=$GOPATH:$GOAPP
-GOBIN=$GOAPP/bin
-
-echo "Install go pkgs.."
-go get testing
-go get github.com/akrennmair/goconf
-go get github.com/cheggaaa/pb
-
-do_run_test() {
-	echo "Run tests.."
-	cd $GOAPP/src
-	GOPATH=$GOPATH go test --race utils config dump storage $@
-	cd ../
-}
-
-do_run_build() {
-	GOPATH=$GOPATH go install -v ./...
-}
-
-case $1 in
-	test)
-		shift
-		do_run_test $@
-		;;
-	notest)
-		do_run_build
-		;;
-	*)
-		do_run_test
-		do_run_build
-		;;
-esac
+cd ./src
+GOPATH=$(pwd)/src go build -v -o ../bin/aecommand cmd/aecommand/aecommand.go
+GOPATH=$(pwd)/src go build -v -o ../bin/aeimport cmd/aeimport/aeimport.go
+GOPATH=$(pwd)/src go build -v -o ../bin/aestats cmd/aestats/aestats.go
+GOPATH=$(pwd)/src go build -v -o ../bin/anteater cmd/anteater/anteater.go
+cd ../

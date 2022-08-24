@@ -17,20 +17,20 @@
 package main
 
 import (
-	"aelog"
-	"aerpc/rpcserver"
-	"cnst"
-	"config"
 	"flag"
 	"fmt"
-	"http"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/aerpc/rpcserver"
+	"github.com/cheggaaa/Anteater/src/cnst"
+	"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/src/http"
+	"github.com/cheggaaa/Anteater/src/storage"
 	"log"
 	ghttp "net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime/pprof"
-	"storage"
 	"syscall"
 )
 

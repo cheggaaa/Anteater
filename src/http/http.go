@@ -17,20 +17,20 @@
 package http
 
 import (
-	"aelog"
-	"cnst"
-	"config"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/cnst"
+	"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/src/module"
+	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/src/temp"
+	"github.com/cheggaaa/Anteater/src/uploader"
 	"io"
 	"log"
-	"module"
 	"net/http"
-	"storage"
 	"strconv"
 	"strings"
-	"temp"
 	"time"
-	"uploader"
 )
 
 const (

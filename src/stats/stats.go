@@ -17,7 +17,7 @@
 package stats
 
 import (
-	"cnst"
+	"github.com/cheggaaa/Anteater/src/cnst"
 	"time"
 )
 

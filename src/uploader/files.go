@@ -17,13 +17,13 @@
 package uploader
 
 import (
-	"aelog"
-	"config"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/src/temp"
+	"github.com/cheggaaa/Anteater/src/utils"
 	"net/http"
 	"path/filepath"
-	"storage"
-	"temp"
-	"utils"
 )
 
 type Files []*File

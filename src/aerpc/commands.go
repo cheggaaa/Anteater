@@ -17,11 +17,11 @@
 package aerpc
 
 import (
-	"fmt"
-	"net/rpc"
-	"stats"
-	"utils"
 	"errors"
+	"fmt"
+	"github.com/cheggaaa/Anteater/src/stats"
+	"github.com/cheggaaa/Anteater/src/utils"
+	"net/rpc"
 	"strings"
 )
 
@@ -37,17 +37,17 @@ type RpcCommand interface {
 }
 
 // All rpc commands as map[cmd_name] cmd
-var Commands  = make(map[string]RpcCommand)
+var Commands = make(map[string]RpcCommand)
 
 func RegisterCommands() {
-	var cmds = make([]RpcCommand, 0)	
+	var cmds = make([]RpcCommand, 0)
 	cmds = append(cmds, new(RpcCommandVersion))
 	cmds = append(cmds, new(RpcCommandPing))
 	cmds = append(cmds, new(RpcCommandStatus))
 	cmds = append(cmds, new(RpcCommandCheck))
 	cmds = append(cmds, new(RpcCommandBackup))
 	cmds = append(cmds, new(RpcCommandFileList))
-	
+
 	for _, cmd := range cmds {
 		Commands[cmd.ShortName()] = cmd
 	}
@@ -55,12 +55,13 @@ func RegisterCommands() {
 
 // VERSION
 type RpcCommandVersion string
-func (c *RpcCommandVersion) ShortName() string { return "VERSION" }
-func (c *RpcCommandVersion) RpcName() string { return "Storage.Version" }
-func (c *RpcCommandVersion) Help() string { return "Print Anteater server version" }
+
+func (c *RpcCommandVersion) ShortName() string                 { return "VERSION" }
+func (c *RpcCommandVersion) RpcName() string                   { return "Storage.Version" }
+func (c *RpcCommandVersion) Help() string                      { return "Print Anteater server version" }
 func (c *RpcCommandVersion) SetArgs(args []string) (err error) { return }
-func (c *RpcCommandVersion) Print() { fmt.Println(*c) }
-func (c *RpcCommandVersion) Data() interface{} { return c }
+func (c *RpcCommandVersion) Print()                            { fmt.Println(*c) }
+func (c *RpcCommandVersion) Data() interface{}                 { return c }
 func (c *RpcCommandVersion) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
@@ -68,12 +69,13 @@ func (c *RpcCommandVersion) Execute(client *rpc.Client) (err error) {
 
 // PING
 type RpcCommandPing string
-func (c *RpcCommandPing) ShortName() string { return "PING" }
-func (c *RpcCommandPing) RpcName() string { return "Storage.Ping" }
-func (c *RpcCommandPing) Help() string { return "Return PONG if server running" }
+
+func (c *RpcCommandPing) ShortName() string                 { return "PING" }
+func (c *RpcCommandPing) RpcName() string                   { return "Storage.Ping" }
+func (c *RpcCommandPing) Help() string                      { return "Return PONG if server running" }
 func (c *RpcCommandPing) SetArgs(args []string) (err error) { return }
-func (c *RpcCommandPing) Print() { fmt.Println(*c) }
-func (c *RpcCommandPing) Data() interface{} { return c }
+func (c *RpcCommandPing) Print()                            { fmt.Println(*c) }
+func (c *RpcCommandPing) Data() interface{}                 { return c }
 func (c *RpcCommandPing) Execute(client *rpc.Client) (err error) {
 	err = client.Call(c.RpcName(), true, c)
 	return
@@ -81,21 +83,22 @@ func (c *RpcCommandPing) Execute(client *rpc.Client) (err error) {
 
 // STATUS
 type RpcCommandStatus stats.StatsInfo
-func (c *RpcCommandStatus) ShortName() string { return "STATUS" }
-func (c *RpcCommandStatus) RpcName() string { return "Storage.Status" }
-func (c *RpcCommandStatus) Help() string { return "Return server status info" }
+
+func (c *RpcCommandStatus) ShortName() string                 { return "STATUS" }
+func (c *RpcCommandStatus) RpcName() string                   { return "Storage.Status" }
+func (c *RpcCommandStatus) Help() string                      { return "Return server status info" }
 func (c *RpcCommandStatus) SetArgs(args []string) (err error) { return }
-func (c *RpcCommandStatus) Print() { 
+func (c *RpcCommandStatus) Print() {
 	fmt.Println("Anteater")
 	fmt.Printf("  Start time: %v (uptime: %v)\n  Version: %s\n\n", c.Anteater.StartTime, c.Env.Time.Sub(c.Anteater.StartTime), c.Anteater.Version)
 	fmt.Println("Enviroment")
 	fmt.Printf("  Go version: %s\n  Server time:  %v\n  Num goroutines: %d\n  Memory allocated: %s\n\n", c.Env.GoVersion, c.Env.Time, c.Env.NumGoroutine, utils.HumanBytes(int64(c.Env.MemAlloc)))
 	fmt.Println("Storage")
-	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Allocated size: %s (profit: %.2f%%)\n  Holes: %s (%d)\n  Index version: %d\n\n", 
-		c.Storage.ContainersCount, c.Storage.FilesCount, utils.HumanBytes(c.Storage.FilesSize), utils.HumanBytes(c.Storage.FilesRealSize), 
-		(float64(c.Storage.FilesSize) / float64(c.Storage.FilesRealSize)) * 100, utils.HumanBytes(c.Storage.HoleSize), c.Storage.HoleCount, c.Storage.IndexVersion)
+	fmt.Printf("  Containers count: %d\n  Files count: %d\n  Files size: %s\n  Allocated size: %s (profit: %.2f%%)\n  Holes: %s (%d)\n  Index version: %d\n\n",
+		c.Storage.ContainersCount, c.Storage.FilesCount, utils.HumanBytes(c.Storage.FilesSize), utils.HumanBytes(c.Storage.FilesRealSize),
+		(float64(c.Storage.FilesSize)/float64(c.Storage.FilesRealSize))*100, utils.HumanBytes(c.Storage.HoleSize), c.Storage.HoleCount, c.Storage.IndexVersion)
 	fmt.Println("Counters")
-	fmt.Printf("  Get: %d\n  Add: %d\n  Delete: %d\n  Not found: %d\n  Not modified: %d\n\n", 
+	fmt.Printf("  Get: %d\n  Add: %d\n  Delete: %d\n  Not found: %d\n  Not modified: %d\n\n",
 		c.Counters["get"], c.Counters["add"], c.Counters["delete"], c.Counters["notFound"], c.Counters["notModified"])
 	fmt.Println("Traffic")
 	fmt.Printf("  In: %s\n  Out: %s\n\n", utils.HumanBytes(int64(c.Traffic["in"])), utils.HumanBytes(int64(c.Traffic["out"])))
@@ -110,9 +113,10 @@ func (c *RpcCommandStatus) Execute(client *rpc.Client) (err error) {
 
 // CHECK
 type RpcCommandCheck string
-func (c *RpcCommandCheck) ShortName() string { return "CHECK" }
-func (c *RpcCommandCheck) RpcName() string { return "Storage.Check" }
-func (c *RpcCommandCheck) Help() string { return "Check internal structure & md5 files" }
+
+func (c *RpcCommandCheck) ShortName() string                 { return "CHECK" }
+func (c *RpcCommandCheck) RpcName() string                   { return "Storage.Check" }
+func (c *RpcCommandCheck) Help() string                      { return "Check internal structure & md5 files" }
 func (c *RpcCommandCheck) SetArgs(args []string) (err error) { return }
 func (c *RpcCommandCheck) Print() {
 	if *c == "" {
@@ -133,19 +137,20 @@ func (c *RpcCommandCheck) Execute(client *rpc.Client) (err error) {
 
 // BACKUP
 type RpcCommandBackup struct {
-	path string
+	path   string
 	result bool
 }
+
 func (c *RpcCommandBackup) ShortName() string { return "BACKUP" }
-func (c *RpcCommandBackup) RpcName() string { return "Storage.Backup" }
-func (c *RpcCommandBackup) Help() string { return "Return true or false" }
+func (c *RpcCommandBackup) RpcName() string   { return "Storage.Backup" }
+func (c *RpcCommandBackup) Help() string      { return "Return true or false" }
 func (c *RpcCommandBackup) SetArgs(args []string) (err error) {
 	if len(args) < 1 {
 		err = errors.New("Missing path argument")
 		return
 	}
 	c.path = strings.Trim(args[0], " ")
-	return 
+	return
 }
 func (c *RpcCommandBackup) Print() {
 	fmt.Printf("Result: %v\n", c.result)
@@ -162,12 +167,12 @@ func (c *RpcCommandBackup) Execute(client *rpc.Client) (err error) {
 // FILELIST
 type RpcCommandFileList struct {
 	result []string
-	path string
+	path   string
 }
 
 func (c *RpcCommandFileList) ShortName() string { return "FILELIST" }
-func (c *RpcCommandFileList) RpcName() string { return "Storage.FileList" }
-func (c *RpcCommandFileList) Help() string { return "Return list of files" }
+func (c *RpcCommandFileList) RpcName() string   { return "Storage.FileList" }
+func (c *RpcCommandFileList) Help() string      { return "Return list of files" }
 func (c *RpcCommandFileList) SetArgs(args []string) (err error) {
 	if len(args) < 1 {
 		err = errors.New("Missing path argument")

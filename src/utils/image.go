@@ -17,13 +17,13 @@
 package utils
 
 import (
-	"aelog"
-	"os/exec"
-	"strings"
 	"errors"
-	"strconv"
-	"math"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"math"
+	"os/exec"
+	"strconv"
+	"strings"
 )
 
 type Image struct {
@@ -45,25 +45,25 @@ func Identify(filename string) (*Image, error) {
 			err = fmt.Errorf("%s: %v", filename, err)
 		}
 		return nil, err
-	}	
-	
+	}
+
 	image := &Image{
 		Filename: filename,
 	}
-	
+
 	ress := string(res)
 	ress = strings.Replace(ress, filename, "filename", 1)
 	params := strings.Split(ress, " ")
 	if len(params) < 3 {
 		return nil, errors.New("Indetify return ivalid data: " + ress)
 	}
-	
+
 	image.Type = strings.ToLower(params[1])
-	
+
 	wh := strings.Split(params[2], "x")
 	if len(wh) < 2 {
 		return nil, errors.New("Can't decode identify width/height: " + params[2])
-	}	
+	}
 	image.Width, err = strconv.Atoi(wh[0])
 	if err != nil {
 		return nil, err
@@ -71,31 +71,30 @@ func Identify(filename string) (*Image, error) {
 	image.Height, err = strconv.Atoi(wh[1])
 	if err != nil {
 		return nil, err
-	}	
+	}
 	return image, nil
 }
-
 
 func (i *Image) Resize(dst, format string, w, h, q int, optimize bool) error {
 	wh := fmt.Sprintf("%dx%d", w, h)
 	if w == 0 {
 		wh = fmt.Sprintf("x%d", h)
-	}	
+	}
 	if h == 0 {
 		wh = fmt.Sprintf("%d", w)
 	}
-	
+
 	if format == "" {
 		format = i.Type
 	}
-	
+
 	dstImagick := format + ":" + dst
 
 	var cmd *exec.Cmd
 	if q > 0 {
-		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, "-quality",  fmt.Sprintf("%d", q), dstImagick)
+		cmd = exec.Command("convert", i.Filename, "-strip", "-resize", wh, "-quality", fmt.Sprintf("%d", q), dstImagick)
 	} else {
-		cmd = exec.Command("convert", i.Filename, "-strip",  "-resize", wh, dstImagick)
+		cmd = exec.Command("convert", i.Filename, "-strip", "-resize", wh, dstImagick)
 	}
 	if err := cmd.Run(); err != nil {
 		return err
@@ -104,27 +103,27 @@ func (i *Image) Resize(dst, format string, w, h, q int, optimize bool) error {
 	i.Width = w
 	i.Height = h
 	i.Type = format
-	
+
 	if optimize {
 		i.optimize(dst)
 	}
-	
+
 	return nil
-} 
+}
 
 func (i *Image) Crop(dst, format string, w, h, q int, optimize bool) error {
 	cw, ch := w, h
 	kc := float64(w) / float64(h)
 	ki := float64(i.Width) / float64(i.Height)
-	
+
 	if ki > kc {
 		ch = i.Height
-		cw = int(math.Ceil(float64(i.Height) * kc))	
+		cw = int(math.Ceil(float64(i.Height) * kc))
 	} else {
 		cw = i.Width
 		ch = int(math.Ceil(float64(i.Width) / kc))
 	}
-		
+
 	crop := fmt.Sprintf("%dx%d+0+0", cw, ch)
 	cmd := exec.Command("convert", i.Filename, "-gravity", "Center", "-crop", crop, dst)
 
@@ -141,11 +140,11 @@ func (i *Image) Crop(dst, format string, w, h, q int, optimize bool) error {
 	err = i.Resize(dst, format, w, h, q, optimize)
 	if err != nil {
 		return err
-	}	
+	}
 	i.Width = w
 	i.Height = h
 	return nil
-} 
+}
 
 func (i *Image) optimize(dst string) {
 	if i.Type != "png" {
@@ -156,7 +155,7 @@ func (i *Image) optimize(dst string) {
 		aelog.Warnln("Optimize image: Command", command, "not found:", err)
 		return
 	}
-	
+
 	cmd := exec.Command(command, dst, "--force", "--output", dst)
 	if res, err := cmd.CombinedOutput(); err != nil {
 		aelog.Warnf("Optimize image: %s return error: %v (%s)", command, err, string(res))

@@ -17,8 +17,8 @@
 package temp
 
 import (
-	"cnst"
 	"errors"
+	"github.com/cheggaaa/Anteater/src/cnst"
 	"io"
 	"io/ioutil"
 	"mime/multipart"

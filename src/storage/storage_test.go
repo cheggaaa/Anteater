@@ -17,16 +17,16 @@
 package storage
 
 import (
-	"aelog"
-	"config"
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/src/utils"
 	"io"
 	mrand "math/rand"
 	"os"
 	"testing"
-	"utils"
 	"time"
 )
 
@@ -241,7 +241,7 @@ func TestRandomUpdate(t *testing.T) {
 	count := 1000
 	for i := 0; i < count; i++ {
 		name := fmt.Sprint(mrand.Intn(100))
-		size := fmt.Sprint(mrand.Intn(mrand.Intn(mrand.Intn(1024 * 100)+1)+1)+1)
+		size := fmt.Sprint(mrand.Intn(mrand.Intn(mrand.Intn(1024*100)+1)+1) + 1)
 		S.Delete(name)
 		addAndAssert(t, name, size)
 	}

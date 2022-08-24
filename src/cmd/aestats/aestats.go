@@ -17,33 +17,33 @@
 package main
 
 import (
-	"fmt"
 	"flag"
-	"aerpc"
-	"aerpc/rpcclient"
+	"fmt"
+	"github.com/cheggaaa/Anteater/src/aerpc"
+	"github.com/cheggaaa/Anteater/src/aerpc/rpcclient"
+	"github.com/cheggaaa/Anteater/src/utils"
 	"time"
-	"utils"
 )
 
 const USAGE = `
 Usage:
 	aestats [-s="server_addr"]
 ` + aerpc.SERVER_FLAG_FORMAT + `
-`;
+`
 
 var isPrintHelp = flag.Bool("h", false, "Show help")
 var serverAddr = flag.String("s", "", "Server addr")
 
 func main() {
 	flag.Parse()
-	
+
 	aerpc.RegisterCommands()
-	
+
 	if *isPrintHelp {
 		printHelp()
 		return
 	}
-	
+
 	addr := aerpc.NormalizeAddr(*serverAddr)
 	client, err := rpcclient.NewClient(addr)
 	if err != nil {
@@ -59,7 +59,7 @@ func main() {
 			panic(err)
 			return
 		}
-		if i % 10 == 0 {
+		if i%10 == 0 {
 			printHead()
 		}
 		stat := cmd.Data().(*aerpc.RpcCommandStatus)
@@ -81,19 +81,18 @@ func printStats(stat *aerpc.RpcCommandStatus) {
 		add := stat.Counters["add"] - old.Counters["add"]
 		del := stat.Counters["delete"] - old.Counters["delete"]
 		notfound := stat.Counters["notFound"] - old.Counters["notFound"]
-		op  := stat.Storage.IndexVersion - old.Storage.IndexVersion
-		
-		hp  := float64(stat.Storage.HoleCount) / float64(stat.Storage.FilesCount) * 100 
-		hps := float64(stat.Storage.HoleSize) / float64(stat.Storage.FilesSize) * 100 
-		
+		op := stat.Storage.IndexVersion - old.Storage.IndexVersion
+
+		hp := float64(stat.Storage.HoleCount) / float64(stat.Storage.FilesCount) * 100
+		hps := float64(stat.Storage.HoleSize) / float64(stat.Storage.FilesSize) * 100
+
 		in := stat.Traffic["in"] - old.Traffic["in"]
 		out := stat.Traffic["out"] - old.Traffic["out"]
-		
+
 		fmt.Printf("%d\t%d\t%d\t%d\t%d\t%.2f%%\t%.2f%%\t%s / %s\n", get, add, del, notfound, op, hp, hps, utils.HumanBytes(int64(in)), utils.HumanBytes(int64(out)))
 	}
 	old = stat
 }
-
 
 func printHelp() {
 	fmt.Print(USAGE)

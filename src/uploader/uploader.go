@@ -17,11 +17,11 @@
 package uploader
 
 import (
-	"storage"
-	"config"
-	"net/http"
-	"aelog"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/src/storage"
 	"io"
+	"net/http"
 )
 
 type Uploader struct {
@@ -31,22 +31,22 @@ type Uploader struct {
 }
 
 func NewUploader(c *config.Config, s *storage.Storage) *Uploader {
-	return &Uploader{conf : c, stor : s, ctrl : NewCtrl(c.UploaderCtrlUrl)}
+	return &Uploader{conf: c, stor: s, ctrl: NewCtrl(c.UploaderCtrlUrl)}
 }
 
 func (u *Uploader) TryRequest(r *http.Request, w http.ResponseWriter) (status bool, err error, errCode int) {
-	if ! u.conf.UploaderEnable {
+	if !u.conf.UploaderEnable {
 		return
 	}
 	token := r.URL.Query().Get(u.conf.UploaderParamName)
 	if token == "" {
 		return
 	}
-	
+
 	aelog.Debugf("Uploader: token found: %s\n", token)
-	
+
 	status = true
-	
+
 	write := func(token string, params interface{}, err error) {
 		var resp *http.Response
 		if err != nil {
@@ -60,10 +60,10 @@ func (u *Uploader) TryRequest(r *http.Request, w http.ResponseWriter) (status bo
 		}
 		w.Header().Set("Content-Type", "application/x-javascript")
 		w.WriteHeader(resp.StatusCode)
-		io.Copy(w, resp.Body)	
+		io.Copy(w, resp.Body)
 		err = nil
 	}
-	
+
 	files, err := u.ctrl.GetParams(token)
 	if err != nil {
 		if err == ErrTokenNotFound {
@@ -76,10 +76,9 @@ func (u *Uploader) TryRequest(r *http.Request, w http.ResponseWriter) (status bo
 		}
 		return
 	}
-	
-	
+
 	err = files.Upload(u.conf, u.stor, r, w)
-	
+
 	if err != nil {
 		aelog.Debugf("Uploader: files.Upload has err: %v\n", err)
 		errCode = 500

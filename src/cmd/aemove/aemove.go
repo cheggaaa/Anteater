@@ -17,15 +17,15 @@
 package main
 
 import (
-	"aerpc"
-	"aerpc/rpcclient"
 	"flag"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aerpc"
+	"github.com/cheggaaa/Anteater/src/aerpc/rpcclient"
 	"github.com/cheggaaa/pb"
 	"net/http"
-	"sync"
-	"strings"
 	"net/url"
+	"strings"
+	"sync"
 )
 
 var (
@@ -34,7 +34,7 @@ var (
 	writeAddr = flag.String("w", "localhost:8081", "Write server addr")
 	clients   = flag.Int("c", 1, "Clients count")
 	method    = flag.String("m", "POST", "http write method")
-	
+
 	readUrl, writeUrl string
 )
 
@@ -48,9 +48,9 @@ func main() {
 		fmt.Printf("Call to undefined command: %s\n", "FILELIST")
 		return
 	}
-	
+
 	*method = strings.ToUpper(*method)
-	
+
 	switch *method {
 	case "PUT":
 	case "POST":
@@ -59,13 +59,13 @@ func main() {
 	default:
 		fmt.Println("Unexpected http method:", *method)
 	}
-	
-	if ! strings.HasPrefix(*readAddr, "http") {
+
+	if !strings.HasPrefix(*readAddr, "http") {
 		readUrl = "http://" + *readAddr + "/"
 	} else {
 		readUrl = *readAddr + "/"
 	}
-	if ! strings.HasPrefix(*writeAddr, "http") {
+	if !strings.HasPrefix(*writeAddr, "http") {
 		writeUrl = "http://" + *writeAddr + "/"
 	} else {
 		writeUrl = *writeAddr + "/"

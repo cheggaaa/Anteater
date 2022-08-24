@@ -17,14 +17,14 @@
 package rpcserver
 
 import (
-	"aelog"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/backup"
+	"github.com/cheggaaa/Anteater/src/cnst"
+	"github.com/cheggaaa/Anteater/src/stats"
+	"github.com/cheggaaa/Anteater/src/storage"
 	"net"
 	"net/http"
 	"net/rpc"
-	"storage"
-	"stats"
-	"cnst"
-	"backup"
 )
 
 type Storage struct {
@@ -33,11 +33,11 @@ type Storage struct {
 
 func StartRpcServer(s *storage.Storage) {
 	r := &Storage{
-		s : s,
+		s: s,
 	}
 	rpc.Register(r)
 	rpc.HandleHTTP()
-	
+
 	l, e := net.Listen("tcp", s.Conf.RpcAddr)
 	if e != nil {
 		panic("Rpc listen error:" + e.Error())
@@ -66,7 +66,7 @@ func (r *Storage) Check(args *bool, reply *error) error {
 	return nil
 }
 
-func (r *Storage) Backup (args *string, reply *bool) error {
+func (r *Storage) Backup(args *string, reply *bool) error {
 	*reply = true
 	return backup.CreateBackup(r.s, *args)
 }

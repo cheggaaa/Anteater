@@ -17,13 +17,13 @@
 package module
 
 import (
-	"aelog"
 	"archive/zip"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/src/utils"
 	"net/http"
-	"storage"
 	"strings"
-	"utils"
 )
 
 const (

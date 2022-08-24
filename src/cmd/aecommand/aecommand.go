@@ -17,12 +17,12 @@
 package main
 
 import (
-	"os"
-	"fmt"
 	"flag"
+	"fmt"
+	"github.com/cheggaaa/Anteater/src/aerpc"
+	"github.com/cheggaaa/Anteater/src/aerpc/rpcclient"
+	"os"
 	"strings"
-	"aerpc"
-	"aerpc/rpcclient"
 )
 
 const USAGE = `
@@ -31,34 +31,34 @@ Usage:
 ` + aerpc.SERVER_FLAG_FORMAT + `		
 Commands:
 	%s
-`;
+`
 
 var isPrintHelp = flag.Bool("h", false, "Show help")
 var serverAddr = flag.String("s", "", "Server addr")
 
 func main() {
 	flag.Parse()
-	
+
 	aerpc.RegisterCommands()
-	
+
 	if *isPrintHelp {
 		printHelp()
 		return
 	}
-	
+
 	command, args := parseArgs()
-	
+
 	if command == "" {
 		fmt.Println("Command not specified")
 		return
 	}
-	
+
 	cmd, ok := aerpc.Commands[command]
-	if ! ok {
+	if !ok {
 		fmt.Printf("Call to undefined command: %s\n", command)
 		return
 	}
-	
+
 	addr := aerpc.NormalizeAddr(*serverAddr)
 	client, err := rpcclient.NewClient(addr)
 	if err != nil {
@@ -66,7 +66,7 @@ func main() {
 		return
 	}
 	defer client.Close()
-	
+
 	if args != nil && len(args) > 0 {
 		err = cmd.SetArgs(args)
 		if err != nil {
@@ -85,24 +85,23 @@ func main() {
 func parseArgs() (command string, args []string) {
 	s := flag.NFlag() + 1
 
-	if len(os.Args) - s >= 1 {
+	if len(os.Args)-s >= 1 {
 		command = os.Args[s]
 		s++
 	}
-	
-	if len(os.Args) - s >= 1 {
+
+	if len(os.Args)-s >= 1 {
 		args = os.Args[s:]
 	}
-	
+
 	command = strings.ToUpper(command)
 
 	return
 }
 
-
 func printHelp() {
 	var commandsHelp = ""
-	
+
 	for name, cmd := range aerpc.Commands {
 		commandsHelp += fmt.Sprintf("\n%s\n%s\n", name, cmd.Help())
 	}

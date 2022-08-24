@@ -17,18 +17,18 @@
 package storage
 
 import (
-	"config"
-	"stats"
-	"os"
-	"errors"
-	"path/filepath"
-	"dump"
-	"sync"
-	"aelog"
-	"fmt"
-	"io"
-	"time"
 	"encoding/gob"
+	"errors"
+	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/src/dump"
+	"github.com/cheggaaa/Anteater/src/stats"
+	"io"
+	"os"
+	"path/filepath"
+	"sync"
+	"time"
 )
 
 func init() {
@@ -37,12 +37,12 @@ func init() {
 }
 
 type Storage struct {
-	Conf *config.Config
-	Index *Index
+	Conf            *config.Config
+	Index           *Index
 	LastContainerId int64
-	Stats *stats.Stats
-	Containers map[int64]*Container
-	
+	Stats           *stats.Stats
+	Containers      map[int64]*Container
+
 	m *sync.Mutex
 }
 
@@ -64,11 +64,11 @@ func (s *Storage) Open() (err error) {
 	info, err := dir.Stat()
 	if err != nil {
 		return
-	}	
-	if ! info.IsDir() {
+	}
+	if !info.IsDir() {
 		return errors.New("Data path must be dir")
 	}
-	
+
 	wg := &sync.WaitGroup{}
 	files, err := dir.Readdir(-1)
 	for _, file := range files {
@@ -82,14 +82,14 @@ func (s *Storage) Open() (err error) {
 				}
 				wg.Done()
 			}(file.Name())
-		} 
+		}
 	}
 	wg.Wait()
-	
+
 	if err != nil {
 		return
 	}
-	
+
 	if len(s.Containers) == 0 {
 		aelog.Info("Create first container")
 		if _, err = s.createContainer(); err != nil {
@@ -105,16 +105,15 @@ func (s *Storage) Open() (err error) {
 			}
 		}
 	}()
-	
+
 	return
 }
 
-
 func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error) {
 	f = &File{
-		Name : name,
-		FSize : size,
-		Time : time.Now(),
+		Name:  name,
+		FSize: size,
+		Time:  time.Now(),
 	}
 	var target int
 	defer func() {
@@ -132,49 +131,49 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error)
 			s.Stats.Counters.Add.Add()
 		}
 	}()
-	
+
 	if size <= 0 {
 		err = fmt.Errorf("Can't allocate 0-size for %s", name)
 		return
 	}
-	
+
 	// allocate
 	target, err = s.allocate(f)
 	if err != nil {
 		return
 	}
-	
+
 	// write
 	w, err := f.ReadFrom(r)
 	if err != nil {
 		return
 	}
-	
+
 	// check
 	if w != size {
 		err = fmt.Errorf("Requested %d bytes, but writed only %d", size, w)
 		return
 	}
-	
+
 	// add to index
-	err = s.Index.Add(f)	
+	err = s.Index.Add(f)
 	return
 }
 
 func (s *Storage) allocate(f *File) (target int, err error) {
-	for _, target = range Targets {	
+	for _, target = range Targets {
 		for _, c := range s.Containers {
 			if ok := c.Allocate(f, target); ok {
 				return
 			}
 		}
-	}	
+	}
 	// create new container
 	c, err := s.createContainer()
 	if err != nil {
 		return
 	}
-	if ok := c.Allocate(f, ALLOC_APPEND); ! ok {
+	if ok := c.Allocate(f, ALLOC_APPEND); !ok {
 		return 0, fmt.Errorf("Can't allocate space!")
 	}
 	target = ALLOC_APPEND
@@ -200,7 +199,7 @@ func (s *Storage) DeleteChilds(name string) (ok bool) {
 		return
 	}
 	for _, name := range names {
-		if s.Delete(name) && ! ok {
+		if s.Delete(name) && !ok {
 			ok = true
 		}
 	}
@@ -220,7 +219,7 @@ func (s *Storage) Dump() {
 
 func (s *Storage) GetStats() *stats.Stats {
 	s.Stats.Refresh()
-	
+
 	s.Stats.Storage.ContainersCount = len(s.Containers)
 	s.Stats.Storage.FilesCount = s.Index.Count()
 	s.Stats.Storage.IndexVersion = s.Index.Version()
@@ -238,12 +237,12 @@ func (s *Storage) GetStats() *stats.Stats {
 		s.Stats.Storage.FilesSize += c.FileSize
 		s.Stats.Storage.FilesRealSize += c.FileRealSize
 		c.m.Unlock()
-	}	
+	}
 	return s.Stats
 }
 
 func (s *Storage) Check() (err error) {
-	for _,c := range s.Containers {
+	for _, c := range s.Containers {
 		if err = c.Check(); err != nil {
 			return
 		}
@@ -253,14 +252,14 @@ func (s *Storage) Check() (err error) {
 
 func (s *Storage) Close() {
 	s.Dump()
-	for _,c := range s.Containers {
+	for _, c := range s.Containers {
 		c.Close()
 	}
 }
 
 func (s *Storage) Drop() {
 	s.Close()
-	for _,c := range s.Containers {
+	for _, c := range s.Containers {
 		os.Remove(c.fileName())
 		os.Remove(c.indexName())
 	}
@@ -296,11 +295,11 @@ func (s *Storage) createContainer() (c *Container, err error) {
 	defer s.m.Unlock()
 	s.LastContainerId++
 	c = &Container{
-		Id : s.LastContainerId,
+		Id: s.LastContainerId,
 	}
 	err = c.Init(s)
 	if err == nil {
 		s.Containers[s.LastContainerId] = c
 	}
-	return 
+	return
 }

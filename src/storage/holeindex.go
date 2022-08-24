@@ -17,7 +17,7 @@
 package storage
 
 import (
-	//"aelog"
+	//"github.com/cheggaaa/Anteater/src/aelog"
 	"fmt"
 )
 
@@ -67,7 +67,7 @@ func (hi *HoleIndex) GetBiggest(index int) *Hole {
 	return nil
 }
 
-func (hi *HoleIndex) Add(holes... *Hole) {
+func (hi *HoleIndex) Add(holes ...*Hole) {
 	for _, s := range holes {
 		index := s.Index()
 		if index == 0 {
@@ -78,7 +78,7 @@ func (hi *HoleIndex) Add(holes... *Hole) {
 			hi.index[index] = make(map[int64]*Hole)
 		}
 		hi.index[index][s.Offset()] = s
-	
+
 		if index > hi.biggestIndex {
 			hi.biggestIndex = index
 		}

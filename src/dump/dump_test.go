@@ -17,10 +17,10 @@
 package dump
 
 import (
-	"testing"
-	"os"
-	"aelog"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"os"
+	"testing"
 )
 
 type TD struct {
@@ -29,16 +29,15 @@ type TD struct {
 	Ti  int64
 }
 
-
 type TD2 struct {
-	TInt int
+	TInt    int
 	TString string
-	TBool bool
-	Td3 *TD3 
+	TBool   bool
+	Td3     *TD3
 }
 
 type TD3 struct {
-	Test bool
+	Test  bool
 	Test2 int64
 }
 
@@ -60,22 +59,21 @@ func TestDump(t *testing.T) {
 		if n <= 0 {
 			t.Errorf("Dump write %d bytes. Wrong.", n)
 		}
-		
+
 		data := new(TD)
 		err, exists := LoadData(file, data)
 		if err != nil {
 			t.Errorf("LoadData has error: %v", err)
 		}
-		if ! exists {
+		if !exists {
 			t.Errorf("File must be exists")
 		}
-		
-		if ! data.Assert() {
+
+		if !data.Assert() {
 			t.Errorf("Data mismatched")
 		}
 	}
 }
-
 
 func Benchmark_DumpSave(b *testing.B) {
 	makeTestData()
@@ -105,11 +103,10 @@ func Benchmark_DumpRestore(b *testing.B) {
 	b.StopTimer()
 }
 
-
 func makeTestData() {
 	td1 := make([]*TD2, TestCount)
 	for i := 0; i < TestCount; i++ {
-		td1[i] = &TD2{i, fmt.Sprintf("D:%d", i * 5), (i % 2) == 0, &TD3{(i % 3) == 0, int64(i * 5)}}
+		td1[i] = &TD2{i, fmt.Sprintf("D:%d", i*5), (i % 2) == 0, &TD3{(i % 3) == 0, int64(i * 5)}}
 	}
 	TestData = &TD{td1, &TD3{}, 12345}
 }
@@ -120,13 +117,13 @@ func (t *TD) Assert() bool {
 	}
 	for _, v := range t.Td1 {
 		i := v.TInt
-		if v.TString != fmt.Sprintf("D:%d", i * 5) {
+		if v.TString != fmt.Sprintf("D:%d", i*5) {
 			return false
 		}
 		if v.TBool != ((i % 2) == 0) {
 			return false
 		}
-		if v.Td3.Test2 != int64(i * 5) {
+		if v.Td3.Test2 != int64(i*5) {
 			return false
 		}
 	}

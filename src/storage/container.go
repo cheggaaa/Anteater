@@ -17,13 +17,13 @@
 package storage
 
 import (
-	"aelog"
-	"dump"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/src/dump"
+	"github.com/cheggaaa/Anteater/src/utils"
 	"os"
 	"sync"
 	"time"
-	"utils"
 )
 
 const (
@@ -89,7 +89,7 @@ func (c *Container) Init(s *Storage) (err error) {
 		aelog.Debugln("Create conatiner", c.Id)
 		if err = c.create(); err == nil {
 			c.Created = true
-		} 
+		}
 		err = c.Dump()
 	}
 
@@ -107,12 +107,11 @@ func (c *Container) create() (err error) {
 	return
 }
 
-
 func (c *Container) fallocTruncate() (err error) {
 	if err = c.f.Truncate(c.Size); err != nil {
 		return
 	}
-	_, err = c.f.WriteAt([]byte{1}, c.Size - 1)
+	_, err = c.f.WriteAt([]byte{1}, c.Size-1)
 	return
 }
 
@@ -131,11 +130,11 @@ func (c *Container) Close() (err error) {
 func (c *Container) Dump() (err error) {
 	c.m.Lock()
 	defer c.m.Unlock()
-	
-	if ! c.ch {
+
+	if !c.ch {
 		return
 	}
-	
+
 	st := time.Now()
 	var i int64
 
@@ -167,7 +166,7 @@ func (c *Container) restore() {
 	if c.FDump == nil || len(c.FDump) == 0 {
 		return
 	}
-	
+
 	c.FileRealSize = 0
 	c.last = c.FDump[i]
 	if c.last != nil {

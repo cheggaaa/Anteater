@@ -2,8 +2,8 @@ package module
 
 import (
 	"encoding/json"
+	"github.com/cheggaaa/Anteater/src/storage"
 	"net/http"
-	"storage"
 	"strconv"
 	//"strings"
 )

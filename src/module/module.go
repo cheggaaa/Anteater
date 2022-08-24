@@ -17,8 +17,8 @@
 package module
 
 import (
+	"github.com/cheggaaa/Anteater/src/storage"
 	"net/http"
-	"storage"
 )
 
 type Module interface {

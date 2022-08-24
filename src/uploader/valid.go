@@ -17,16 +17,16 @@
 package uploader
 
 import (
-	"temp"
 	"errors"
 	"fmt"
+	"github.com/cheggaaa/Anteater/src/temp"
 )
 
 var ValidErrTooLarge = errors.New("File too large")
 
 type Valid struct {
-	MaxSize    int64    `json:"max_size,omitempty"`
-	MimeTypes  []string `json:"mime_types,omitempty"`
+	MaxSize   int64    `json:"max_size,omitempty"`
+	MimeTypes []string `json:"mime_types,omitempty"`
 }
 
 func (v *Valid) HasError(tf *temp.File) (err error) {
@@ -43,7 +43,7 @@ func (v *Valid) HasError(tf *temp.File) (err error) {
 				break
 			}
 		}
-		if ! found {
+		if !found {
 			err = fmt.Errorf("Invalid file type: %s", tf.MimeType)
 		}
 	}

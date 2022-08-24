@@ -19,11 +19,11 @@ package uploader
 import (
 	"errors"
 	"fmt"
-	"storage"
+	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/src/temp"
+	"github.com/cheggaaa/Anteater/src/utils"
 	"strings"
-	"temp"
 	"time"
-	"utils"
 )
 
 type File struct {

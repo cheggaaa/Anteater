@@ -17,16 +17,13 @@
 package config
 
 import (
-	"testing"
-	"os"
 	"fmt"
-	"aelog"
+	"github.com/cheggaaa/Anteater/src/aelog"
 	"mime"
+	"os"
+	"testing"
 	"time"
 )
-
-
-
 
 func TestReadFile(t *testing.T) {
 	f, err := os.Create("test.conf")
@@ -35,29 +32,29 @@ func TestReadFile(t *testing.T) {
 	}
 	defer os.Remove("test.conf")
 	f.Write([]byte(TEST_CONFIG))
-	
+
 	c := &Config{}
 	c.ReadFile("test.conf")
-	
+
 	if configToString(c) != configToString(TestConfig) {
 		t.Errorf("TestConfig and Config from file mismatched \nACTUAL:\n%s\nEXPECTED:\n%s\n", configToString(TestConfig), configToString(c))
 	}
-	
-	compare := func (hash, hash2 map[string]string) {
+
+	compare := func(hash, hash2 map[string]string) {
 		if len(hash) != len(hash2) {
-			t.Errorf("Len mismatched: %d vs %d",  len(hash), len(hash2))
+			t.Errorf("Len mismatched: %d vs %d", len(hash), len(hash2))
 		}
-	
+
 		for k, v := range hash {
 			if hash2[k] != v {
 				t.Errorf("Mismatch: %s (%s vs %s) (%v, %v)", k, v, hash2[k], hash, hash2)
 			}
 		}
 	}
-	
+
 	compare(c.MimeTypes, TestConfig.MimeTypes)
 	compare(c.Headers, TestConfig.Headers)
-	
+
 	// Check mime register
 	if mime.TypeByExtension(".test") != "application/test" {
 		t.Error("Mime not registered")
@@ -66,45 +63,44 @@ func TestReadFile(t *testing.T) {
 
 var TestConfig *Config = &Config{
 	// Data path
-	DataPath      : "/opt/DB/anteater/",
-	ContainerSize : 200 * 1024,
-	MinEmptySpace : 50 * 1024,
-	DumpTime      : time.Minute,
-	TmpDir        : "/tmp/dir",
-	
-	HttpWriteAddr : ":8081",
-	HttpReadAddr  : ":8080",
-	HttpWriteTimeout : 31 * time.Second,
-	HttpReadTimeout : 2 * time.Minute,
-	ETagSupport   : true,
-	ContentRange  : 5 * 1024,
-	StatusJson    : "status.json",
-	StatusHtml    : "status.html",
-	RpcAddr       : ":32000",
-	Headers       : map[string]string{
-		"cache-control" : "public, max-age=315360000",
+	DataPath:      "/opt/DB/anteater/",
+	ContainerSize: 200 * 1024,
+	MinEmptySpace: 50 * 1024,
+	DumpTime:      time.Minute,
+	TmpDir:        "/tmp/dir",
+
+	HttpWriteAddr:    ":8081",
+	HttpReadAddr:     ":8080",
+	HttpWriteTimeout: 31 * time.Second,
+	HttpReadTimeout:  2 * time.Minute,
+	ETagSupport:      true,
+	ContentRange:     5 * 1024,
+	StatusJson:       "status.json",
+	StatusHtml:       "status.html",
+	RpcAddr:          ":32000",
+	Headers: map[string]string{
+		"cache-control": "public, max-age=315360000",
 	},
-	MimeTypes    : map[string]string{
-		".jpg"   : "image/jpeg",
-		".test"  : "application/test",
+	MimeTypes: map[string]string{
+		".jpg":  "image/jpeg",
+		".test": "application/test",
 	},
-	LogLevel     : aelog.LOG_WARN,
-	LogFile		 : "/var/log/anteater.log",
-	UploaderEnable : true,
-	UploaderCtrlUrl : "http://localhost/upload/",
-	UploaderParamName : "_token",
-	
-	DownloaderEnable : true,
-	DownloaderParamName : "url",
+	LogLevel:          aelog.LOG_WARN,
+	LogFile:           "/var/log/anteater.log",
+	UploaderEnable:    true,
+	UploaderCtrlUrl:   "http://localhost/upload/",
+	UploaderParamName: "_token",
+
+	DownloaderEnable:    true,
+	DownloaderParamName: "url",
 }
 
 func configToString(c *Config) string {
-	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr, 
-	c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr, 
-	c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir,
-	c.HttpReadTimeout, c.HttpWriteTimeout, c.DumpTime)
+	return fmt.Sprintln(c.DataPath, c.ContainerSize, c.MinEmptySpace, c.HttpWriteAddr,
+		c.HttpReadAddr, c.ETagSupport, c.Md5Header, c.ContentRange, c.StatusJson, c.StatusHtml, c.RpcAddr,
+		c.LogLevel, c.LogFile, c.UploaderEnable, c.UploaderCtrlUrl, c.UploaderParamName, c.DownloaderEnable, c.DownloaderParamName, c.TmpDir,
+		c.HttpReadTimeout, c.HttpWriteTimeout, c.DumpTime)
 }
-
 
 const TEST_CONFIG = `
 [data]
