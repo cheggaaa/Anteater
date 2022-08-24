@@ -19,8 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/cheggaaa/Anteater/aerpc/rpcserver"
 	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/aerpc/rpcserver"
 	"github.com/cheggaaa/Anteater/src/cnst"
 	"github.com/cheggaaa/Anteater/src/config"
 	"github.com/cheggaaa/Anteater/src/http"

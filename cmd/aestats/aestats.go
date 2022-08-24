@@ -19,8 +19,8 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aerpc"
-	"github.com/cheggaaa/Anteater/src/aerpc/rpcclient"
+	"github.com/cheggaaa/Anteater/aerpc"
+	"github.com/cheggaaa/Anteater/aerpc/rpcclient"
 	"github.com/cheggaaa/Anteater/src/utils"
 	"time"
 )
