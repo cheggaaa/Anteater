@@ -19,8 +19,8 @@ package config
 import (
 	"errors"
 	config "github.com/akrennmair/goconf"
-	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/aelog"
+	"github.com/cheggaaa/Anteater/utils"
 	"mime"
 	"runtime"
 	"strings"

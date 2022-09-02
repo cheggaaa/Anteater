@@ -19,7 +19,7 @@ package uploader
 import (
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/temp"
+	"github.com/cheggaaa/Anteater/temp"
 )
 
 var ValidErrTooLarge = errors.New("File too large")
@@ -47,6 +47,6 @@ func (v *Valid) HasError(tf *temp.File) (err error) {
 			err = fmt.Errorf("Invalid file type: %s", tf.MimeType)
 		}
 	}
-	
+
 	return
 }

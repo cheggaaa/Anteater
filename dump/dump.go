@@ -17,23 +17,35 @@
 package dump
 
 import (
-	"encoding/gob"
+	"bufio"
+	"io"
 	"os"
 )
 
+type Writer interface {
+	Write(wr io.Writer) error
+}
 
-func DumpTo(filename string, d interface{}) (n int64, err error) {
+func DumpTo(filename string, ewr Writer) (n int64, err error) {
 	tmpfile := filename + ".tmp"
-	tf, err := os.OpenFile(tmpfile, os.O_CREATE|os.O_RDWR, 0666)		
+	tf, err := os.OpenFile(tmpfile, os.O_CREATE|os.O_RDWR, 0666)
 	if err != nil {
 		return
 	}
 	tf.Truncate(0)
 	defer tf.Close()
-	
-	enc := gob.NewEncoder(tf)
-	err = enc.Encode(d)
-	if err != nil {
+	wr := bufio.NewWriterSize(tf, 16*1024)
+	for {
+		e := ewr.Write(wr)
+		if e != nil {
+			if e == io.EOF {
+				break
+			} else {
+				return 0, e
+			}
+		}
+	}
+	if err = wr.Flush(); err != nil {
 		return
 	}
 	os.Remove(filename)
@@ -46,16 +58,21 @@ func DumpTo(filename string, d interface{}) (n int64, err error) {
 	return
 }
 
-func LoadData(filename string, d interface{}) (err error, exists bool) {	
-	fh, err := os.Open(filename)
-    if err != nil {
-    	return
-    }
-    defer fh.Close()
-    exists = true
-	dec := gob.NewDecoder(fh)
-    err = dec.Decode(d)
-    return
+type ResultReader struct {
+	B *bufio.Reader
+	f io.Closer
 }
 
+func (rr *ResultReader) Close() error {
+	return rr.f.Close()
+}
 
+func LoadData(filename string) (rr *ResultReader, err error, exists bool) {
+	fh, err := os.Open(filename)
+	if err != nil {
+		return
+	}
+	exists = true
+	rr = &ResultReader{B: bufio.NewReader(fh), f: fh}
+	return
+}

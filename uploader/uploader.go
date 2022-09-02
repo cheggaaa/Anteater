@@ -17,9 +17,9 @@
 package uploader
 
 import (
-	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/config"
-	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/aelog"
+	"github.com/cheggaaa/Anteater/config"
+	"github.com/cheggaaa/Anteater/storage"
 	"io"
 	"net/http"
 )

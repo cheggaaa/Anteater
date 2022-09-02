@@ -17,16 +17,17 @@
 package storage
 
 import (
+	"github.com/cheggaaa/Anteater/utils"
 	"testing"
 )
 
 func TestRound(t *testing.T) {
-	c := 1000
+	c := int32(1000)
 	ls := int64(0)
-	for i := 1; i <= c; i++ {
+	for i := int32(1); i <= c; i++ {
 		size := R.Size(i)
 		indx := R.Index(size)
-		t.Logf("I%d\t%d", indx, size)
+		t.Logf("I%d\t%s", indx, utils.HumanBytes(size))
 		if indx != i {
 			t.Errorf("Size-index conversion failed! %d vs %d", indx, i)
 		}
@@ -35,4 +36,4 @@ func TestRound(t *testing.T) {
 		}
 		ls = size
 	}
-} 
+}

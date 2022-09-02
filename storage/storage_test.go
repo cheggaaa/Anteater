@@ -20,9 +20,9 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/config"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/aelog"
+	"github.com/cheggaaa/Anteater/config"
+	"github.com/cheggaaa/Anteater/utils"
 	"io"
 	mrand "math/rand"
 	"os"
@@ -282,7 +282,7 @@ func addAndAssert(t *testing.T, name string, sizeS string) {
 	exp := fmt.Sprintf("%x", f.Md5)
 
 	if act != exp {
-		t.Error("Md5 file %s mismatch. Actual: %s, expected: %s", name, act, exp)
+		t.Errorf("Md5 file %s mismatch. Actual: %s, expected: %s", name, act, exp)
 	}
 }
 

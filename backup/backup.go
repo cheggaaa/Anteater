@@ -1,11 +1,11 @@
 package backup
 
 import (
-	"github.com/cheggaaa/Anteater/src/storage"
-	/*"github.com/cheggaaa/Anteater/src/config"
+	"github.com/cheggaaa/Anteater/storage"
+	/*"github.com/cheggaaa/Anteater/config"
 	"time"
 	"errors"
-	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/aelog"
 	"strings"
 	*/)
 

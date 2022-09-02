@@ -16,13 +16,18 @@
 
 package storage
 
+import (
+	"encoding/binary"
+	"io"
+)
+
 type Hole struct {
 	// Next and Prev
 	prev, next Space
 	// Offset
 	Off int64
 	// Index
-	Indx int
+	Indx int32
 }
 
 // implement Space
@@ -55,7 +60,7 @@ func (h *Hole) Size() int64 {
 }
 
 func (h *Hole) Index() int {
-	return h.Indx
+	return int(h.Indx)
 }
 
 func (h *Hole) End() int64 {
@@ -68,4 +73,14 @@ func (h *Hole) IsFree() bool {
 
 func newHole(offset, size int64) *Hole {
 	return &Hole{Off: offset, Indx: R.Index(size)}
+}
+
+func (h *Hole) MarshalTo(wr io.Writer) error {
+	var arr [binary.MaxVarintLen32 + binary.MaxVarintLen64 + 1]byte
+	var buf = arr[:0]
+	buf = append(buf, 0)
+	buf = binary.AppendUvarint(buf, uint64(h.Indx))
+	buf = binary.AppendUvarint(buf, uint64(h.Off))
+	_, err := wr.Write(buf)
+	return err
 }

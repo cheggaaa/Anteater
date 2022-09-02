@@ -17,7 +17,7 @@
 package module
 
 import (
-	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/storage"
 	"net/http"
 )
 

@@ -18,12 +18,12 @@ package stats
 
 import (
 	"encoding/json"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/utils"
 )
 
 type StatsInfo struct {
 	Anteater *Anteater         `json:"anteater"`
-	Storage  *Storage          `json:"github.com/cheggaaa/Anteater/src/storage"`
+	Storage  *Storage          `json:"github.com/cheggaaa/Anteater/storage"`
 	Allocate map[string]uint64 `json:"allocate"`
 	Counters map[string]uint64 `json:"counters"`
 	Traffic  map[string]uint64 `json:"traffic"`

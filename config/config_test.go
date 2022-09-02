@@ -18,7 +18,7 @@ package config
 
 import (
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/aelog"
 	"mime"
 	"os"
 	"testing"

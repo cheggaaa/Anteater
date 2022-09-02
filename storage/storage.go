@@ -17,13 +17,14 @@
 package storage
 
 import (
+	"encoding/binary"
 	"encoding/gob"
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/config"
-	"github.com/cheggaaa/Anteater/src/dump"
-	"github.com/cheggaaa/Anteater/src/stats"
+	"github.com/cheggaaa/Anteater/aelog"
+	"github.com/cheggaaa/Anteater/config"
+	"github.com/cheggaaa/Anteater/dump"
+	"github.com/cheggaaa/Anteater/stats"
 	"io"
 	"os"
 	"path/filepath"
@@ -43,12 +44,11 @@ type Storage struct {
 	Stats           *stats.Stats
 	Containers      map[int64]*Container
 
-	m *sync.Mutex
+	m sync.RWMutex
 }
 
 func (s *Storage) Init(c *config.Config) {
 	s.Conf = c
-	s.m = new(sync.Mutex)
 	s.Index = new(Index)
 	s.Index.Init()
 	s.Containers = make(map[int64]*Container)
@@ -161,13 +161,16 @@ func (s *Storage) Add(name string, r io.Reader, size int64) (f *File, err error)
 }
 
 func (s *Storage) allocate(f *File) (target int, err error) {
+	s.m.RLock()
 	for _, target = range Targets {
 		for _, c := range s.Containers {
 			if ok := c.Allocate(f, target); ok {
+				s.m.RUnlock()
 				return
 			}
 		}
 	}
+	s.m.RUnlock()
 	// create new container
 	c, err := s.createContainer()
 	if err != nil {
@@ -242,6 +245,8 @@ func (s *Storage) GetStats() *stats.Stats {
 }
 
 func (s *Storage) Check() (err error) {
+	s.m.RLock()
+	defer s.m.RUnlock()
 	for _, c := range s.Containers {
 		if err = c.Check(); err != nil {
 			return
@@ -252,6 +257,8 @@ func (s *Storage) Check() (err error) {
 
 func (s *Storage) Close() {
 	s.Dump()
+	s.m.RLock()
+	defer s.m.RUnlock()
 	for _, c := range s.Containers {
 		c.Close()
 	}
@@ -267,12 +274,53 @@ func (s *Storage) Drop() {
 
 func (s *Storage) restoreContainer(path string) (err error) {
 	aelog.Debugf("Restore container from %s..", path)
-	container := &Container{}
-	if err, _ = dump.LoadData(path, container); err != nil {
+	rr, err, _ := dump.LoadData(path)
+	if err != nil {
 		return err
 	}
+	tp, err := rr.B.ReadByte()
+	if err != nil {
+		return
+	}
+	if tp != 3 {
+		return fmt.Errorf("unexpected container type: %v", tp)
+	}
+
+	id, err := binary.ReadUvarint(rr.B)
+	if err != nil {
+		return
+	}
+	sz, err := binary.ReadUvarint(rr.B)
+	if err != nil {
+		return
+	}
+	fc, err := binary.ReadUvarint(rr.B)
+	if err != nil {
+		return
+	}
+	fs, err := binary.ReadUvarint(rr.B)
+	if err != nil {
+		return
+	}
+	frs, err := binary.ReadUvarint(rr.B)
+	if err != nil {
+		return
+	}
+	cr, err := rr.B.ReadByte()
+	if err != nil {
+		return
+	}
+	container := &Container{
+		Id:           int64(id),
+		Size:         int64(sz),
+		FileCount:    int64(fc),
+		FileSize:     int64(fs),
+		FileRealSize: int64(frs),
+		Created:      cr == 11,
+	}
+
 	if container.Created {
-		if err = container.Init(s); err != nil {
+		if err = container.Init(s, rr); err != nil {
 			return
 		}
 		s.m.Lock()
@@ -297,7 +345,7 @@ func (s *Storage) createContainer() (c *Container, err error) {
 	c = &Container{
 		Id: s.LastContainerId,
 	}
-	err = c.Init(s)
+	err = c.Init(s, nil)
 	if err == nil {
 		s.Containers[s.LastContainerId] = c
 	}

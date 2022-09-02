@@ -19,8 +19,8 @@ package aerpc
 import (
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/stats"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/stats"
+	"github.com/cheggaaa/Anteater/utils"
 	"net/rpc"
 	"strings"
 )

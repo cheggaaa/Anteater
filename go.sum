@@ -2,8 +2,6 @@ github.com/akrennmair/goconf v0.0.0-20120129010547-c6367f3454b8 h1:u7VJHPuuQlPUE
 github.com/akrennmair/goconf v0.0.0-20120129010547-c6367f3454b8/go.mod h1:R9NOa/n6CLt9LboMHucwGINzISwkWdsq5FeSnOzvNCk=
 github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
 github.com/andybalholm/brotli v1.0.4/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
-github.com/cheggaaa/Anteater/src v0.0.0-20220824144505-88c3b2ecc90b h1:n8HGlGb7g0L7D0W4oh6aA7tv6I/yQBLoiyBr9maYc1c=
-github.com/cheggaaa/Anteater/src v0.0.0-20220824144505-88c3b2ecc90b/go.mod h1:DUW3Jsn0zhQVn9DnHcwo2hMzB2PHleQkkGC+RNFaIHU=
 github.com/cheggaaa/pb v1.0.29 h1:FckUN5ngEk2LpvuG0fw1GEFx6LtyY2pWI/Z2QgCnEYo=
 github.com/cheggaaa/pb v1.0.29/go.mod h1:W40334L7FMC5JKWldsTWbdGjLo0RxUKK73K+TuPxX30=
 github.com/fatih/color v1.9.0 h1:8xPHl4/q1VyqGIPif1F+1V3Y3lSmrq01EabUW3CoW5s=

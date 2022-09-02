@@ -18,7 +18,7 @@ package dump
 
 import (
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/aelog"
 	"os"
 	"testing"
 )

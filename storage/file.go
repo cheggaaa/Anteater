@@ -18,6 +18,7 @@ package storage
 
 import (
 	"crypto/md5"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"io"
@@ -27,7 +28,8 @@ import (
 	"strconv"
 	"sync/atomic"
 	"time"
-	//"github.com/cheggaaa/Anteater/src/aelog"
+
+	//"github.com/cheggaaa/Anteater/aelog"
 	"fmt"
 )
 
@@ -152,7 +154,7 @@ func (f *File) ReadFrom(r io.Reader) (written int64, err error) {
 
 // string md5
 func (f *File) Md5S() string {
-	return hex.EncodeToString(f.Md5)
+	return hex.EncodeToString(f.Md5[:])
 }
 
 func (f *File) CheckMd5() (err error) {
@@ -167,4 +169,29 @@ func (f *File) CheckMd5() (err error) {
 		err = fmt.Errorf("File %s. MD5 mismatched: %s vs %s", f.Name, hex.EncodeToString(h.Sum(nil)), f.Md5S())
 	}
 	return
+}
+
+func (f *File) MarshalTo(wr io.Writer) error {
+	var arr [binary.MaxVarintLen32 + //name
+		binary.MaxVarintLen64 + // time
+		binary.MaxVarintLen64 + 1]byte // size
+	var buf = arr[:0]
+	buf = append(buf, 1)
+	buf = binary.AppendUvarint(buf, uint64(len(f.Name)))
+	buf = binary.AppendUvarint(buf, uint64(f.Time.Unix()))
+	buf = binary.AppendUvarint(buf, uint64(f.FSize))
+
+	if _, err := wr.Write(buf); err != nil {
+		return err
+	}
+	if _, err := wr.Write([]byte(f.Name)); err != nil {
+		return err
+	}
+	if len(f.Md5) != 16 {
+		panic("md5 not 16 byte")
+	}
+	if _, err := wr.Write(f.Md5); err != nil {
+		return err
+	}
+	return f.Hole.MarshalTo(wr)
 }

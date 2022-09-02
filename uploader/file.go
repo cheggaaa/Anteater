@@ -19,9 +19,9 @@ package uploader
 import (
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/storage"
-	"github.com/cheggaaa/Anteater/src/temp"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/storage"
+	"github.com/cheggaaa/Anteater/temp"
+	"github.com/cheggaaa/Anteater/utils"
 	"strings"
 	"time"
 )

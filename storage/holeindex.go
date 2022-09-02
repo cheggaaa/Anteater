@@ -17,25 +17,25 @@
 package storage
 
 import (
-	//"github.com/cheggaaa/Anteater/src/aelog"
+	//"github.com/cheggaaa/Anteater/aelog"
 	"fmt"
 )
 
 type HoleIndex struct {
 	// map[index][offset]*Hole
-	index        map[int]map[int64]*Hole
+	index        []map[int64]*Hole
 	biggestIndex int
 	Count        int64
 	Size         int64
 }
 
-func (hi *HoleIndex) Init() {
-	hi.index = make(map[int]map[int64]*Hole)
+func (hi *HoleIndex) Init(containerSize int64) {
+	hi.index = make([]map[int64]*Hole, R.Index(containerSize)+10)
 }
 
 func (hi *HoleIndex) Get(index int) *Hole {
-	l, ok := hi.index[index]
-	if ok {
+	l := hi.index[index]
+	if l != nil {
 		for _, s := range l {
 			hi.Delete(s)
 			return s
@@ -45,9 +45,9 @@ func (hi *HoleIndex) Get(index int) *Hole {
 }
 
 func (hi *HoleIndex) Exists(h *Hole) bool {
-	if m, ok := hi.index[h.Index()]; ok {
-		if h, ok := m[h.Offset()]; ok {
-			return h == m[h.Offset()]
+	if m := hi.index[h.Index()]; m != nil {
+		if eh, ok := m[h.Offset()]; ok {
+			return eh == m[h.Offset()]
 		}
 	}
 	return false
@@ -73,7 +73,7 @@ func (hi *HoleIndex) Add(holes ...*Hole) {
 		if index == 0 {
 			panic("Check logick! Try to insert 0-index hole")
 		}
-		_, ok := hi.index[index]
+		ok := hi.index[index] != nil
 		if !ok {
 			hi.index[index] = make(map[int64]*Hole)
 		}
@@ -93,14 +93,14 @@ func (hi *HoleIndex) Create(prev, next Space, offset int64, index int) (h *Hole)
 		prev: prev,
 		next: next,
 		Off:  offset,
-		Indx: index,
+		Indx: int32(index),
 	}
 	return
 }
 
 func (hi *HoleIndex) Delete(s *Hole) {
-	if l, ok := hi.index[s.Index()]; ok {
-		if _, ok = hi.index[s.Index()][s.Offset()]; ok {
+	if l := hi.index[s.Index()]; l != nil {
+		if _, ok := l[s.Offset()]; ok {
 			delete(l, s.Offset())
 			hi.Count--
 			hi.Size -= s.Size()

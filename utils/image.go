@@ -19,7 +19,7 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/aelog"
 	"math"
 	"os/exec"
 	"strconv"
@@ -169,5 +169,5 @@ func parseError(probe string) (err string) {
 	if l < 2 {
 		return
 	}
-	return strings.TrimSpace(parts[l - 2])
+	return strings.TrimSpace(parts[l-2])
 }

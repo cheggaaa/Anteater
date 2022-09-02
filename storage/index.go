@@ -19,7 +19,7 @@ package storage
 import (
 	"errors"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
+	"github.com/cheggaaa/Anteater/aelog"
 	"strings"
 	"sync"
 	"sync/atomic"

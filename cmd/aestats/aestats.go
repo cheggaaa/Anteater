@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"github.com/cheggaaa/Anteater/aerpc"
 	"github.com/cheggaaa/Anteater/aerpc/rpcclient"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/utils"
 	"time"
 )
 

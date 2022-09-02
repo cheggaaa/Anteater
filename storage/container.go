@@ -17,10 +17,12 @@
 package storage
 
 import (
+	"encoding/binary"
 	"fmt"
-	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/dump"
-	"github.com/cheggaaa/Anteater/src/utils"
+	"github.com/cheggaaa/Anteater/aelog"
+	"github.com/cheggaaa/Anteater/dump"
+	"github.com/cheggaaa/Anteater/utils"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -36,12 +38,10 @@ var Targets = []int{ALLOC_REPLACE, ALLOC_APPEND, ALLOC_INSERT}
 
 type Container struct {
 	Id                  int64
-	Created             bool
 	Size                int64
 	FileCount, FileSize int64
 	FileRealSize        int64
-	FDump               map[int64]*File
-	HDump               map[int64]*Hole
+	Created             bool
 	last                *File
 	holeIndex           *HoleIndex
 	s                   *Storage
@@ -50,7 +50,7 @@ type Container struct {
 	ch                  bool
 }
 
-func (c *Container) Init(s *Storage) (err error) {
+func (c *Container) Init(s *Storage, rr *dump.ResultReader) (err error) {
 	aelog.Debugln("Init container", c.Id)
 	c.m = new(sync.Mutex)
 	c.s = s
@@ -60,8 +60,10 @@ func (c *Container) Init(s *Storage) (err error) {
 		return
 	}
 	c.holeIndex = new(HoleIndex)
-	c.holeIndex.Init()
-	c.restore()
+	c.holeIndex.Init(s.Conf.ContainerSize)
+	if err = c.restore(rr); err != nil {
+		return
+	}
 	c.ch = true
 	// build holeIndex
 	/*var last, next Space
@@ -127,6 +129,28 @@ func (c *Container) Close() (err error) {
 	return c.f.Close()
 }
 
+type dumper struct {
+	c           *Container
+	contFlushed bool
+	next        Space
+}
+
+func (d *dumper) Write(w io.Writer) error {
+	if !d.contFlushed {
+		d.contFlushed = true
+		if d.c.last != nil {
+			d.next = d.c.last
+		}
+		return d.c.MarshallTo(w)
+	}
+	if d.next != nil {
+		toReturn := d.next
+		d.next = toReturn.Prev()
+		return toReturn.MarshalTo(w)
+	}
+	return io.EOF
+}
+
 func (c *Container) Dump() (err error) {
 	c.m.Lock()
 	defer c.m.Unlock()
@@ -136,67 +160,64 @@ func (c *Container) Dump() (err error) {
 	}
 
 	st := time.Now()
-	var i int64
-
-	c.FDump = make(map[int64]*File, c.FileCount)
-	c.HDump = make(map[int64]*Hole, c.holeIndex.Count)
-
-	var last Space = c.last
-
-	for last != nil && c.last != nil {
-		if last.IsFree() {
-			c.HDump[i] = last.(*Hole)
-		} else {
-			c.FDump[i] = last.(*File)
-		}
-		last = last.Prev()
-		i++
-	}
-
 	pr := time.Since(st)
 
-	n, err := dump.DumpTo(c.indexName(), c)
+	n, err := dump.DumpTo(c.indexName(), &dumper{c: c})
 	aelog.Debugf("Dump container %d, writed %s for a %v (prep: %v)", c.Id, utils.HumanBytes(n), time.Since(st), pr)
 	c.ch = false
 	return
 }
 
-func (c *Container) restore() {
+func (c *Container) restore(rr *dump.ResultReader) (err error) {
 	var i int64
-	if c.FDump == nil || len(c.FDump) == 0 {
-		return
+	if rr == nil {
+		return nil
 	}
 
 	c.FileRealSize = 0
-	c.last = c.FDump[i]
+	var sp, prev Space
+	sp, err = UnmarshallSpace(rr.B)
+	if err != nil {
+		if err == io.EOF {
+			return nil
+		}
+		return
+	}
+	if sp != nil {
+		c.last = sp.(*File)
+	}
 	if c.last != nil {
 		c.last.Init(c)
 		c.s.Index.Add(c.last)
 		c.FileRealSize += c.last.Size()
+		prev = c.last
 	}
-	var next Space = c.last
 	i++
 
 	for {
-		if last, ok := c.FDump[i]; ok {
-			last.SetNext(next)
-			next.SetPrev(last)
-			next = last
-			last.Init(c)
-			c.s.Index.Add(last)
-			c.FileRealSize += last.Size()
-		} else if last, ok := c.HDump[i]; ok {
-			last.SetNext(next)
-			next.SetPrev(last)
-			next = last
-			c.holeIndex.Add(last)
-		} else {
-			break
+		if sp, err = UnmarshallSpace(rr.B); err != nil {
+			if err == io.EOF {
+				aelog.Debugf("read %d files", i)
+				return nil
+			}
+			return
 		}
+		if lastF, ok := sp.(*File); ok {
+			lastF.SetNext(prev)
+			prev.SetPrev(lastF)
+			lastF.Init(c)
+			c.s.Index.Add(lastF)
+			c.FileRealSize += lastF.Size()
+		} else {
+			lastS := sp.(*Hole)
+			lastS.SetNext(prev)
+			prev.SetPrev(lastS)
+			c.holeIndex.Add(lastS)
+		}
+		prev = sp
 		i++
 	}
-	c.FDump = nil
-	c.HDump = nil
+	return nil
 }
 
 // Allocator
@@ -237,7 +258,7 @@ func (c *Container) Allocate(f *File, target int) (ok bool) {
 }
 
 func (c *Container) allocReplace(f *File) (ok bool) {
-	if h := c.holeIndex.Get(f.Index()); h != nil {
+	if h := c.holeIndex.Get(int(f.Index())); h != nil {
 		f.SetOffset(h.Offset())
 		c.replace(h, f)
 		ok = true
@@ -257,7 +278,7 @@ func (c *Container) allocAppend(f *File) (ok bool) {
 }
 
 func (c *Container) allocInsert(f *File) (ok bool) {
-	if s := c.holeIndex.GetBiggest(f.Index()); s != nil {
+	if s := c.holeIndex.GetBiggest(int(f.Index())); s != nil {
 		if s.Index() == f.Index() {
 			f.SetOffset(s.Offset())
 			c.replace(s, f)
@@ -311,7 +332,7 @@ func (c *Container) Delete(f *File) {
 
 	// create hole
 	h := &Hole{
-		Indx: f.Index(),
+		Indx: int32(f.Index()),
 	}
 	// replace file to hole
 	h.SetOffset(f.Offset())
@@ -481,4 +502,22 @@ func (c *Container) Check() (err error) {
 		s = s.Prev()
 	}
 	return
+}
+
+func (c *Container) MarshallTo(w io.Writer) error {
+	var arr [binary.MaxVarintLen64 * 6]byte
+	buf := arr[:0]
+	buf = append(buf, 3)
+	buf = binary.AppendUvarint(buf, uint64(c.Id))
+	buf = binary.AppendUvarint(buf, uint64(c.Size))
+	buf = binary.AppendUvarint(buf, uint64(c.FileCount))
+	buf = binary.AppendUvarint(buf, uint64(c.FileSize))
+	buf = binary.AppendUvarint(buf, uint64(c.FileRealSize))
+	if c.Created {
+		buf = append(buf, 11)
+	} else {
+		buf = append(buf, 10)
+	}
+	_, err := w.Write(buf)
+	return err
 }

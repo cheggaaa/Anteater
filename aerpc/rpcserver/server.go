@@ -17,11 +17,11 @@
 package rpcserver
 
 import (
-	"github.com/cheggaaa/Anteater/src/aelog"
-	"github.com/cheggaaa/Anteater/src/backup"
-	"github.com/cheggaaa/Anteater/src/cnst"
-	"github.com/cheggaaa/Anteater/src/stats"
-	"github.com/cheggaaa/Anteater/src/storage"
+	"github.com/cheggaaa/Anteater/aelog"
+	"github.com/cheggaaa/Anteater/backup"
+	"github.com/cheggaaa/Anteater/cnst"
+	"github.com/cheggaaa/Anteater/stats"
+	"github.com/cheggaaa/Anteater/storage"
 	"net"
 	"net/http"
 	"net/rpc"
